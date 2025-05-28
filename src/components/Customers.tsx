@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -242,13 +243,20 @@ export function Customers() {
         {filteredCustomers.map((customer) => {
           const stageInfo = getStageInfo(customer.stage);
           return (
-            <Card key={customer.id} className="hover:shadow-lg transition-shadow">
+            <Card key={customer.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setSelectedCustomer(customer)}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-900">
                     {customer.name}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => setSelectedCustomer(customer)}>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCustomer(customer);
+                    }}
+                  >
                     <Eye className="h-4 w-4" />
                   </Button>
                 </div>
