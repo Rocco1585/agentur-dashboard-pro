@@ -5,15 +5,40 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, TrendingUp, TrendingDown, Calculator } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export function Revenue() {
   const [newRevenue, setNewRevenue] = useState({ client: '', amount: '', date: '' });
   const [newExpense, setNewExpense] = useState({ description: '', amount: '', date: '' });
+  const [revenues, setRevenues] = useState([
+    { id: 1, client: 'ABC GmbH', amount: 2500, date: '15.01.2025' },
+    { id: 2, client: 'XYZ Corp', amount: 1800, date: '12.01.2025' },
+  ]);
+  const [expenses, setExpenses] = useState([
+    { id: 1, description: 'Marketing', amount: 500, date: '14.01.2025' },
+    { id: 2, description: 'Büroausstattung', amount: 300, date: '10.01.2025' },
+  ]);
+
+  // Beispiel-Kunden für Dropdown
+  const customers = [
+    { id: 1, name: 'ABC GmbH' },
+    { id: 2, name: 'XYZ Corp' },
+    { id: 3, name: 'DEF AG' },
+    { id: 4, name: 'GHI GmbH' },
+    { id: 5, name: 'JKL Corp' },
+  ];
 
   const handleAddRevenue = () => {
     if (newRevenue.client && newRevenue.amount) {
+      const revenue = {
+        id: Date.now(),
+        client: newRevenue.client,
+        amount: parseFloat(newRevenue.amount),
+        date: newRevenue.date || new Date().toLocaleDateString('de-DE')
+      };
+      setRevenues(prev => [...prev, revenue]);
       toast({
         title: "Einnahme hinzugefügt",
         description: `${newRevenue.client}: €${newRevenue.amount}`,
@@ -24,6 +49,13 @@ export function Revenue() {
 
   const handleAddExpense = () => {
     if (newExpense.description && newExpense.amount) {
+      const expense = {
+        id: Date.now(),
+        description: newExpense.description,
+        amount: parseFloat(newExpense.amount),
+        date: newExpense.date || new Date().toLocaleDateString('de-DE')
+      };
+      setExpenses(prev => [...prev, expense]);
       toast({
         title: "Ausgabe hinzugefügt",
         description: `${newExpense.description}: €${newExpense.amount}`,
@@ -32,10 +64,22 @@ export function Revenue() {
     }
   };
 
+  // Berechnungen
+  const totalRevenue = revenues.reduce((sum, rev) => sum + rev.amount, 0);
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalProfit = totalRevenue - totalExpenses;
+  const taxReserve = totalProfit * 0.3;
+
   const revenueStats = [
-    { period: "Heute", revenue: "€2.340", expenses: "€420", profit: "€1.920", tax: "€576" },
+    { 
+      period: "Heute", 
+      revenue: `€${revenues.filter(r => r.date === new Date().toLocaleDateString('de-DE')).reduce((sum, r) => sum + r.amount, 0)}`,
+      expenses: `€${expenses.filter(e => e.date === new Date().toLocaleDateString('de-DE')).reduce((sum, e) => sum + e.amount, 0)}`,
+      profit: "€1.920", 
+      tax: "€576" 
+    },
     { period: "Diese Woche", revenue: "€12.450", expenses: "€2.100", profit: "€10.350", tax: "€3.105" },
-    { period: "Dieser Monat", revenue: "€47.500", expenses: "€8.200", profit: "€39.300", tax: "€11.790" },
+    { period: "Dieser Monat", revenue: `€${totalRevenue}`, expenses: `€${totalExpenses}`, profit: `€${totalProfit}`, tax: `€${Math.round(taxReserve)}` },
     { period: "Dieses Jahr", revenue: "€485.000", expenses: "€92.000", profit: "€393.000", tax: "€117.900" },
     { period: "Allzeit", revenue: "€1.250.000", expenses: "€245.000", profit: "€1.005.000", tax: "€301.500" },
   ];
@@ -93,6 +137,47 @@ export function Revenue() {
               </Card>
             ))}
           </div>
+
+          {/* Recent Transactions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-green-600">Letzte Einnahmen</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {revenues.slice(-5).map(revenue => (
+                    <div key={revenue.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <div>
+                        <div className="font-medium text-sm">{revenue.client}</div>
+                        <div className="text-xs text-gray-600">{revenue.date}</div>
+                      </div>
+                      <span className="font-bold text-green-600">€{revenue.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-red-600">Letzte Ausgaben</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {expenses.slice(-5).map(expense => (
+                    <div key={expense.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                      <div>
+                        <div className="font-medium text-sm">{expense.description}</div>
+                        <div className="text-xs text-gray-600">{expense.date}</div>
+                      </div>
+                      <span className="font-bold text-red-600">€{expense.amount}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="add-revenue" className="space-y-6">
@@ -107,12 +192,16 @@ export function Revenue() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="client">Kunde</Label>
-                  <Input
-                    id="client"
-                    placeholder="Kundenname"
-                    value={newRevenue.client}
-                    onChange={(e) => setNewRevenue({...newRevenue, client: e.target.value})}
-                  />
+                  <Select value={newRevenue.client} onValueChange={(value) => setNewRevenue({...newRevenue, client: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Kunde auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map(customer => (
+                        <SelectItem key={customer.id} value={customer.name}>{customer.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="amount">Betrag (€)</Label>

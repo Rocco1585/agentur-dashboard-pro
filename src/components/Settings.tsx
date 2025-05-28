@@ -12,23 +12,36 @@ import { toast } from "@/hooks/use-toast";
 export function Settings() {
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'mitarbeiter' });
   
-  const users = [
+  const [users, setUsers] = useState([
     { id: 1, name: 'Admin User', email: 'admin@vertrieb.de', role: 'admin', created: '01.01.2024' },
     { id: 2, name: 'Max Mustermann', email: 'max@vertrieb.de', role: 'mitarbeiter', created: '01.03.2024' },
     { id: 3, name: 'Lisa Schmidt', email: 'lisa@vertrieb.de', role: 'mitarbeiter', created: '15.05.2024' },
-  ];
+  ]);
 
   const handleAddUser = () => {
     if (newUser.name && newUser.email) {
+      const user = {
+        id: Date.now(),
+        ...newUser,
+        created: new Date().toLocaleDateString('de-DE')
+      };
+      setUsers(prev => [...prev, user]);
       toast({
         title: "Benutzer hinzugefügt",
         description: `${newUser.name} wurde als ${newUser.role} hinzugefügt.`,
       });
       setNewUser({ name: '', email: '', role: 'mitarbeiter' });
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Felder aus.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleDeleteUser = (userId: number, userName: string) => {
+    setUsers(prev => prev.filter(user => user.id !== userId));
     toast({
       title: "Benutzer gelöscht",
       description: `${userName} wurde entfernt.`,
@@ -131,7 +144,7 @@ export function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Users className="h-5 w-5 mr-2 text-blue-600" />
-                Bestehende Benutzer
+                Bestehende Benutzer ({users.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -250,7 +263,13 @@ export function Settings() {
                   </Select>
                 </div>
               </div>
-              <Button className="w-full md:w-auto mt-4">
+              <Button 
+                className="w-full md:w-auto mt-4"
+                onClick={() => toast({
+                  title: "Einstellungen gespeichert",
+                  description: "Ihre Systemeinstellungen wurden erfolgreich gespeichert.",
+                })}
+              >
                 Einstellungen speichern
               </Button>
             </CardContent>
