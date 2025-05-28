@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Calendar, Phone, Mail, DragHandleDots2Icon as Grip } from "lucide-react";
+import { ArrowLeft, Plus, Calendar, Phone, Mail, GripVertical } from "lucide-react";
 
 interface CustomerDetailProps {
   customer: any;
@@ -215,7 +215,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium text-sm">{appointment.company}</span>
-                      <Grip className="h-4 w-4 text-gray-400" />
+                      <GripVertical className="h-4 w-4 text-gray-400" />
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <div>{appointment.contact}</div>

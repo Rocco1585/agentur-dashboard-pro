@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Flame, Plus, Calendar, MessageSquare, ArrowRight, User, DragHandleDots2Icon as Grip } from "lucide-react";
+import { Flame, Plus, Calendar, MessageSquare, ArrowRight, User, GripVertical } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export function HotLeads() {
@@ -264,7 +265,7 @@ export function HotLeads() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">{lead.name}</span>
-                      <Grip className="h-4 w-4 text-gray-400" />
+                      <GripVertical className="h-4 w-4 text-gray-400" />
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <div>{lead.email}</div>
