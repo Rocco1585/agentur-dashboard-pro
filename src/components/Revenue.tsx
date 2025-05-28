@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,25 +63,103 @@ export function Revenue() {
     }
   };
 
-  // Berechnungen
-  const totalRevenue = revenues.reduce((sum, rev) => sum + rev.amount, 0);
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalProfit = totalRevenue - totalExpenses;
-  const taxReserve = totalProfit * 0.3;
+  // Hilfsfunktionen für Datumberechnungen
+  const isToday = (dateString: string) => {
+    return dateString === new Date().toLocaleDateString('de-DE');
+  };
 
-  const revenueStats = [
-    { 
-      period: "Heute", 
-      revenue: `€${revenues.filter(r => r.date === new Date().toLocaleDateString('de-DE')).reduce((sum, r) => sum + r.amount, 0)}`,
-      expenses: `€${expenses.filter(e => e.date === new Date().toLocaleDateString('de-DE')).reduce((sum, e) => sum + e.amount, 0)}`,
-      profit: "€1.920", 
-      tax: "€576" 
-    },
-    { period: "Diese Woche", revenue: "€12.450", expenses: "€2.100", profit: "€10.350", tax: "€3.105" },
-    { period: "Dieser Monat", revenue: `€${totalRevenue}`, expenses: `€${totalExpenses}`, profit: `€${totalProfit}`, tax: `€${Math.round(taxReserve)}` },
-    { period: "Dieses Jahr", revenue: "€485.000", expenses: "€92.000", profit: "€393.000", tax: "€117.900" },
-    { period: "Allzeit", revenue: "€1.250.000", expenses: "€245.000", profit: "€1.005.000", tax: "€301.500" },
-  ];
+  const isThisWeek = (dateString: string) => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    
+    const [day, month, year] = dateString.split('.');
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    return date >= startOfWeek && date <= endOfWeek;
+  };
+
+  const isThisMonth = (dateString: string) => {
+    const today = new Date();
+    const [day, month, year] = dateString.split('.');
+    return parseInt(month) === today.getMonth() + 1 && parseInt(year) === today.getFullYear();
+  };
+
+  const isThisYear = (dateString: string) => {
+    const today = new Date();
+    const [day, month, year] = dateString.split('.');
+    return parseInt(year) === today.getFullYear();
+  };
+
+  // Dynamische Berechnungen
+  const calculateStats = () => {
+    const todayRevenue = revenues.filter(r => isToday(r.date)).reduce((sum, r) => sum + r.amount, 0);
+    const todayExpenses = expenses.filter(e => isToday(e.date)).reduce((sum, e) => sum + e.amount, 0);
+    const todayProfit = todayRevenue - todayExpenses;
+    const todayTax = todayProfit * 0.3;
+
+    const weekRevenue = revenues.filter(r => isThisWeek(r.date)).reduce((sum, r) => sum + r.amount, 0);
+    const weekExpenses = expenses.filter(e => isThisWeek(e.date)).reduce((sum, e) => sum + e.amount, 0);
+    const weekProfit = weekRevenue - weekExpenses;
+    const weekTax = weekProfit * 0.3;
+
+    const monthRevenue = revenues.filter(r => isThisMonth(r.date)).reduce((sum, r) => sum + r.amount, 0);
+    const monthExpenses = expenses.filter(e => isThisMonth(e.date)).reduce((sum, e) => sum + e.amount, 0);
+    const monthProfit = monthRevenue - monthExpenses;
+    const monthTax = monthProfit * 0.3;
+
+    const yearRevenue = revenues.filter(r => isThisYear(r.date)).reduce((sum, r) => sum + r.amount, 0);
+    const yearExpenses = expenses.filter(e => isThisYear(e.date)).reduce((sum, e) => sum + e.amount, 0);
+    const yearProfit = yearRevenue - yearExpenses;
+    const yearTax = yearProfit * 0.3;
+
+    const totalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0);
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const totalProfit = totalRevenue - totalExpenses;
+    const totalTax = totalProfit * 0.3;
+
+    return [
+      { 
+        period: "Heute", 
+        revenue: `€${todayRevenue.toFixed(0)}`,
+        expenses: `€${todayExpenses.toFixed(0)}`,
+        profit: `€${todayProfit.toFixed(0)}`, 
+        tax: `€${todayTax.toFixed(0)}` 
+      },
+      { 
+        period: "Diese Woche", 
+        revenue: `€${weekRevenue.toFixed(0)}`, 
+        expenses: `€${weekExpenses.toFixed(0)}`, 
+        profit: `€${weekProfit.toFixed(0)}`, 
+        tax: `€${weekTax.toFixed(0)}` 
+      },
+      { 
+        period: "Dieser Monat", 
+        revenue: `€${monthRevenue.toFixed(0)}`, 
+        expenses: `€${monthExpenses.toFixed(0)}`, 
+        profit: `€${monthProfit.toFixed(0)}`, 
+        tax: `€${monthTax.toFixed(0)}` 
+      },
+      { 
+        period: "Dieses Jahr", 
+        revenue: `€${yearRevenue.toFixed(0)}`, 
+        expenses: `€${yearExpenses.toFixed(0)}`, 
+        profit: `€${yearProfit.toFixed(0)}`, 
+        tax: `€${yearTax.toFixed(0)}` 
+      },
+      { 
+        period: "Allzeit", 
+        revenue: `€${totalRevenue.toFixed(0)}`, 
+        expenses: `€${totalExpenses.toFixed(0)}`, 
+        profit: `€${totalProfit.toFixed(0)}`, 
+        tax: `€${totalTax.toFixed(0)}` 
+      },
+    ];
+  };
+
+  const revenueStats = calculateStats();
 
   return (
     <div className="space-y-6">
@@ -138,7 +215,6 @@ export function Revenue() {
             ))}
           </div>
 
-          {/* Recent Transactions */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
