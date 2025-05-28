@@ -8,6 +8,7 @@ import { Customers } from "@/components/Customers";
 import { HotLeads } from "@/components/HotLeads";
 import { TeamMembers } from "@/components/TeamMembers";
 import { Settings } from "@/components/Settings";
+import { ToDos } from "@/components/ToDos";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -24,6 +25,8 @@ const Index = () => {
         return <HotLeads />;
       case 'team':
         return <TeamMembers />;
+      case 'todos':
+        return <ToDos />;
       case 'settings':
         return <Settings />;
       default:

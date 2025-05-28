@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,14 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, TrendingUp, TrendingDown, Calculator, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Calculator, ChevronDown, ChevronUp, Users, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export function Revenue() {
-  const [newRevenue, setNewRevenue] = useState({ client: '', amount: '', date: '', reference: '' });
-  const [newExpense, setNewExpense] = useState({ description: '', amount: '', date: '', reference: '' });
+  const [newRevenue, setNewRevenue] = useState({ client: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
+  const [newExpense, setNewExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
+  
+  // Zeitraumfilter
+  const [timeRange, setTimeRange] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [selectedWeek, setSelectedWeek] = useState(new Date().toISOString().slice(0, 10));
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  
   const [showAllRevenues, setShowAllRevenues] = useState(false);
   const [showAllExpenses, setShowAllExpenses] = useState(false);
   const [currentRevenuePage, setCurrentRevenuePage] = useState(1);
@@ -57,7 +64,7 @@ export function Revenue() {
         title: "Einnahme hinzugefügt",
         description: `${newRevenue.client}: €${newRevenue.amount}`,
       });
-      setNewRevenue({ client: '', amount: '', date: '', reference: '' });
+      setNewRevenue({ client: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
     }
   };
 
@@ -75,18 +82,46 @@ export function Revenue() {
         title: "Ausgabe hinzugefügt",
         description: `${newExpense.description}: €${newExpense.amount}`,
       });
-      setNewExpense({ description: '', amount: '', date: '', reference: '' });
+      setNewExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
     }
   };
 
-  // Filter für ausgewählten Monat
-  const filterByMonth = (items: any[]) => {
-    return items.filter(item => item.date.startsWith(selectedMonth));
+  // Filterfunktionen basierend auf Zeitraum
+  const filterByTimeRange = (items: any[]) => {
+    const now = new Date();
+    
+    switch (timeRange) {
+      case 'week':
+        const weekStart = new Date(selectedWeek);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        return items.filter(item => {
+          const itemDate = new Date(item.date);
+          return itemDate >= weekStart && itemDate <= weekEnd;
+        });
+      
+      case 'month':
+        return items.filter(item => item.date.startsWith(selectedMonth));
+      
+      case 'year':
+        return items.filter(item => item.date.startsWith(selectedYear));
+      
+      case 'custom':
+        if (!customStartDate || !customEndDate) return items;
+        return items.filter(item => {
+          const itemDate = item.date;
+          return itemDate >= customStartDate && itemDate <= customEndDate;
+        });
+      
+      case 'all':
+      default:
+        return items;
+    }
   };
 
-  const filteredRevenues = filterByMonth(revenues);
-  const filteredExpenses = filterByMonth(expenses);
-  const filteredTeamCosts = filterByMonth(teamMemberCosts);
+  const filteredRevenues = filterByTimeRange(revenues);
+  const filteredExpenses = filterByTimeRange(expenses);
+  const filteredTeamCosts = filterByTimeRange(teamMemberCosts);
 
   // Berechnungen für den ausgewählten Monat
   const monthRevenue = filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
@@ -95,6 +130,29 @@ export function Revenue() {
   const monthProfit = monthRevenue - monthExpenses - monthTeamCosts;
   const monthTax = monthProfit * 0.3;
 
+  // Excel Export Funktion
+  const exportToExcel = () => {
+    const data = [
+      ['Typ', 'Beschreibung/Kunde', 'Betrag', 'Datum', 'Referenz'],
+      ...filteredRevenues.map(r => ['Einnahme', r.client, r.amount, r.date, r.reference]),
+      ...filteredExpenses.map(e => ['Ausgabe', e.description, -e.amount, e.date, e.reference]),
+      ...filteredTeamCosts.map(t => ['Mitarbeiterkosten', t.name, -t.earnings, t.date, 'Mitarbeiterzahlung'])
+    ];
+    
+    const csvContent = data.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `finanzen_${timeRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    
+    toast({
+      title: "Export erfolgreich",
+      description: "Finanzdaten wurden als CSV exportiert",
+    });
+  };
+
   // Pagination für Order Book
   const ITEMS_PER_PAGE = 20;
   const paginateItems = (items: any[], page: number) => {
@@ -102,9 +160,22 @@ export function Revenue() {
     return items.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   };
 
-  const getMonthName = (monthString: string) => {
-    const date = new Date(monthString + '-01');
-    return date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+  const getTimeRangeName = () => {
+    switch (timeRange) {
+      case 'week':
+        return `Woche vom ${new Date(selectedWeek).toLocaleDateString('de-DE')}`;
+      case 'month':
+        const date = new Date(selectedMonth + '-01');
+        return date.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+      case 'year':
+        return `Jahr ${selectedYear}`;
+      case 'custom':
+        return `${customStartDate} - ${customEndDate}`;
+      case 'all':
+        return 'Gesamter Zeitraum';
+      default:
+        return 'Unbekannt';
+    }
   };
 
   return (
@@ -115,25 +186,84 @@ export function Revenue() {
           <p className="text-gray-600">Verwalten Sie Ihre Finanzen und Gewinnmargen.</p>
         </div>
         
-        {/* Monatsfilter */}
-        <Card className="w-64">
-          <CardContent className="pt-4">
-            <Label htmlFor="month-filter">Monat auswählen</Label>
-            <Input
-              id="month-filter"
-              type="month"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-            />
-          </CardContent>
-        </Card>
+        {/* Zeitraumfilter */}
+        <div className="flex gap-4">
+          <Card className="w-64">
+            <CardContent className="pt-4">
+              <Label>Zeitraum auswählen</Label>
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="week">Woche</SelectItem>
+                  <SelectItem value="month">Monat</SelectItem>
+                  <SelectItem value="year">Jahr</SelectItem>
+                  <SelectItem value="custom">Benutzerdefiniert</SelectItem>
+                  <SelectItem value="all">Gesamter Zeitraum</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {timeRange === 'week' && (
+                <Input
+                  type="date"
+                  value={selectedWeek}
+                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  className="mt-2"
+                />
+              )}
+              
+              {timeRange === 'month' && (
+                <Input
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="mt-2"
+                />
+              )}
+              
+              {timeRange === 'year' && (
+                <Input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  min="2020"
+                  max="2030"
+                  className="mt-2"
+                />
+              )}
+              
+              {timeRange === 'custom' && (
+                <div className="space-y-2 mt-2">
+                  <Input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    placeholder="Von"
+                  />
+                  <Input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    placeholder="Bis"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Button onClick={exportToExcel} variant="outline" className="self-end mb-4">
+            <Download className="h-4 w-4 mr-2" />
+            Excel Export
+          </Button>
+        </div>
       </div>
 
-      {/* Übersicht für ausgewählten Monat */}
+      {/* Übersicht für ausgewählten Zeitraum */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold text-gray-900">
-            Übersicht für {getMonthName(selectedMonth)}
+            Übersicht für {getTimeRangeName()}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -182,11 +312,12 @@ export function Revenue() {
           <TabsTrigger value="add-expense">Ausgabe hinzufügen</TabsTrigger>
         </TabsList>
 
+        
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-green-600">Letzte Einnahmen ({getMonthName(selectedMonth)})</CardTitle>
+                <CardTitle className="text-green-600">Letzte Einnahmen ({getTimeRangeName()})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -206,7 +337,7 @@ export function Revenue() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-red-600">Letzte Ausgaben ({getMonthName(selectedMonth)})</CardTitle>
+                <CardTitle className="text-red-600">Letzte Ausgaben ({getTimeRangeName()})</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">

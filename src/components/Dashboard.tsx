@@ -3,31 +3,81 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle } from "lucide-react";
 
 export function Dashboard() {
+  // Mock Daten - sollten später aus echten Datenquellen kommen
+  const mockRevenues = [
+    { id: 1, client: 'ABC GmbH', amount: 2500, date: '2025-01-15' },
+    { id: 2, client: 'XYZ Corp', amount: 1800, date: '2025-01-12' },
+    { id: 3, client: 'DEF AG', amount: 3200, date: '2025-01-10' },
+    { id: 4, client: 'GHI GmbH', amount: 1500, date: '2025-01-08' },
+  ];
+
+  const mockExpenses = [
+    { id: 1, description: 'Marketing', amount: 500, date: '2025-01-14' },
+    { id: 2, description: 'Büroausstattung', amount: 300, date: '2025-01-10' },
+  ];
+
+  const mockCustomers = [
+    { id: 1, name: 'ABC GmbH', stage: 'bestandskunde' },
+    { id: 2, name: 'XYZ Corp', stage: 'testphase aktiv' },
+    { id: 3, name: 'DEF AG', stage: 'upsell bevorstehend' },
+    { id: 4, name: 'GHI GmbH', stage: 'bestandskunde' },
+    { id: 5, name: 'JKL Corp', stage: 'testphase aktiv' },
+  ];
+
+  // Berechnungen für 30 Tage
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  const revenue30Days = mockRevenues
+    .filter(r => new Date(r.date) >= thirtyDaysAgo)
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  // Heutiger Umsatz
+  const todayString = today.toISOString().slice(0, 10);
+  const revenueToday = mockRevenues
+    .filter(r => r.date === todayString)
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  // Jahresgewinn (vereinfacht)
+  const yearStart = new Date(today.getFullYear(), 0, 1);
+  const yearRevenue = mockRevenues
+    .filter(r => new Date(r.date) >= yearStart)
+    .reduce((sum, r) => sum + r.amount, 0);
+  const yearExpenses = mockExpenses
+    .filter(e => new Date(e.date) >= yearStart)
+    .reduce((sum, e) => sum + e.amount, 0);
+  const yearProfit = yearRevenue - yearExpenses;
+
+  // Aktive Kunden (mit Status testphase aktiv, upsell bevorstehend, bestandskunde)
+  const activeCustomers = mockCustomers.filter(c => 
+    ['testphase aktiv', 'upsell bevorstehend', 'bestandskunde'].includes(c.stage)
+  ).length;
+
   const stats = [
     {
       title: "Umsatz 30 Tage",
-      value: "€47.500",
+      value: `€${revenue30Days.toLocaleString()}`,
       change: "+12%",
       icon: TrendingUp,
       color: "text-green-600",
     },
     {
       title: "Umsatz Heute",
-      value: "€2.340",
+      value: `€${revenueToday.toLocaleString()}`,
       change: "+8%",
       icon: Euro,
       color: "text-blue-600",
     },
     {
       title: "Jahresgewinn",
-      value: "€185.000",
+      value: `€${yearProfit.toLocaleString()}`,
       change: "+15%",
       icon: Target,
       color: "text-purple-600",
     },
     {
       title: "Aktive Kunden",
-      value: "127",
+      value: activeCustomers.toString(),
       change: "+3",
       icon: Users,
       color: "text-orange-600",
@@ -38,6 +88,8 @@ export function Dashboard() {
     { task: "Follow-up mit ABC GmbH", date: "Heute, 14:00", priority: "hoch" },
     { task: "Angebot für XYZ Corp erstellen", date: "Morgen, 10:00", priority: "mittel" },
     { task: "Vertrag mit DEF AG prüfen", date: "03.01.2025", priority: "niedrig" },
+    { task: "Quarterly Review vorbereiten", date: "Übermorgen, 09:00", priority: "hoch" },
+    { task: "Neue Mitarbeiter einarbeiten", date: "05.01.2025", priority: "mittel" },
   ];
 
   const teamAppointments = [
