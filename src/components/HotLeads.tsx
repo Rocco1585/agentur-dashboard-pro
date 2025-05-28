@@ -7,10 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Flame, Plus, Calendar, MessageSquare, ArrowRight, User, GripVertical } from "lucide-react";
+import { Flame, Plus, Calendar, MessageSquare, ArrowRight, User, GripVertical, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
-export function HotLeads() {
+interface HotLeadsProps {
+  onConvertToCustomer?: (lead: any) => void;
+}
+
+export function HotLeads({ onConvertToCustomer }: HotLeadsProps) {
   const [selectedPipeline, setSelectedPipeline] = useState('all');
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [newLead, setNewLead] = useState({
@@ -34,6 +38,7 @@ export function HotLeads() {
       id: 1,
       name: 'Maria Müller',
       email: 'maria@beispiel.de',
+      phone: '+49 123 456789',
       nextMeeting: '16.01.2025, 14:00',
       stage: 'opening',
       potential: 'A Potenzial',
@@ -49,6 +54,7 @@ export function HotLeads() {
       id: 2,
       name: 'Peter Schmidt',
       email: 'peter@firma.com',
+      phone: '+49 987 654321',
       nextMeeting: '17.01.2025, 10:30',
       stage: 'setting',
       potential: 'B Potenzial',
@@ -64,6 +70,7 @@ export function HotLeads() {
       id: 3,
       name: 'Sandra Weber',
       email: 'sandra@startup.de',
+      phone: '+49 555 123456',
       nextMeeting: '19.01.2025, 16:00',
       stage: 'closing',
       potential: 'A Potenzial',
@@ -100,6 +107,7 @@ export function HotLeads() {
       const lead = {
         id: Date.now(),
         ...newLead,
+        phone: '',
         nextMeeting: '',
         lastContact: new Date().toLocaleDateString('de-DE'),
         meetingHistory: []
@@ -122,12 +130,43 @@ export function HotLeads() {
   };
 
   const convertToCustomer = (lead: any) => {
+    // Erstelle Kunde aus Lead-Daten
+    const customer = {
+      id: Date.now(),
+      name: lead.name,
+      contact: lead.name,
+      email: lead.email,
+      phone: lead.phone || '',
+      stage: 'preparation',
+      priority: lead.potential.includes('A') ? 'A Kunde' : 'B Kunde',
+      satisfaction: 5,
+      nextAppointment: lead.nextMeeting || '',
+      bookedAppointments: 0,
+      completedAppointments: 0,
+      paymentStatus: 'ausstehend'
+    };
+
+    // Callback aufrufen wenn verfügbar
+    if (onConvertToCustomer) {
+      onConvertToCustomer(customer);
+    }
+
+    // Lead aus Liste entfernen
+    setLeads(prev => prev.filter(l => l.id !== lead.id));
+    
     toast({
       title: "Lead zu Kunde konvertiert",
-      description: `${lead.name} wurde in die Kunden-Pipeline verschoben.`,
+      description: `${lead.name} wurde erfolgreich in die Kunden-Pipeline verschoben.`,
     });
-    // Hier würde normalerweise der Lead aus der Liste entfernt und als Kunde hinzugefügt
-    setLeads(prev => prev.filter(l => l.id !== lead.id));
+  };
+
+  const deleteLead = (leadId: number) => {
+    const lead = leads.find(l => l.id === leadId);
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+    toast({
+      title: "Lead gelöscht",
+      description: `${lead?.name} wurde erfolgreich gelöscht.`,
+    });
   };
 
   const getStageInfo = (stageId: string) => {
@@ -261,11 +300,24 @@ export function HotLeads() {
                     key={lead.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, lead.id)}
-                    className="bg-white p-3 rounded border cursor-move hover:shadow-md transition-shadow"
+                    className="bg-white p-3 rounded border cursor-move hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-sm">{lead.name}</span>
-                      <GripVertical className="h-4 w-4 text-gray-400" />
+                      <div className="flex items-center space-x-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteLead(lead.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                        <GripVertical className="h-4 w-4 text-gray-400" />
+                      </div>
                     </div>
                     <div className="text-xs text-gray-600 space-y-1">
                       <div>{lead.email}</div>
