@@ -171,7 +171,33 @@ export function useTeamMembers() {
     fetchTeamMembers();
   }, []);
 
-  return { teamMembers, loading, refetch: fetchTeamMembers };
+  const addTeamMember = async (memberData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert([memberData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setTeamMembers(prev => [data, ...prev]);
+      toast({
+        title: "Erfolg",
+        description: "Teammitglied wurde hinzugefügt.",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding team member:', error);
+      toast({
+        title: "Fehler",
+        description: "Teammitglied konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { teamMembers, loading, addTeamMember, refetch: fetchTeamMembers };
 }
 
 export function useTodos() {
@@ -198,6 +224,32 @@ export function useTodos() {
     fetchTodos();
   }, []);
 
+  const addTodo = async (todoData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('todos')
+        .insert([todoData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setTodos(prev => [data, ...prev]);
+      toast({
+        title: "Erfolg",
+        description: "Todo wurde hinzugefügt.",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding todo:', error);
+      toast({
+        title: "Fehler",
+        description: "Todo konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateTodo = async (id: string, updates: any) => {
     try {
       const { data, error } = await supabase
@@ -216,5 +268,228 @@ export function useTodos() {
     }
   };
 
-  return { todos, loading, updateTodo, refetch: fetchTodos };
+  const deleteTodo = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setTodos(prev => prev.filter(t => t.id !== id));
+      toast({
+        title: "Erfolg",
+        description: "Todo wurde gelöscht.",
+      });
+    } catch (error) {
+      console.error('Error deleting todo:', error);
+      toast({
+        title: "Fehler",
+        description: "Todo konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { todos, loading, addTodo, updateTodo, deleteTodo, refetch: fetchTodos };
+}
+
+export function useHotLeads() {
+  const [hotLeads, setHotLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchHotLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('hot_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setHotLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching hot leads:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHotLeads();
+  }, []);
+
+  const addHotLead = async (leadData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('hot_leads')
+        .insert([leadData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setHotLeads(prev => [data, ...prev]);
+      toast({
+        title: "Erfolg",
+        description: "Hot Lead wurde hinzugefügt.",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding hot lead:', error);
+      toast({
+        title: "Fehler",
+        description: "Hot Lead konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateHotLead = async (id: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('hot_leads')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setHotLeads(prev => prev.map(l => l.id === id ? data : l));
+      return data;
+    } catch (error) {
+      console.error('Error updating hot lead:', error);
+    }
+  };
+
+  const deleteHotLead = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('hot_leads')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setHotLeads(prev => prev.filter(l => l.id !== id));
+      toast({
+        title: "Erfolg",
+        description: "Hot Lead wurde gelöscht.",
+      });
+    } catch (error) {
+      console.error('Error deleting hot lead:', error);
+      toast({
+        title: "Fehler",
+        description: "Hot Lead konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { hotLeads, loading, addHotLead, updateHotLead, deleteHotLead, refetch: fetchHotLeads };
+}
+
+export function useAppointments() {
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          customers (name, contact, phone, email)
+        `)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const addAppointment = async (appointmentData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .insert([appointmentData])
+        .select(`
+          *,
+          customers (name, contact, phone, email)
+        `)
+        .single();
+
+      if (error) throw error;
+      
+      setAppointments(prev => [data, ...prev]);
+      toast({
+        title: "Erfolg",
+        description: "Termin wurde hinzugefügt.",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding appointment:', error);
+      toast({
+        title: "Fehler",
+        description: "Termin konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateAppointment = async (id: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          *,
+          customers (name, contact, phone, email)
+        `)
+        .single();
+
+      if (error) throw error;
+      
+      setAppointments(prev => prev.map(a => a.id === id ? data : a));
+      return data;
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+    }
+  };
+
+  const deleteAppointment = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setAppointments(prev => prev.filter(a => a.id !== id));
+      toast({
+        title: "Erfolg",
+        description: "Termin wurde gelöscht.",
+      });
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Fehler",
+        description: "Termin konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { appointments, loading, addAppointment, updateAppointment, deleteAppointment, refetch: fetchAppointments };
 }

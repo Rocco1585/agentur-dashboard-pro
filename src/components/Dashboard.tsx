@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useCustomers, useRevenues, useTodos } from '@/hooks/useSupabaseData';
+import { useCustomers, useRevenues, useTodos, useAppointments } from '@/hooks/useSupabaseData';
 
 export function Dashboard() {
   const [showAllTodos, setShowAllTodos] = useState(false);
@@ -12,11 +12,12 @@ export function Dashboard() {
   const { customers, loading: customersLoading } = useCustomers();
   const { revenues, loading: revenuesLoading } = useRevenues();
   const { todos, loading: todosLoading } = useTodos();
+  const { appointments, loading: appointmentsLoading } = useAppointments();
 
   // Calculate statistics from real data
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
   const activeCustomers = customers.filter(c => 
-    ['termin_erschienen', 'termin_abgeschlossen', 'follow_up_kunde', 'follow_up_wir'].includes(c.pipeline_stage)
+    ['termin_erschienen', 'termin_abgeschlossen', 'follow_up'].includes(c.pipeline_stage)
   ).length;
 
   // Calculate 30-day revenue
@@ -63,17 +64,16 @@ export function Dashboard() {
     },
   ];
 
-  // Mock appointments for now - you can extend this to fetch from appointments table
-  const teamAppointments = [
-    { member: "Max Mustermann", client: "Tech Solutions GmbH", date: "Heute, 15:30", type: "Closing" },
-    { member: "Anna Schmidt", client: "Digital Marketing AG", date: "Morgen, 09:00", type: "Setting" },
-    { member: "Tom Weber", client: "StartUp Innovations", date: "03.01.2025", type: "Follow-up" },
-  ];
+  // Filter appointments for today and upcoming
+  const today_appointments = appointments.filter(appointment => {
+    const appointmentDate = new Date(appointment.date);
+    const todayDate = new Date();
+    return appointmentDate >= todayDate;
+  }).slice(0, showAllAppointments ? undefined : 5);
 
   const displayedTodos = showAllTodos ? todos : todos.slice(0, 5);
-  const displayedAppointments = showAllAppointments ? teamAppointments : teamAppointments.slice(0, 5);
 
-  if (customersLoading || revenuesLoading || todosLoading) {
+  if (customersLoading || revenuesLoading || todosLoading || appointmentsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg">Lade Dashboard...</div>
@@ -142,24 +142,28 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {displayedTodos.map((todo) => (
-                <div key={todo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{todo.title}</p>
-                    <p className="text-sm text-gray-600">{todo.description}</p>
-                    <p className="text-sm text-gray-500">
-                      {todo.due_date ? new Date(todo.due_date).toLocaleDateString('de-DE') : 'Kein Datum'}
-                    </p>
+              {displayedTodos.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Keine Todos vorhanden</p>
+              ) : (
+                displayedTodos.map((todo) => (
+                  <div key={todo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{todo.title}</p>
+                      <p className="text-sm text-gray-600">{todo.description}</p>
+                      <p className="text-sm text-gray-500">
+                        {todo.due_date ? new Date(todo.due_date).toLocaleDateString('de-DE') : 'Kein Datum'}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      todo.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
+                      todo.priority === 'Mittel' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {todo.priority}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    todo.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
-                    todo.priority === 'Mittel' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {todo.priority}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -170,9 +174,9 @@ export function Dashboard() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-                Gelegte Termine vom Team
+                Anstehende Termine
               </div>
-              {teamAppointments.length > 5 && (
+              {appointments.length > 5 && (
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -196,18 +200,22 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {displayedAppointments.map((appointment, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{appointment.member}</p>
-                    <p className="text-sm text-gray-600">{appointment.client}</p>
-                    <p className="text-xs text-gray-500">{appointment.date}</p>
+              {today_appointments.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Keine anstehenden Termine</p>
+              ) : (
+                today_appointments.map((appointment) => (
+                  <div key={appointment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{appointment.customers?.name || 'Unbekannt'}</p>
+                      <p className="text-sm text-gray-600">{appointment.customers?.contact || 'Kein Kontakt'}</p>
+                      <p className="text-xs text-gray-500">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
+                    </div>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      {appointment.type}
+                    </span>
                   </div>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {appointment.type}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
