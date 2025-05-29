@@ -248,7 +248,7 @@ export function Customers() {
 
   if (!canViewCustomers()) {
     return (
-      <div className="w-full p-6">
+      <div className="w-full px-4 py-4">
         <Card>
           <CardContent className="p-8">
             <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Berechtigung</h3>
@@ -261,7 +261,7 @@ export function Customers() {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="w-full px-4 py-4 min-h-screen">
         <div className="text-lg text-left">Lade Kunden...</div>
       </div>
     );
@@ -269,7 +269,7 @@ export function Customers() {
 
   if (showCreateForm) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="w-full px-4 py-4 min-h-screen">
         <CreateCustomerForm 
           onClose={() => setShowCreateForm(false)}
           onCustomerCreated={fetchCustomers}
@@ -280,7 +280,7 @@ export function Customers() {
 
   if (selectedCustomer) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="w-full px-4 py-4 min-h-screen">
         <CustomerDetail 
           customer={selectedCustomer}
           onCustomerUpdated={() => {
@@ -293,7 +293,7 @@ export function Customers() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="w-full px-4 py-4 min-h-screen space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Kunden</h1>
@@ -321,7 +321,7 @@ export function Customers() {
 
       {viewMode === 'pipeline' ? (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex gap-6 overflow-x-auto pb-4">
+          <div className="flex gap-4 overflow-x-auto pb-4">
             {pipelineColumns.map((column) => (
               <PipelineColumn
                 key={column.id}
@@ -350,7 +350,7 @@ export function Customers() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {filteredCustomers.map((customer) => (
               <Card key={customer.id} className="transition-all hover:shadow-lg">
                 <CardHeader className="pb-3">
