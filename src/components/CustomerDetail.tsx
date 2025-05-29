@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,7 @@ import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp } fro
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenues } from '@/hooks/useSupabaseData';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 interface CustomerDetailProps {
   customer: any;
@@ -26,6 +26,15 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   const [statuses, setStatuses] = useState<string[]>([]);
   const [newStatus, setNewStatus] = useState('');
   const [notes, setNotes] = useState('');
+
+  const pipelineStages = [
+    { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-500' },
+    { id: 'termin_erschienen', name: 'Termin Erschienen', color: 'bg-blue-500' },
+    { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen', color: 'bg-green-500' },
+    { id: 'follow_up_kunde', name: 'Follow-up Kunde', color: 'bg-yellow-500' },
+    { id: 'follow_up_wir', name: 'Follow-up Wir', color: 'bg-purple-500' },
+    { id: 'verloren', name: 'Verloren', color: 'bg-red-500' },
+  ];
 
   useEffect(() => {
     if (customer) {
@@ -56,6 +65,40 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       setAppointments(appointmentData || []);
     } catch (error) {
       console.error('Error fetching customer data:', error);
+    }
+  };
+
+  const getAppointmentsByStage = (stageId: string) => {
+    return appointments.filter(appointment => appointment.result === stageId);
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const { draggableId, destination } = result;
+    const newStage = destination.droppableId;
+
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ result: newStage })
+        .eq('id', draggableId);
+
+      if (error) throw error;
+      
+      fetchCustomerData();
+      
+      toast({
+        title: "Termin aktualisiert",
+        description: "Termin-Status wurde erfolgreich geändert.",
+      });
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast({
+        title: "Fehler",
+        description: "Termin konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -125,12 +168,12 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
             customer_id: customer.id,
             date: newAppointment.date,
             type: newAppointment.type,
-            result: newAppointment.result || 'Ausstehend'
+            result: newAppointment.result || 'termin_ausstehend'
           });
 
         if (error) throw error;
         
-        setNewAppointment({ date: '', type: '', result: '' });
+        setNewAppointment({ date: '', type: ''result: '' });
         fetchCustomerData();
         
         toast({
@@ -295,32 +338,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         </CardContent>
       </Card>
 
-      {/* Add New Revenue */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-green-600">
-            <Plus className="h-5 w-5 mr-2" />
-            Neue Einnahme hinzufügen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              placeholder="Beschreibung"
-              value={newRevenue.description}
-              onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
-            />
-            <Input
-              type="number"
-              placeholder="Betrag (€)"
-              value={newRevenue.amount}
-              onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
-            />
-            <Button onClick={handleAddRevenue}>Hinzufügen</Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Add New Appointment */}
       <Card>
         <CardHeader>
@@ -346,12 +363,114 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 <SelectItem value="Follow-up">Follow-up</SelectItem>
               </SelectContent>
             </Select>
-            <Input
-              placeholder="Ergebnis"
-              value={newAppointment.result}
-              onChange={(e) => setNewAppointment({...newAppointment, result: e.target.value})}
-            />
+            <Select value={newAppointment.result} onValueChange={(value) => setNewAppointment({...newAppointment, result: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="termin_ausstehend">Termin Ausstehend</SelectItem>
+                <SelectItem value="termin_erschienen">Termin Erschienen</SelectItem>
+                <SelectItem value="termin_abgeschlossen">Termin Abgeschlossen</SelectItem>
+                <SelectItem value="follow_up_kunde">Follow-up Kunde</SelectItem>
+                <SelectItem value="follow_up_wir">Follow-up Wir</SelectItem>
+                <SelectItem value="verloren">Verloren</SelectItem>
+              </SelectContent>
+            </Select>
             <Button onClick={handleAddAppointment}>Hinzufügen</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Termin-Pipeline */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Termin-Pipeline</CardTitle>
+          <p className="text-sm text-gray-600">Verwalten Sie die Termine per Drag & Drop</p>
+        </CardHeader>
+        <CardContent>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {pipelineStages.map((stage) => (
+                <div key={stage.id} className="flex-1 min-w-64">
+                  <Card className="h-full">
+                    <CardHeader className={`${stage.color} text-white`}>
+                      <CardTitle className="text-center text-sm">
+                        {stage.name} ({getAppointmentsByStage(stage.id).length})
+                      </CardTitle>
+                    </CardHeader>
+                    <Droppable droppableId={stage.id}>
+                      {(provided, snapshot) => (
+                        <CardContent
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className={`space-y-2 p-3 min-h-48 ${
+                            snapshot.isDraggingOver ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          {getAppointmentsByStage(stage.id).map((appointment, index) => (
+                            <Draggable key={appointment.id} draggableId={appointment.id} index={index}>
+                              {(provided, snapshot) => (
+                                <Card
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                  className={`cursor-pointer transition-all hover:shadow-md ${
+                                    snapshot.isDragging ? 'shadow-lg rotate-2' : ''
+                                  }`}
+                                >
+                                  <CardContent className="p-3 space-y-1">
+                                    <div className="font-semibold text-sm">{appointment.type}</div>
+                                    <div className="text-xs text-gray-600">
+                                      {new Date(appointment.date).toLocaleDateString('de-DE')}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {customer.contact}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {customer.phone}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {customer.email}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </CardContent>
+                      )}
+                    </Droppable>
+                  </Card>
+                </div>
+              ))}
+            </div>
+          </DragDropContext>
+        </CardContent>
+      </Card>
+
+      {/* Add New Revenue */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center text-green-600">
+            <Plus className="h-5 w-5 mr-2" />
+            Neue Einnahme hinzufügen
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Input
+              placeholder="Beschreibung"
+              value={newRevenue.description}
+              onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
+            />
+            <Input
+              type="number"
+              placeholder="Betrag (€)"
+              value={newRevenue.amount}
+              onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
+            />
+            <Button onClick={handleAddRevenue}>Hinzufügen</Button>
           </div>
         </CardContent>
       </Card>
@@ -387,7 +506,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded">
                   <div className="font-medium text-sm">{appointment.type}</div>
                   <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
-                  <Badge className="text-xs mt-1">{appointment.result}</Badge>
+                  <Badge className="text-xs mt-1">{pipelineStages.find(s => s.id === appointment.result)?.name || appointment.result}</Badge>
                 </div>
               ))}
             </div>

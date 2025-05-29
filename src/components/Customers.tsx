@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Users } from "lucide-react";
-import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Users, Eye, Mail, Phone, User } from "lucide-react";
 import { CustomerDetail } from "./CustomerDetail";
-import { PipelineColumn } from "./PipelineColumn";
 import { useCustomers } from "@/hooks/useSupabaseData";
-import { toast } from "@/hooks/use-toast";
 
 export function Customers() {
   const { customers, loading, updateCustomer, addCustomer } = useCustomers();
@@ -25,26 +24,23 @@ export function Customers() {
     pipeline_stage: 'termin_ausstehend'
   });
 
-  const pipelineStages = [
-    { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-500' },
-    { id: 'termin_erschienen', name: 'Termin Erschienen', color: 'bg-blue-500' },
-    { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen', color: 'bg-green-500' },
-    { id: 'follow_up_kunde', name: 'Follow-up Kunde', color: 'bg-yellow-500' },
-    { id: 'follow_up_wir', name: 'Follow-up Wir', color: 'bg-purple-500' },
-    { id: 'verloren', name: 'Verloren', color: 'bg-red-500' },
-  ];
-
-  const getCustomersByStage = (stageId: string) => {
-    return customers.filter(customer => customer.pipeline_stage === stageId);
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'Hoch': return 'bg-red-100 text-red-800';
+      case 'Mittel': return 'bg-yellow-100 text-yellow-800';
+      case 'Niedrig': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
-  const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
-
-    const { draggableId, destination } = result;
-    const newStage = destination.droppableId;
-
-    await updateCustomer(draggableId, { pipeline_stage: newStage });
+  const getPaymentStatusColor = (status: string) => {
+    switch (status) {
+      case 'Bezahlt': return 'bg-green-100 text-green-800';
+      case 'Ausstehend': return 'bg-yellow-100 text-yellow-800';
+      case 'Überfällig': return 'bg-red-100 text-red-800';
+      case 'Raten': return 'bg-blue-100 text-blue-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const handleAddCustomer = async () => {
@@ -90,9 +86,9 @@ export function Customers() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center">
             <Users className="h-8 w-8 mr-3" />
-            Termin-Pipeline
+            Kunden
           </h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Kunden per Drag & Drop in verschiedenen Phasen.</p>
+          <p className="text-gray-600">Verwalten Sie Ihre Kunden und deren Details.</p>
         </div>
         <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
           <DialogTrigger asChild>
@@ -137,16 +133,6 @@ export function Customers() {
                   <SelectItem value="Niedrig">Niedrig</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={newCustomer.pipeline_stage} onValueChange={(value) => setNewCustomer({...newCustomer, pipeline_stage: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pipeline-Phase" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pipelineStages.map(stage => (
-                    <SelectItem key={stage.id} value={stage.id}>{stage.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
               <Button onClick={handleAddCustomer} className="w-full">
                 Kunde hinzufügen
               </Button>
@@ -155,20 +141,62 @@ export function Customers() {
         </Dialog>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {pipelineStages.map((stage) => (
-            <PipelineColumn
-              key={stage.id}
-              title={stage.name}
-              stageId={stage.id}
-              customers={getCustomersByStage(stage.id)}
-              color={stage.color}
-              onCustomerClick={setSelectedCustomer}
-            />
-          ))}
-        </div>
-      </DragDropContext>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {customers.map((customer) => (
+          <Card key={customer.id} className="cursor-pointer transition-all hover:shadow-md">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  {customer.name}
+                </CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedCustomer(customer)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center space-x-2">
+                <User className="h-4 w-4 text-gray-500" />
+                <span className="text-sm text-gray-600">{customer.contact}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Mail className="h-4 w-4 mr-2" />
+                  {customer.email}
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <Phone className="h-4 w-4 mr-2" />
+                  {customer.phone}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getPriorityColor(customer.priority)}>
+                  {customer.priority}
+                </Badge>
+                <Badge className={getPaymentStatusColor(customer.payment_status)}>
+                  {customer.payment_status}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Termine:</span>
+                  <div className="font-semibold">{customer.booked_appointments}</div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Zufriedenheit:</span>
+                  <div className="font-semibold text-blue-600">{customer.satisfaction}/10</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
