@@ -82,24 +82,25 @@ export function HotLeads() {
 
   if (loading) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="text-lg text-left">Lade Hot Leads...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4 w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
-        <div className="text-left w-full">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Hot Leads</h1>
-          <p className="text-gray-600 text-left">Verwalten Sie Ihre heißen Leads</p>
+    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-left min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 text-left truncate">Hot Leads</h1>
+          <p className="text-gray-600 text-left mt-1">Verwalten Sie Ihre heißen Leads</p>
         </div>
         <Button 
           onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto flex-shrink-0"
         >
-          <Plus className="h-4 w-4 mr-2 text-red-600" />
+          <Plus className="h-4 w-4 mr-2" />
           Hot Lead hinzufügen
         </Button>
       </div>
@@ -107,39 +108,35 @@ export function HotLeads() {
       {/* Add Hot Lead Form */}
       {showAddForm && (
         <Card className="w-full">
-          <CardHeader className="w-full">
-            <CardTitle className="text-lg text-left w-full">Neuen Hot Lead hinzufügen</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-lg text-left">Neuen Hot Lead hinzufügen</CardTitle>
           </CardHeader>
-          <CardContent className="w-full">
-            <div className="space-y-4 w-full">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
                   placeholder="Firmenname"
                   value={newLead.name}
                   onChange={(e) => setNewLead({...newLead, name: e.target.value})}
-                  className="w-full"
                 />
                 <Input
                   placeholder="Ansprechpartner"
                   value={newLead.contact}
                   onChange={(e) => setNewLead({...newLead, contact: e.target.value})}
-                  className="w-full"
                 />
                 <Input
                   placeholder="Email"
                   type="email"
                   value={newLead.email}
                   onChange={(e) => setNewLead({...newLead, email: e.target.value})}
-                  className="w-full"
                 />
                 <Input
                   placeholder="Telefon"
                   value={newLead.phone}
                   onChange={(e) => setNewLead({...newLead, phone: e.target.value})}
-                  className="w-full"
                 />
                 <Select value={newLead.priority} onValueChange={(value) => setNewLead({...newLead, priority: value})}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -152,16 +149,15 @@ export function HotLeads() {
                   placeholder="Quelle"
                   value={newLead.source}
                   onChange={(e) => setNewLead({...newLead, source: e.target.value})}
-                  className="w-full"
                 />
               </div>
               <Textarea
                 placeholder="Notizen"
                 value={newLead.notes}
                 onChange={(e) => setNewLead({...newLead, notes: e.target.value})}
-                className="min-h-[80px] w-full"
+                className="min-h-[80px]"
               />
-              <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button onClick={handleAddLead} className="flex-1">
                   <Save className="h-4 w-4 mr-2" />
                   Hinzufügen
@@ -177,32 +173,34 @@ export function HotLeads() {
       )}
 
       {/* Hot Leads Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         {hotLeads.length === 0 ? (
-          <div className="col-span-full w-full">
-            <Card className="w-full">
-              <CardContent className="text-left py-12 w-full">
-                <Flame className="h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Hot Leads</h3>
-                <p className="text-gray-600 mb-4 text-left">Fügen Sie Ihren ersten Hot Lead hinzu, um zu beginnen.</p>
-                <Button onClick={() => setShowAddForm(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Hot Lead hinzufügen
-                </Button>
+          <div className="col-span-full">
+            <Card>
+              <CardContent className="text-left py-12">
+                <div className="flex flex-col items-center text-center">
+                  <Flame className="h-12 w-12 text-gray-400 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Hot Leads</h3>
+                  <p className="text-gray-600 mb-4">Fügen Sie Ihren ersten Hot Lead hinzu, um zu beginnen.</p>
+                  <Button onClick={() => setShowAddForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Hot Lead hinzufügen
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
         ) : (
           hotLeads.map((lead) => (
-            <Card key={lead.id} className="hover:shadow-lg transition-shadow w-full">
-              <CardHeader className="pb-2 w-full">
-                <CardTitle className="text-lg flex items-center justify-between w-full">
-                  <div className="flex items-center text-left">
-                    <Flame className="h-5 w-5 mr-2 text-orange-600" />
+            <Card key={lead.id} className="hover:shadow-lg transition-shadow flex flex-col">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-start justify-between gap-2">
+                  <div className="flex items-center text-left min-w-0 flex-1">
+                    <Flame className="h-5 w-5 mr-2 text-orange-600 flex-shrink-0" />
                     <span className="truncate text-left">{lead.name}</span>
                   </div>
                   <Badge 
-                    className={`text-xs ${
+                    className={`text-xs flex-shrink-0 ${
                       lead.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
                       lead.priority === 'Mittel' ? 'bg-yellow-100 text-yellow-800' :
                       'bg-green-100 text-green-800'
@@ -212,38 +210,34 @@ export function HotLeads() {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3 w-full">
+              <CardContent className="flex-1 flex flex-col">
                 {editingLead?.id === lead.id ? (
-                  <div className="space-y-3 w-full">
+                  <div className="space-y-3 flex-1">
                     <Input
                       value={editingLead.name}
                       onChange={(e) => setEditingLead({...editingLead, name: e.target.value})}
                       placeholder="Firmenname"
-                      className="w-full"
                     />
                     <Input
                       value={editingLead.contact || ''}
                       onChange={(e) => setEditingLead({...editingLead, contact: e.target.value})}
                       placeholder="Ansprechpartner"
-                      className="w-full"
                     />
                     <Input
                       value={editingLead.email || ''}
                       onChange={(e) => setEditingLead({...editingLead, email: e.target.value})}
                       placeholder="Email"
-                      className="w-full"
                     />
                     <Input
                       value={editingLead.phone || ''}
                       onChange={(e) => setEditingLead({...editingLead, phone: e.target.value})}
                       placeholder="Telefon"
-                      className="w-full"
                     />
                     <Select 
                       value={editingLead.priority} 
                       onValueChange={(value) => setEditingLead({...editingLead, priority: value})}
                     >
-                      <SelectTrigger className="w-full">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -256,15 +250,14 @@ export function HotLeads() {
                       value={editingLead.source || ''}
                       onChange={(e) => setEditingLead({...editingLead, source: e.target.value})}
                       placeholder="Quelle"
-                      className="w-full"
                     />
                     <Textarea
                       value={editingLead.notes || ''}
                       onChange={(e) => setEditingLead({...editingLead, notes: e.target.value})}
                       placeholder="Notizen"
-                      className="min-h-[60px] w-full"
+                      className="min-h-[60px]"
                     />
-                    <div className="flex gap-2 w-full">
+                    <div className="flex flex-col sm:flex-row gap-2 mt-auto">
                       <Button 
                         size="sm" 
                         onClick={() => handleUpdateLead(lead.id, editingLead)}
@@ -286,64 +279,66 @@ export function HotLeads() {
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-2 w-full">
+                    <div className="space-y-2 flex-1">
                       {lead.contact && (
-                        <div className="flex items-center text-sm text-left w-full">
+                        <div className="flex items-center text-sm text-left">
                           <User className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
                           <span className="truncate text-left">{lead.contact}</span>
                         </div>
                       )}
                       {lead.email && (
-                        <div className="flex items-center text-sm text-left w-full">
+                        <div className="flex items-center text-sm text-left">
                           <Mail className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
                           <span className="truncate text-left">{lead.email}</span>
                         </div>
                       )}
                       {lead.phone && (
-                        <div className="flex items-center text-sm text-left w-full">
+                        <div className="flex items-center text-sm text-left">
                           <Phone className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
                           <span className="truncate text-left">{lead.phone}</span>
                         </div>
                       )}
                       {lead.source && (
-                        <div className="text-sm text-gray-600 text-left w-full">
+                        <div className="text-sm text-gray-600 text-left">
                           <strong>Quelle:</strong> {lead.source}
+                        </div>
+                      )}
+                      
+                      {lead.notes && (
+                        <div className="pt-2 border-t">
+                          <p className="text-sm text-gray-600 text-left line-clamp-3">{lead.notes}</p>
                         </div>
                       )}
                     </div>
 
-                    {lead.notes && (
-                      <div className="pt-2 border-t w-full">
-                        <p className="text-sm text-gray-600 text-left w-full">{lead.notes}</p>
+                    <div className="flex flex-col gap-2 pt-3 mt-auto">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingLead(lead)}
+                          className="flex-1"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          <span className="hidden sm:inline">Bearbeiten</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteHotLead(lead.id)}
+                          className="hover:bg-red-50 hover:border-red-200"
+                        >
+                          <Trash2 className="h-3 w-3 text-red-600" />
+                        </Button>
                       </div>
-                    )}
-
-                    <div className="flex gap-2 pt-2 w-full">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingLead(lead)}
-                        className="flex-1"
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Bearbeiten
-                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => moveToCustomers(lead)}
-                        className="flex-1 hover:bg-green-50 hover:border-green-200"
+                        className="w-full hover:bg-green-50 hover:border-green-200"
                       >
-                        <ArrowRight className="h-3 w-3 mr-1 text-green-600" />
-                        Zu Kunde
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteHotLead(lead.id)}
-                        className="hover:bg-red-50 hover:border-red-200"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-600" />
+                        <ArrowRight className="h-3 w-3 mr-2 text-green-600" />
+                        Zu Kunde verschieben
                       </Button>
                     </div>
                   </>
