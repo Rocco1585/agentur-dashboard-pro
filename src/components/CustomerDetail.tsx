@@ -640,67 +640,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         </Card>
       </div>
 
-      {/* Add New Appointment */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center text-gray-700">
-            <Calendar className="h-5 w-5 mr-2" />
-            Neuen Termin hinzufügen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              placeholder="Firma"
-              value={newAppointment.company}
-              onChange={(e) => setNewAppointment({...newAppointment, company: e.target.value})}
-            />
-            <Input
-              placeholder="Ansprechpartner"
-              value={newAppointment.contact}
-              onChange={(e) => setNewAppointment({...newAppointment, contact: e.target.value})}
-            />
-            <Input
-              placeholder="Telefon"
-              value={newAppointment.phone}
-              onChange={(e) => setNewAppointment({...newAppointment, phone: e.target.value})}
-            />
-            <Input
-              type="date"
-              value={newAppointment.date}
-              onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
-            />
-            <div className="sm:col-span-2">
-              <Select value={newAppointment.team_member_id} onValueChange={(value) => setNewAppointment({...newAppointment, team_member_id: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Teammitglied zuweisen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map(member => (
-                    <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Input
-              placeholder="Beschreibung (optional)"
-              value={newAppointment.description}
-              onChange={(e) => setNewAppointment({...newAppointment, description: e.target.value})}
-              className="sm:col-span-2"
-            />
-          </div>
-          <div className="mt-4">
-            <Textarea
-              placeholder="Notizen (optional)"
-              value={newAppointment.notes}
-              onChange={(e) => setNewAppointment({...newAppointment, notes: e.target.value})}
-              className="min-h-[80px]"
-            />
-          </div>
-          <Button onClick={handleAddAppointment} className="mt-4 w-full sm:w-auto">Hinzufügen</Button>
-        </CardContent>
-      </Card>
-
       {/* Termin-Pipeline */}
       <Card>
         <CardHeader>
