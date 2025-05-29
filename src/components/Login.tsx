@@ -44,9 +44,21 @@ export function Login({ onLogin }: LoginProps) {
 
       if (error) {
         console.error('Supabase RPC error:', error);
+        
+        // Spezifische Fehlermeldungen
+        let errorMessage = "Es gab ein Problem bei der Verbindung zur Datenbank.";
+        
+        if (error.message.includes('function authenticate_user')) {
+          errorMessage = "Login-Funktion ist nicht verfügbar. Bitte kontaktieren Sie den Administrator.";
+        } else if (error.message.includes('permission denied')) {
+          errorMessage = "Keine Berechtigung für diese Aktion.";
+        } else if (error.message.includes('network')) {
+          errorMessage = "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung.";
+        }
+        
         toast({
           title: "Verbindungsfehler",
-          description: "Es gab ein Problem bei der Verbindung zur Datenbank. Bitte versuchen Sie es erneut.",
+          description: errorMessage,
           variant: "destructive",
         });
         return;
@@ -66,9 +78,17 @@ export function Login({ onLogin }: LoginProps) {
         let errorMessage = "Ungültige Email oder Passwort.";
         
         if (authResponse?.error) {
-          errorMessage = authResponse.error;
+          if (authResponse.error.includes('nicht gefunden')) {
+            errorMessage = "Diese Email-Adresse ist nicht registriert.";
+          } else if (authResponse.error.includes('Passwort')) {
+            errorMessage = "Das eingegebene Passwort ist falsch.";
+          } else if (authResponse.error.includes('inaktiv')) {
+            errorMessage = "Ihr Account wurde deaktiviert. Bitte kontaktieren Sie den Administrator.";
+          } else {
+            errorMessage = authResponse.error;
+          }
         } else if (!authResponse) {
-          errorMessage = "Unerwartete Antwort vom Server.";
+          errorMessage = "Unerwartete Antwort vom Server. Bitte versuchen Sie es erneut.";
         }
         
         console.log('Login failed:', errorMessage);
@@ -85,7 +105,13 @@ export function Login({ onLogin }: LoginProps) {
       let errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
       
       if (error instanceof Error) {
-        errorMessage = `Fehler: ${error.message}`;
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Die Anfrage ist zu lange gelaufen. Bitte versuchen Sie es erneut.";
+        } else {
+          errorMessage = `Fehler: ${error.message}`;
+        }
       }
       
       toast({
@@ -162,8 +188,8 @@ export function Login({ onLogin }: LoginProps) {
           
           <div className="mt-4 text-center text-sm text-gray-600">
             <p>Test-Accounts:</p>
-            <p className="font-mono text-xs">c.ort@cedricort.de / passwort</p>
-            <p className="font-mono text-xs">lisa@agentur.de / passwort</p>
+            <p className="font-mono text-xs">c.ort@cedricort.de / passwort (Admin)</p>
+            <p className="font-mono text-xs">lisa@agentur.de / passwort (Admin)</p>
           </div>
         </CardContent>
       </Card>

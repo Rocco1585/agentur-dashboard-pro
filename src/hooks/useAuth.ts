@@ -20,6 +20,24 @@ export function useAuth() {
     checkUser();
   }, []);
 
+  const logAuditEvent = async (action: string, tableName: string, recordId?: string, oldValues?: any, newValues?: any) => {
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id: user?.id || null,
+        action,
+        table_name: tableName,
+        record_id: recordId,
+        old_values: oldValues,
+        new_values: newValues,
+        timestamp: new Date().toISOString(),
+        ip_address: null,
+        user_agent: navigator.userAgent
+      });
+    } catch (error) {
+      console.error('Audit log error:', error);
+    }
+  };
+
   const checkUser = async () => {
     try {
       // Prüfe ob ein Benutzer im localStorage gespeichert ist
@@ -35,12 +53,29 @@ export function useAuth() {
     }
   };
 
-  const login = (userData: User) => {
+  const login = async (userData: User) => {
     setUser(userData);
     localStorage.setItem('dashboard_user', JSON.stringify(userData));
+    
+    // Log login event
+    await logAuditEvent('LOGIN', 'user_sessions', userData.id, null, {
+      user_id: userData.id,
+      user_name: userData.name,
+      user_email: userData.email,
+      login_time: new Date().toISOString()
+    });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (user) {
+      // Log logout event
+      await logAuditEvent('LOGOUT', 'user_sessions', user.id, null, {
+        user_id: user.id,
+        user_name: user.name,
+        logout_time: new Date().toISOString()
+      });
+    }
+    
     setUser(null);
     localStorage.removeItem('dashboard_user');
     toast({
@@ -80,6 +115,7 @@ export function useAuth() {
     canCreateCustomers,
     canManageRevenues,
     canCreateTodos,
-    canViewAuditLogs
+    canViewAuditLogs,
+    logAuditEvent
   };
 }

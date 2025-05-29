@@ -5,15 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, User, Mail, Phone, Euro, TrendingUp, Edit, Eye } from "lucide-react";
+import { Plus, Users, Search, User, Mail, Phone, Euro, Calendar, Edit, Eye } from "lucide-react";
 import { TeamMemberDetail } from "./TeamMemberDetail";
 import { toast } from "@/hooks/use-toast";
-import { useTeamMembers } from '@/hooks/useSupabaseData';
+import { useTeamMembers, useCustomers } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
 
 export function TeamMembers() {
-  const { teamMembers, loading, addTeamMember } = useTeamMembers();
-  const { isAdmin } = useAuth();
+  const { teamMembers, loading, updateTeamMember, addTeamMember } = useTeamMembers();
+  const { customers } = useCustomers();
+  const { canCreateCustomers } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -25,7 +26,7 @@ export function TeamMembers() {
     phone: '',
     role: '',
     payouts: 0,
-    performance: 'Gut'
+    performance: '5'
   });
 
   // Definierte Positionen
@@ -43,28 +44,16 @@ export function TeamMembers() {
     'Inhaber'
   ];
 
-  if (!isAdmin()) {
-    return (
-      <div className="w-full p-6">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
-            <p className="text-gray-600">Sie haben keine Berechtigung, Teammitglieder zu verwalten.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
       const memberData = {
         ...newMember,
         is_active: true,
-        password: 'passwort' // Default password
+        password: 'passwort',
+        user_role: 'member'
       };
       await addTeamMember(memberData);
-      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0, performance: 'Gut' });
+      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0, performance: '5' });
       setShowAddForm(false);
     } else {
       toast({
@@ -77,7 +66,8 @@ export function TeamMembers() {
 
   const filteredMembers = teamMembers.filter(member => {
     const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email?.toLowerCase().includes(searchTerm.toLowerCase());
+                         member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.phone?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = !filterRole || member.role === filterRole;
     const matchesStatus = !filterStatus || 
                          (filterStatus === 'aktiv' && member.is_active) ||
@@ -87,7 +77,7 @@ export function TeamMembers() {
 
   if (loading) {
     return (
-      <div className="w-full p-6">
+      <div className="w-full p-4 sm:p-6">
         <div className="text-lg">Lade Teammitglieder...</div>
       </div>
     );
@@ -97,35 +87,41 @@ export function TeamMembers() {
     return (
       <TeamMemberDetail 
         member={selectedMember} 
+        customers={customers}
         onBack={() => setSelectedMember(null)}
+        onUpdate={(updatedMember) => {
+          setSelectedMember(updatedMember);
+        }}
       />
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Teammitglieder</h1>
           <p className="text-gray-600">Verwalten Sie Ihr Team</p>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Teammitglied hinzufügen
-        </Button>
+        {canCreateCustomers() && (
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Teammitglied hinzufügen
+          </Button>
+        )}
       </div>
 
-      {/* Add Team Member Form */}
-      {showAddForm && (
+      {/* Add Member Form */}
+      {showAddForm && canCreateCustomers() && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg text-left">Neues Teammitglied hinzufügen</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 placeholder="Name *"
                 value={newMember.name}
@@ -153,8 +149,8 @@ export function TeamMembers() {
                 </SelectContent>
               </Select>
               <Input
+                placeholder="Auszahlungen"
                 type="number"
-                placeholder="Auszahlungen (€)"
                 value={newMember.payouts}
                 onChange={(e) => setNewMember({...newMember, payouts: parseFloat(e.target.value) || 0})}
               />
@@ -163,10 +159,11 @@ export function TeamMembers() {
                   <SelectValue placeholder="Performance" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Sehr gut">Sehr gut</SelectItem>
-                  <SelectItem value="Gut">Gut</SelectItem>
-                  <SelectItem value="Durchschnittlich">Durchschnittlich</SelectItem>
-                  <SelectItem value="Verbesserungsbedürftig">Verbesserungsbedürftig</SelectItem>
+                  <SelectItem value="1">1 - Sehr schlecht</SelectItem>
+                  <SelectItem value="2">2 - Schlecht</SelectItem>
+                  <SelectItem value="3">3 - Durchschnittlich</SelectItem>
+                  <SelectItem value="4">4 - Gut</SelectItem>
+                  <SelectItem value="5">5 - Sehr gut</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -184,11 +181,15 @@ export function TeamMembers() {
 
       {/* Search and Filter */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Input
-          placeholder="Team durchsuchen..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Teammitglieder suchen..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         <Select value={filterRole} onValueChange={setFilterRole}>
           <SelectTrigger>
             <SelectValue placeholder="Position filtern" />
@@ -213,7 +214,7 @@ export function TeamMembers() {
       </div>
 
       {/* Team Members Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {filteredMembers.map((member) => (
           <Card key={member.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
@@ -222,13 +223,12 @@ export function TeamMembers() {
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
                   <span className="truncate text-gray-900 text-sm">{member.name}</span>
                 </div>
-                <Badge className={`ml-2 flex-shrink-0 text-xs ${
-                  member.performance === 'Sehr gut' ? 'bg-green-100 text-green-800' :
-                  member.performance === 'Gut' ? 'bg-blue-100 text-blue-800' :
-                  member.performance === 'Durchschnittlich' ? 'bg-yellow-100 text-yellow-800' :
+                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
+                  member.performance === '5' || member.performance === '4' ? 'bg-green-100 text-green-800' :
+                  member.performance === '3' ? 'bg-yellow-100 text-yellow-800' :
                   'bg-red-100 text-red-800'
                 }`}>
-                  {member.performance}
+                  {member.performance}/5
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -262,13 +262,23 @@ export function TeamMembers() {
                     {member.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-600">Auszahlungen:</span>
-                  <span className="text-xs font-medium text-gray-700">€{Number(member.payouts || 0).toFixed(2)}</span>
+                  <div className="flex items-center text-xs text-gray-900">
+                    <Euro className="h-3 w-3 mr-1 text-red-600" />
+                    {member.payouts?.toFixed(2) || '0.00'}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Termine:</span>
+                  <div className="flex items-center text-xs text-gray-900">
+                    <Calendar className="h-3 w-3 mr-1 text-red-600" />
+                    {member.appointment_count || 0}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex gap-2 pt-3">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -278,6 +288,17 @@ export function TeamMembers() {
                   <Eye className="h-3 w-3 mr-1" />
                   Details
                 </Button>
+                {canCreateCustomers() && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedMember(member)}
+                    className="flex-1 text-xs"
+                  >
+                    <Edit className="h-3 w-3 mr-1" />
+                    Bearbeiten
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -295,7 +316,7 @@ export function TeamMembers() {
                 : "Keine Teammitglieder entsprechen Ihren Suchkriterien."
               }
             </p>
-            {teamMembers.length === 0 && (
+            {canCreateCustomers() && teamMembers.length === 0 && (
               <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Erstes Teammitglied hinzufügen
