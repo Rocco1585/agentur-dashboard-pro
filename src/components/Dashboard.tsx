@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Euro, Users, TrendingUp, Calendar, UserCheck, AlertTriangle, CheckSquare, MessageSquare, ArrowUp, ArrowDown, Clock, Award, BarChart3 } from "lucide-react";
 import { useTeamMembers, useCustomers, useRevenues, useAppointments } from '@/hooks/useSupabaseData';
@@ -236,7 +235,7 @@ export function Dashboard() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-full">
+    <div className="space-y-4 px-4 py-4 w-full min-h-screen">
       <div className="text-left">
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Überblick über Ihr Unternehmen</p>
@@ -253,9 +252,9 @@ export function Dashboard() {
       )}
 
       {/* Revenue Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
         {/* Daily/Weekly Revenue */}
-        <Card>
+        <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-left">
               {revenueTimeframe === 'today' ? 'Umsatz heute' : 'Umsatz diese Woche'}
@@ -307,7 +306,7 @@ export function Dashboard() {
         </Card>
 
         {/* Extended Revenue Periods */}
-        <Card>
+        <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-left">Erweiterte Umsatzperioden</CardTitle>
             <TrendingUp className="h-4 w-4 text-red-600" />
@@ -332,10 +331,10 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Stats Grid - Full Width */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+      {/* Stats Grid - More Columns on Large Screens */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {/* Appointment Statistics */}
-        <Card>
+        <Card className="xl:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-left">Termine heute</CardTitle>
             <Calendar className="h-4 w-4 text-red-600" />
@@ -407,10 +406,10 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Charts and Current Appointments - Full Width Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Appointments Chart - Takes 2/3 width */}
-        <Card className="lg:col-span-2">
+      {/* Charts and Current Appointments - Optimized Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4">
+        {/* Appointments Chart - Takes more space */}
+        <Card className="xl:col-span-3">
           <CardHeader>
             <CardTitle className="text-left flex items-center">
               <BarChart3 className="h-5 w-5 mr-2 text-red-600" />
@@ -418,7 +417,7 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+            <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={appointmentsByDay}>
                   <XAxis dataKey="date" />
@@ -431,8 +430,8 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Current Appointments - Takes 1/3 width */}
-        <Card>
+        {/* Current Appointments - Compact */}
+        <Card className="xl:col-span-1">
           <CardHeader>
             <CardTitle className="text-left flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2 text-red-600" />
@@ -476,8 +475,8 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Team Performance and TODOs - Full Width Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Team Performance and TODOs - Side by Side */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {/* Team Performance Last 7 Days */}
         <Card>
           <CardHeader>
@@ -489,7 +488,7 @@ export function Dashboard() {
           <CardContent>
             {teamMemberStats.length > 0 ? (
               <div className="space-y-3">
-                {teamMemberStats.slice(0, 5).map((member, index) => (
+                {teamMemberStats.slice(0, 6).map((member, index) => (
                   <div key={member.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                     <div className="flex items-center gap-2">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
