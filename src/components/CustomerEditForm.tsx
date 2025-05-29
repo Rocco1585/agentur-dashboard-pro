@@ -8,13 +8,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save, X } from "lucide-react";
 
 interface CustomerEditFormProps {
-  customer: any;
+  customer?: any;
   onSave: (customer: any) => void;
   onCancel: () => void;
 }
 
-export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFormProps) {
-  const [editedCustomer, setEditedCustomer] = useState(customer);
+export function CustomerEditForm({ customer = {}, onSave, onCancel }: CustomerEditFormProps) {
+  const [editedCustomer, setEditedCustomer] = useState({
+    name: '',
+    contact: '',
+    email: '',
+    phone: '',
+    priority: 'Mittel',
+    payment_status: 'Ausstehend',
+    action_step: 'in_vorbereitung',
+    is_active: true,
+    ...customer
+  });
 
   const actionStepOptions = [
     { value: 'in_vorbereitung', label: 'In Vorbereitung' },
@@ -32,7 +42,9 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
   return (
     <Card className="w-full">
       <CardHeader className="w-full">
-        <CardTitle className="text-left">Kunde bearbeiten</CardTitle>
+        <CardTitle className="text-left">
+          {customer.id ? 'Kunde bearbeiten' : 'Neuen Kunden hinzufügen'}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 w-full">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
