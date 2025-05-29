@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
@@ -23,11 +23,9 @@ export function Dashboard() {
     pendingAppointments: 0,
     completedAppointments: 0
   });
-  const [selectedPeriod, setSelectedPeriod] = useState('today'); // for day/week switcher
-  const [selectedYearPeriod, setSelectedYearPeriod] = useState('month'); // for month/year switcher
-
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
+  const [selectedYearPeriod, setSelectedYearPeriod] = useState('month');
   const [recentCustomers, setRecentCustomers] = useState([]);
-  const [recentAppointments, setRecentAppointments] = useState([]);
 
   useEffect(() => {
     if (canAccessMainNavigation()) {
@@ -138,92 +136,91 @@ export function Dashboard() {
         <p className="text-gray-600 text-left">Willkommen zurück, {user?.name}</p>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Übersicht</TabsTrigger>
-          <TabsTrigger value="revenue">Umsatz {selectedPeriod === 'today' ? 'Tag/Woche' : 'Tag/Woche'}</TabsTrigger>
-          <TabsTrigger value="revenue-period">Umsatz {selectedYearPeriod === 'month' ? 'Monat/Jahr' : 'Monat/Jahr'}</TabsTrigger>
-          <TabsTrigger value="customers">Kunden</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {canViewCustomers() && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-left">Kunden</CardTitle>
-                  <Users className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent className="text-left">
-                  <div className="text-2xl font-bold">{stats.activeCustomers}</div>
-                  <p className="text-xs text-gray-600 text-left">
-                    {stats.totalCustomers} gesamt
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {canManageRevenues() && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-left">Gesamtumsatz</CardTitle>
-                  <Euro className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent className="text-left">
-                  <div className="text-2xl font-bold">€{Math.round(stats.totalRevenue)}</div>
-                  <p className="text-xs text-gray-600 text-left">
-                    Alle Einnahmen
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
+      {/* Overview Stats */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Übersicht</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {canViewCustomers() && (
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-left">Termine</CardTitle>
-                <Calendar className="h-4 w-4 text-red-600" />
+                <CardTitle className="text-sm font-medium text-left">Kunden</CardTitle>
+                <Users className="h-4 w-4 text-red-600" />
               </CardHeader>
               <CardContent className="text-left">
-                <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+                <div className="text-2xl font-bold">{stats.activeCustomers}</div>
                 <p className="text-xs text-gray-600 text-left">
-                  {stats.pendingAppointments} ausstehend
+                  {stats.totalCustomers} gesamt
                 </p>
               </CardContent>
             </Card>
+          )}
 
-            {canViewTeamMembers() && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-left">Team</CardTitle>
-                  <UserPlus className="h-4 w-4 text-red-600" />
-                </CardHeader>
-                <CardContent className="text-left">
-                  <div className="text-2xl font-bold">{stats.activeTeamMembers}</div>
-                  <p className="text-xs text-gray-600 text-left">
-                    {stats.totalTeamMembers} gesamt
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
+          {canManageRevenues() && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-left">Gesamtumsatz</CardTitle>
+                <Euro className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent className="text-left">
+                <div className="text-2xl font-bold">€{Math.round(stats.totalRevenue)}</div>
+                <p className="text-xs text-gray-600 text-left">
+                  Alle Einnahmen
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-        <TabsContent value="revenue" className="space-y-4">
-          <div className="flex gap-2 mb-4">
-            <Button 
-              variant={selectedPeriod === 'today' ? 'default' : 'outline'}
-              onClick={() => setSelectedPeriod('today')}
-              className={selectedPeriod === 'today' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Tagesumsatz
-            </Button>
-            <Button 
-              variant={selectedPeriod === 'week' ? 'default' : 'outline'}
-              onClick={() => setSelectedPeriod('week')}
-              className={selectedPeriod === 'week' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Wochenumsatz
-            </Button>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-left">Termine</CardTitle>
+              <Calendar className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent className="text-left">
+              <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+              <p className="text-xs text-gray-600 text-left">
+                {stats.pendingAppointments} ausstehend
+              </p>
+            </CardContent>
+          </Card>
+
+          {canViewTeamMembers() && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-left">Team</CardTitle>
+                <UserPlus className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent className="text-left">
+                <div className="text-2xl font-bold">{stats.activeTeamMembers}</div>
+                <p className="text-xs text-gray-600 text-left">
+                  {stats.totalTeamMembers} gesamt
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Revenue Section - Day/Week */}
+      {canManageRevenues() && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 text-left">Umsatz Tag/Woche</h2>
+            <div className="flex gap-2">
+              <Button 
+                variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+                onClick={() => setSelectedPeriod('today')}
+                className={selectedPeriod === 'today' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Tagesumsatz
+              </Button>
+              <Button 
+                variant={selectedPeriod === 'week' ? 'default' : 'outline'}
+                onClick={() => setSelectedPeriod('week')}
+                className={selectedPeriod === 'week' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Wochenumsatz
+              </Button>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -251,31 +248,37 @@ export function Dashboard() {
               </Card>
             )}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="revenue-period" className="space-y-4">
-          <div className="flex gap-2 mb-4">
-            <Button 
-              variant={selectedYearPeriod === 'month' ? 'default' : 'outline'}
-              onClick={() => setSelectedYearPeriod('month')}
-              className={selectedYearPeriod === 'month' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Monat
-            </Button>
-            <Button 
-              variant={selectedYearPeriod === 'year' ? 'default' : 'outline'}
-              onClick={() => setSelectedYearPeriod('year')}
-              className={selectedYearPeriod === 'year' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              Jahr
-            </Button>
+      {/* Revenue Section - Month/Year */}
+      {canManageRevenues() && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 text-left">Umsatz Monat/Jahr</h2>
+            <div className="flex gap-2">
+              <Button 
+                variant={selectedYearPeriod === 'month' ? 'default' : 'outline'}
+                onClick={() => setSelectedYearPeriod('month')}
+                className={selectedYearPeriod === 'month' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Monat
+              </Button>
+              <Button 
+                variant={selectedYearPeriod === 'year' ? 'default' : 'outline'}
+                onClick={() => setSelectedYearPeriod('year')}
+                className={selectedYearPeriod === 'year' ? 'bg-red-600 hover:bg-red-700' : ''}
+              >
+                Jahr
+              </Button>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {selectedYearPeriod === 'month' ? (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-left">Dieser Monat</CardTitle>
+                  <CardTitle className="text-sm font-medium text-left">Monat</CardTitle>
                   <Euro className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent className="text-left">
@@ -286,7 +289,7 @@ export function Dashboard() {
             ) : (
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-left">Dieses Jahr</CardTitle>
+                  <CardTitle className="text-sm font-medium text-left">Jahr</CardTitle>
                   <Euro className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent className="text-left">
@@ -296,51 +299,50 @@ export function Dashboard() {
               </Card>
             )}
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="customers" className="space-y-4">
-          {canViewCustomers() && recentCustomers.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-left">Aktuelle Kunden</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {recentCustomers.map((customer: any) => (
-                    <div key={customer.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="text-left">
-                        <h4 className="font-medium text-left">{customer.name}</h4>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          {customer.email && (
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              <span>{customer.email}</span>
-                            </div>
-                          )}
-                          {customer.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              <span>{customer.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={customer.priority === 'Hoch' ? 'destructive' : customer.priority === 'Mittel' ? 'default' : 'secondary'}>
-                          {customer.priority}
-                        </Badge>
-                        <Badge variant={customer.payment_status === 'Bezahlt' ? 'default' : customer.payment_status === 'Ausstehend' ? 'secondary' : 'destructive'}>
-                          {customer.payment_status}
-                        </Badge>
+      {/* Customers Section */}
+      {canViewCustomers() && recentCustomers.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Aktuelle Kunden</h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {recentCustomers.map((customer: any) => (
+                  <div key={customer.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="text-left">
+                      <h4 className="font-medium text-left">{customer.name}</h4>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        {customer.email && (
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            <span>{customer.email}</span>
+                          </div>
+                        )}
+                        {customer.phone && (
+                          <div className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            <span>{customer.phone}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={customer.priority === 'Hoch' ? 'destructive' : customer.priority === 'Mittel' ? 'default' : 'secondary'}>
+                        {customer.priority}
+                      </Badge>
+                      <Badge variant={customer.payment_status === 'Bezahlt' ? 'default' : customer.payment_status === 'Ausstehend' ? 'secondary' : 'destructive'}>
+                        {customer.payment_status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

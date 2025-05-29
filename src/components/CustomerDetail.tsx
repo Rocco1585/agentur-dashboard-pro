@@ -372,7 +372,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
             <Calendar className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent className="text-left">
-            <div className="text-2xl font-bold">{formData.purchased_appointments}/{formData.booked_appointments}</div>
+            <div className="text-2xl font-bold">{formData.purchased_appointments}/{customerStats.totalAppointments}</div>
           </CardContent>
         </Card>
 
