@@ -56,6 +56,54 @@ export function UserManagement() {
 
   const deleteUser = async (userId: string, userName: string) => {
     try {
+      // Erst alle verknüpften Daten löschen
+      console.log('Deleting related data for user:', userId);
+      
+      // Termine löschen
+      const { error: appointmentsError } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('team_member_id', userId);
+
+      if (appointmentsError) {
+        console.error('Error deleting appointments:', appointmentsError);
+        throw appointmentsError;
+      }
+
+      // Team member earnings löschen
+      const { error: earningsError } = await supabase
+        .from('team_member_earnings')
+        .delete()
+        .eq('team_member_id', userId);
+
+      if (earningsError) {
+        console.error('Error deleting earnings:', earningsError);
+        throw earningsError;
+      }
+
+      // Team member expenses löschen
+      const { error: expensesError } = await supabase
+        .from('team_member_expenses')
+        .delete()
+        .eq('team_member_id', userId);
+
+      if (expensesError) {
+        console.error('Error deleting expenses:', expensesError);
+        throw expensesError;
+      }
+
+      // Appointment history löschen
+      const { error: historyError } = await supabase
+        .from('appointment_history')
+        .delete()
+        .eq('team_member_id', userId);
+
+      if (historyError) {
+        console.error('Error deleting appointment history:', historyError);
+        throw historyError;
+      }
+
+      // Dann den Benutzer selbst löschen
       const { error } = await supabase
         .from('team_members')
         .delete()
