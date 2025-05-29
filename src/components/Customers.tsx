@@ -130,6 +130,18 @@ export function Customers() {
 
   const deleteCustomer = async (customerId: string, customerName: string) => {
     try {
+      // Zuerst alle Termine und Einnahmen des Kunden löschen
+      await supabase
+        .from('appointments')
+        .delete()
+        .eq('customer_id', customerId);
+
+      await supabase
+        .from('revenues')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Dann den Kunden löschen
       const { error } = await supabase
         .from('customers')
         .delete()

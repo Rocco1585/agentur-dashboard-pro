@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ export interface CustomerDetailProps {
 }
 
 export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailProps) {
-  const { canEditCustomers, isAdmin, isMember, user } = useAuth();
+  const { canEditCustomers, isAdmin, isMember, user, logAuditEvent } = useAuth();
   const [formData, setFormData] = useState({
     name: customer.name || '',
     email: customer.email || '',
@@ -30,6 +31,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
     payment_status: customer.payment_status || 'Ausstehend',
     satisfaction: customer.satisfaction || 5,
     booked_appointments: customer.booked_appointments || 0,
+    purchased_appointments: customer.purchased_appointments || 0,
     is_active: customer.is_active
   });
   const [loading, setLoading] = useState(false);
@@ -70,6 +72,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
             satisfaction,
             booked_appointments,
             completed_appointments,
+            purchased_appointments,
             pipeline_stage
           ),
           team_members (
@@ -140,6 +143,8 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         .eq('id', customer.id);
 
       if (error) throw error;
+
+      await logAuditEvent('UPDATE', 'customers', customer.id, customer, formData);
 
       toast({
         title: "Kunde aktualisiert",
@@ -218,16 +223,20 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
     if (newRevenue.description && newRevenue.amount && newRevenue.date) {
       try {
+        const revenueData = {
+          customer_id: customer.id,
+          description: newRevenue.description,
+          amount: Math.round(parseFloat(newRevenue.amount)), // Auf ganze Euro runden
+          date: newRevenue.date
+        };
+
         const { error } = await supabase
           .from('revenues')
-          .insert({
-            customer_id: customer.id,
-            description: newRevenue.description,
-            amount: parseFloat(newRevenue.amount),
-            date: newRevenue.date
-          });
+          .insert(revenueData);
 
         if (error) throw error;
+
+        await logAuditEvent('INSERT', 'revenues', null, null, revenueData);
 
         toast({
           title: "Einnahme hinzugefügt",
@@ -354,7 +363,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
             <Euro className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent className="text-left">
-            <div className="text-2xl font-bold">€{customerStats.totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">€{Math.round(customerStats.totalRevenue)}</div>
           </CardContent>
         </Card>
 
@@ -399,13 +408,13 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         
         <TabsContent value="details">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between text-left">
-                <span>{customer.name}</span>
-                <Badge className={customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-left text-xl">{customer.name}</CardTitle>
+                <Badge className={customer.is_active ? 'bg-green-100 text-green-800 border-green-200' : 'bg-red-100 text-red-800 border-red-200'}>
                   {customer.is_active ? 'Aktiv' : 'Inaktiv'}
                 </Badge>
-              </CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -467,6 +476,15 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     max="10"
                     value={formData.satisfaction}
                     onChange={(e) => setFormData({...formData, satisfaction: parseInt(e.target.value) || 5})}
+                    disabled={!canEditCustomers()}
+                    className="text-left"
+                  />
+                  <Input
+                    placeholder="Gekaufte Termine"
+                    type="number"
+                    min="0"
+                    value={formData.purchased_appointments}
+                    onChange={(e) => setFormData({...formData, purchased_appointments: parseInt(e.target.value) || 0})}
                     disabled={!canEditCustomers()}
                     className="text-left"
                   />

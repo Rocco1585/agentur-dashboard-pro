@@ -61,6 +61,7 @@ export type Database = {
           notes: string | null
           result: string
           team_member_id: string | null
+          time: string | null
           type: string
         }
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           notes?: string | null
           result?: string
           team_member_id?: string | null
+          time?: string | null
           type: string
         }
         Update: {
@@ -83,6 +85,7 @@ export type Database = {
           notes?: string | null
           result?: string
           team_member_id?: string | null
+          time?: string | null
           type?: string
         }
         Relationships: [
@@ -165,6 +168,7 @@ export type Database = {
           phone: string | null
           pipeline_stage: string | null
           priority: string | null
+          purchased_appointments: number | null
           satisfaction: number | null
           statuses: Json | null
           updated_at: string
@@ -184,6 +188,7 @@ export type Database = {
           phone?: string | null
           pipeline_stage?: string | null
           priority?: string | null
+          purchased_appointments?: number | null
           satisfaction?: number | null
           statuses?: Json | null
           updated_at?: string
@@ -203,6 +208,7 @@ export type Database = {
           phone?: string | null
           pipeline_stage?: string | null
           priority?: string | null
+          purchased_appointments?: number | null
           satisfaction?: number | null
           statuses?: Json | null
           updated_at?: string

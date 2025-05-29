@@ -1,480 +1,435 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Euro, TrendingUp, TrendingDown, Calculator, Calendar, Filter } from "lucide-react";
+import { Euro, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useRevenues, useExpenses, useCustomers } from '@/hooks/useSupabaseData';
-import { useTaxSettings } from '@/hooks/useTaxSettings';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { format } from 'date-fns';
+import { de } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function Revenue() {
-  const { revenues, loading: revenuesLoading, addRevenue } = useRevenues();
-  const { expenses, loading: expensesLoading, addExpense } = useExpenses();
-  const { customers } = useCustomers();
-  const { canManageRevenues } = useAuth();
-  const { taxRate } = useTaxSettings();
-  const [showAddRevenue, setShowAddRevenue] = useState(false);
-  const [showAddExpense, setShowAddExpense] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('all');
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  const { canManageRevenues, logAuditEvent } = useAuth();
+  const [revenues, setRevenues] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [newRevenue, setNewRevenue] = useState({
-    customer_id: '',
-    description: '',
-    amount: '',
-    date: new Date().toISOString().split('T')[0]
-  });
-  const [newExpense, setNewExpense] = useState({
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    reference: ''
+    customer_id: ''
+  });
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    weeklyRevenue: 0,
+    averageRevenue: 0
   });
 
-  if (!canManageRevenues()) {
+  useEffect(() => {
+    fetchRevenues();
+    fetchCustomers();
+  }, []);
+
+  const fetchRevenues = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('revenues')
+        .select(`
+          *,
+          customers (
+            id,
+            name
+          )
+        `)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      
+      setRevenues(data || []);
+      calculateStats(data || []);
+    } catch (error) {
+      console.error('Error fetching revenues:', error);
+      toast({
+        title: "Fehler",
+        description: "Einnahmen konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const calculateStats = (revenueData) => {
+    const total = revenueData.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+    
+    const now = new Date();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(now.getMonth() - 1);
+    
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(now.getDate() - 7);
+    
+    const monthlyRevenue = revenueData
+      .filter(revenue => new Date(revenue.date) >= oneMonthAgo)
+      .reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+    
+    const weeklyRevenue = revenueData
+      .filter(revenue => new Date(revenue.date) >= oneWeekAgo)
+      .reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+    
+    const average = revenueData.length > 0 ? total / revenueData.length : 0;
+    
+    setStats({
+      totalRevenue: total,
+      monthlyRevenue,
+      weeklyRevenue,
+      averageRevenue: average
+    });
+  };
+
+  const addRevenue = async () => {
+    if (newRevenue.description && newRevenue.amount && newRevenue.date) {
+      try {
+        const revenueData = {
+          description: newRevenue.description,
+          amount: Math.round(parseFloat(newRevenue.amount)), // Auf ganze Euro runden
+          date: newRevenue.date,
+          customer_id: newRevenue.customer_id || null
+        };
+
+        const { data, error } = await supabase
+          .from('revenues')
+          .insert(revenueData)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        await logAuditEvent('INSERT', 'revenues', data.id, null, revenueData);
+
+        toast({
+          title: "Einnahme hinzugefügt",
+          description: "Die Einnahme wurde erfolgreich hinzugefügt.",
+        });
+
+        setNewRevenue({
+          description: '',
+          amount: '',
+          date: new Date().toISOString().split('T')[0],
+          customer_id: ''
+        });
+        setShowForm(false);
+        fetchRevenues();
+      } catch (error) {
+        console.error('Error adding revenue:', error);
+        toast({
+          title: "Fehler",
+          description: "Einnahme konnte nicht hinzugefügt werden.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Felder aus.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteRevenue = async (id) => {
+    try {
+      // Get the revenue data before deleting for audit log
+      const { data: revenueToDelete } = await supabase
+        .from('revenues')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      const { error } = await supabase
+        .from('revenues')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      await logAuditEvent('DELETE', 'revenues', id, revenueToDelete, null);
+
+      toast({
+        title: "Einnahme gelöscht",
+        description: "Die Einnahme wurde erfolgreich gelöscht.",
+      });
+
+      fetchRevenues();
+    } catch (error) {
+      console.error('Error deleting revenue:', error);
+      toast({
+        title: "Fehler",
+        description: "Einnahme konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="w-full p-6">
-        <Card>
-          <CardContent className="p-8 text-left">
-            <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Berechtigung</h3>
-            <p className="text-gray-600 text-left">Sie haben keine Berechtigung, Einnahmen und Ausgaben zu verwalten.</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-lg text-left">Lade Einnahmen...</div>
+        </div>
       </div>
     );
   }
 
-  // Filter functions
-  const getFilteredData = (data: any[], dateField: string = 'date') => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
-    return data.filter(item => {
-      const itemDate = new Date(item[dateField]);
-      
-      switch (timeFilter) {
-        case 'today':
-          return itemDate >= today && itemDate < new Date(today.getTime() + 24 * 60 * 60 * 1000);
-        case 'week':
-          const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return itemDate >= weekAgo;
-        case 'month':
-          const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return itemDate >= monthAgo;
-        case 'year':
-          const yearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
-          return itemDate >= yearAgo;
-        case 'custom':
-          if (!customStartDate || !customEndDate) return true;
-          const startDate = new Date(customStartDate);
-          const endDate = new Date(customEndDate);
-          return itemDate >= startDate && itemDate <= endDate;
-        default:
-          return true;
-      }
-    });
-  };
-
-  const filteredRevenues = getFilteredData(revenues);
-  const filteredExpenses = getFilteredData(expenses);
-
-  const handleAddRevenue = async () => {
-    if (newRevenue.description && newRevenue.amount && newRevenue.date) {
-      await addRevenue({
-        ...newRevenue,
-        amount: parseFloat(newRevenue.amount)
-      });
-      setNewRevenue({
-        customer_id: '',
-        description: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0]
-      });
-      setShowAddRevenue(false);
-    } else {
-      toast({
-        title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAddExpense = async () => {
-    if (newExpense.description && newExpense.amount && newExpense.date) {
-      await addExpense({
-        ...newExpense,
-        amount: parseFloat(newExpense.amount)
-      });
-      setNewExpense({
-        description: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        reference: ''
-      });
-      setShowAddExpense(false);
-    } else {
-      toast({
-        title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const totalRevenue = filteredRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
-  const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const netProfit = totalRevenue - totalExpenses;
-  const taxReserve = netProfit > 0 ? (netProfit * taxRate) / 100 : 0;
-
-  // Daily stats
-  const today = new Date().toISOString().split('T')[0];
-  const todayRevenues = revenues.filter(r => r.date === today);
-  const todayExpenses = expenses.filter(e => e.date === today);
-  const dailyRevenue = todayRevenues.reduce((sum, r) => sum + Number(r.amount), 0);
-  const dailyExpenses = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-  const dailyProfit = dailyRevenue - dailyExpenses;
-  const dailyTaxReserve = dailyProfit > 0 ? (dailyProfit * taxRate) / 100 : 0;
-
-  if (revenuesLoading || expensesLoading) {
+  if (!canManageRevenues()) {
     return (
-      <div className="w-full p-6">
-        <div className="text-lg text-left">Lade Einnahmen und Ausgaben...</div>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <Card>
+            <CardContent className="p-8">
+              <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Berechtigung</h3>
+              <p className="text-gray-600 text-left">Sie haben keine Berechtigung, Einnahmen zu verwalten.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Einnahmen & Ausgaben</h1>
-          <p className="text-gray-600 text-left">Übersicht über Ihre Finanzen</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="text-left">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Einnahmen</h1>
+            <p className="text-gray-600">Verwalten Sie Ihre Einnahmen</p>
+          </div>
           <Button 
-            onClick={() => setShowAddRevenue(!showAddRevenue)}
-            className="bg-green-600 hover:bg-green-700"
+            onClick={() => setShowForm(!showForm)}
+            className="bg-red-600 hover:bg-red-700 w-full sm:w-auto"
           >
-            <Plus className="h-4 w-4 mr-2 text-white" />
-            Einnahme hinzufügen
-          </Button>
-          <Button 
-            onClick={() => setShowAddExpense(!showAddExpense)}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            <Plus className="h-4 w-4 mr-2 text-white" />
-            Ausgabe hinzufügen
+            <Plus className="h-4 w-4 mr-2" />
+            Neue Einnahme
           </Button>
         </div>
-      </div>
 
-      {/* Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-left flex items-center">
-            <Filter className="h-5 w-5 mr-2 text-red-600" />
-            Zeitraum Filter
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Select value={timeFilter} onValueChange={setTimeFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Zeitraum auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Zeit</SelectItem>
-                <SelectItem value="today">Heute</SelectItem>
-                <SelectItem value="week">Letzte 7 Tage</SelectItem>
-                <SelectItem value="month">Letzten 30 Tage</SelectItem>
-                <SelectItem value="year">Letztes Jahr</SelectItem>
-                <SelectItem value="custom">Benutzerdefiniert</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {timeFilter === 'custom' && (
-              <>
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-left">Gesamt-Einnahmen</CardTitle>
+              <Euro className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-left">€{Math.round(stats.totalRevenue)}</div>
+              <p className="text-xs text-gray-500 text-left">
+                Alle Einnahmen
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-left">Monatliche Einnahmen</CardTitle>
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-left">€{Math.round(stats.monthlyRevenue)}</div>
+              <p className="text-xs text-gray-500 text-left">
+                Letzte 30 Tage
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-left">Wöchentliche Einnahmen</CardTitle>
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-left">€{Math.round(stats.weeklyRevenue)}</div>
+              <p className="text-xs text-gray-500 text-left">
+                Letzte 7 Tage
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-left">Durchschnitt</CardTitle>
+              <Euro className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-left">€{Math.round(stats.averageRevenue)}</div>
+              <p className="text-xs text-gray-500 text-left">
+                Pro Einnahme
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Add Revenue Form */}
+        {showForm && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-left">Neue Einnahme hinzufügen</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input
-                  type="date"
-                  placeholder="Von Datum"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  placeholder="Beschreibung"
+                  value={newRevenue.description}
+                  onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
+                  className="text-left"
+                />
+                <Input
+                  placeholder="Betrag (€)"
+                  type="number"
+                  value={newRevenue.amount}
+                  onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
+                  className="text-left"
                 />
                 <Input
                   type="date"
-                  placeholder="Bis Datum"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  value={newRevenue.date}
+                  onChange={(e) => setNewRevenue({...newRevenue, date: e.target.value})}
+                  className="text-left"
                 />
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Daily Overview */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg text-left flex items-center">
-            <Calendar className="h-5 w-5 mr-2 text-red-600" />
-            Heute - {new Date().toLocaleDateString('de-DE')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="text-left">
-              <div className="flex items-center mb-1">
-                <TrendingUp className="h-4 w-4 text-red-600 mr-2" />
-                <span className="text-sm text-gray-600">Einnahmen</span>
+                <Select
+                  value={newRevenue.customer_id}
+                  onValueChange={(value) => setNewRevenue({...newRevenue, customer_id: value})}
+                >
+                  <SelectTrigger className="text-left">
+                    <SelectValue placeholder="Kunde (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Kein Kunde</SelectItem>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <span className="text-xl font-bold text-green-600">€{dailyRevenue.toFixed(2)}</span>
-            </div>
-            <div className="text-left">
-              <div className="flex items-center mb-1">
-                <TrendingDown className="h-4 w-4 text-red-600 mr-2" />
-                <span className="text-sm text-gray-600">Ausgaben</span>
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  onClick={addRevenue}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Einnahme hinzufügen
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowForm(false)}
+                >
+                  Abbrechen
+                </Button>
               </div>
-              <span className="text-xl font-bold text-red-600">€{dailyExpenses.toFixed(2)}</span>
-            </div>
-            <div className="text-left">
-              <div className="flex items-center mb-1">
-                <Calculator className="h-4 w-4 text-red-600 mr-2" />
-                <span className="text-sm text-gray-600">Gewinn</span>
-              </div>
-              <span className={`text-xl font-bold ${dailyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                €{dailyProfit.toFixed(2)}
-              </span>
-            </div>
-            <div className="text-left">
-              <div className="flex items-center mb-1">
-                <Euro className="h-4 w-4 text-red-600 mr-2" />
-                <span className="text-sm text-gray-600">Steuerrücklage ({taxRate}%)</span>
-              </div>
-              <span className="text-xl font-bold text-blue-600">€{dailyTaxReserve.toFixed(2)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 text-left">Gefilterte Einnahmen</CardTitle>
-          </CardHeader>
-          <CardContent className="text-left">
-            <div className="flex items-center">
-              <TrendingUp className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-2xl font-bold text-green-600">€{totalRevenue.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 text-left">Gefilterte Ausgaben</CardTitle>
-          </CardHeader>
-          <CardContent className="text-left">
-            <div className="flex items-center">
-              <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-2xl font-bold text-red-600">€{totalExpenses.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 text-left">Gefilterte Gewinn</CardTitle>
-          </CardHeader>
-          <CardContent className="text-left">
-            <div className="flex items-center">
-              <Calculator className="h-5 w-5 text-red-600 mr-2" />
-              <span className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                €{netProfit.toFixed(2)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 text-left">Steuerrücklage ({taxRate}%)</CardTitle>
-          </CardHeader>
-          <CardContent className="text-left">
-            <div className="flex items-center">
-              <Euro className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-2xl font-bold text-blue-600">€{taxReserve.toFixed(2)}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 text-left">Transaktionen</CardTitle>
-          </CardHeader>
-          <CardContent className="text-left">
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-red-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{filteredRevenues.length + filteredExpenses.length}</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Add Revenue Form */}
-      {showAddRevenue && (
+        {/* Revenues List */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-left">Neue Einnahme hinzufügen</CardTitle>
+            <CardTitle className="text-left">Einnahmen ({revenues.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Select 
-                value={newRevenue.customer_id} 
-                onValueChange={(value) => setNewRevenue({...newRevenue, customer_id: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Kunde auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Beschreibung *"
-                value={newRevenue.description}
-                onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
-              />
-              <Input
-                type="number"
-                placeholder="Betrag (€) *"
-                value={newRevenue.amount}
-                onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
-              />
-              <Input
-                type="date"
-                value={newRevenue.date}
-                onChange={(e) => setNewRevenue({...newRevenue, date: e.target.value})}
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <Button onClick={handleAddRevenue} className="flex-1 bg-green-600 hover:bg-green-700">
-                Einnahme hinzufügen
-              </Button>
-              <Button variant="outline" onClick={() => setShowAddRevenue(false)} className="flex-1">
-                Abbrechen
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Expense Form */}
-      {showAddExpense && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-left">Neue Ausgabe hinzufügen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Input
-                placeholder="Beschreibung *"
-                value={newExpense.description}
-                onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-              />
-              <Input
-                type="number"
-                placeholder="Betrag (€) *"
-                value={newExpense.amount}
-                onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-              />
-              <Input
-                type="date"
-                value={newExpense.date}
-                onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-              />
-              <Input
-                placeholder="Referenz"
-                value={newExpense.reference}
-                onChange={(e) => setNewExpense({...newExpense, reference: e.target.value})}
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <Button onClick={handleAddExpense} className="flex-1 bg-red-600 hover:bg-red-700">
-                Ausgabe hinzufügen
-              </Button>
-              <Button variant="outline" onClick={() => setShowAddExpense(false)} className="flex-1">
-                Abbrechen
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Revenue and Expense Lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Revenues */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-left flex items-center">
-              <TrendingUp className="h-5 w-5 mr-2 text-red-600" />
-              Gefilterte Einnahmen ({filteredRevenues.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredRevenues.slice(0, 20).map(revenue => (
-                <div key={revenue.id} className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+            <div className="space-y-4">
+              {revenues.map((revenue) => (
+                <div key={revenue.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="text-left">
-                    <div className="font-medium text-sm text-gray-900">{revenue.description}</div>
-                    <div className="text-xs text-gray-600">
-                      {new Date(revenue.date).toLocaleDateString('de-DE')}
-                      {revenue.customers?.name && ` • ${revenue.customers.name}`}
-                    </div>
+                    <h3 className="font-medium text-gray-900">{revenue.description}</h3>
+                    <p className="text-sm text-gray-600">{format(new Date(revenue.date), 'dd.MM.yyyy', { locale: de })}</p>
+                    {revenue.customers && (
+                      <p className="text-sm text-blue-600">Kunde: {revenue.customers.name}</p>
+                    )}
                   </div>
-                  <span className="font-bold text-green-600">€{Number(revenue.amount).toFixed(2)}</span>
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-green-600">€{Math.round(revenue.amount)}</span>
+                    {canManageRevenues() && (
+                      <div className="mt-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Einnahme löschen</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Sind Sie sicher, dass Sie diese Einnahme löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteRevenue(revenue.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Löschen
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
-              {filteredRevenues.length === 0 && (
-                <p className="text-left text-gray-500 py-4">Keine Einnahmen im gewählten Zeitraum</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Recent Expenses */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-left flex items-center">
-              <TrendingDown className="h-5 w-5 mr-2 text-red-600" />
-              Gefilterte Ausgaben ({filteredExpenses.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredExpenses.slice(0, 20).map(expense => (
-                <div key={expense.id} className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-                  <div className="text-left">
-                    <div className="font-medium text-sm text-gray-900">{expense.description}</div>
-                    <div className="text-xs text-gray-600">
-                      {new Date(expense.date).toLocaleDateString('de-DE')}
-                      {expense.reference && ` • Ref: ${expense.reference}`}
-                    </div>
-                  </div>
-                  <span className="font-bold text-red-600">€{Number(expense.amount).toFixed(2)}</span>
+              {revenues.length === 0 && (
+                <div className="text-center py-8">
+                  <Euro className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Einnahmen</h3>
+                  <p className="text-gray-600 mb-4">Sie haben noch keine Einnahmen hinzugefügt.</p>
+                  <Button 
+                    onClick={() => setShowForm(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Erste Einnahme hinzufügen
+                  </Button>
                 </div>
-              ))}
-              {filteredExpenses.length === 0 && (
-                <p className="text-left text-gray-500 py-4">Keine Ausgaben im gewählten Zeitraum</p>
               )}
             </div>
           </CardContent>
