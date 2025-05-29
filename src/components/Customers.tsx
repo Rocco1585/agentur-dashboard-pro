@@ -74,7 +74,7 @@ export function Customers() {
   if (loading) {
     return (
       <div className="w-full p-4 sm:p-6">
-        <div className="text-lg">Lade Kunden...</div>
+        <div className="text-lg text-left">Lade Kunden...</div>
       </div>
     );
   }
@@ -108,15 +108,15 @@ export function Customers() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Kunden</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Kundenbasis</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Kunden</h1>
+          <p className="text-gray-600 text-left">Verwalten Sie Ihre Kundenbasis</p>
         </div>
         {canCreateCustomers() && (
           <Button 
             onClick={() => setShowAddForm(!showAddForm)}
             className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2 text-white" />
             Kunde hinzufügen
           </Button>
         )}
@@ -136,7 +136,7 @@ export function Customers() {
       {/* Search and Filter */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
           <Input
             placeholder="Kunden suchen..."
             value={searchTerm}
@@ -173,9 +173,9 @@ export function Customers() {
           <Card key={customer.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between text-left">
-                <div className="flex items-center min-w-0 flex-1">
+                <div className="flex items-center min-w-0 flex-1 text-left">
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                  <span className="truncate text-gray-900 text-sm">{customer.name}</span>
+                  <span className="truncate text-gray-900 text-sm text-left">{customer.name}</span>
                 </div>
                 <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
                   customer.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
@@ -187,36 +187,36 @@ export function Customers() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-left pt-0">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 {customer.contact && (
-                  <div className="flex items-center text-xs text-gray-600">
+                  <div className="flex items-center text-xs text-gray-600 text-left">
                     <User className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{customer.contact}</span>
+                    <span className="truncate text-left">{customer.contact}</span>
                   </div>
                 )}
                 {customer.email && (
-                  <div className="flex items-center text-xs text-gray-600">
+                  <div className="flex items-center text-xs text-gray-600 text-left">
                     <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{customer.email}</span>
+                    <span className="truncate text-left">{customer.email}</span>
                   </div>
                 )}
                 {customer.phone && (
-                  <div className="flex items-center text-xs text-gray-600">
+                  <div className="flex items-center text-xs text-gray-600 text-left">
                     <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{customer.phone}</span>
+                    <span className="truncate text-left">{customer.phone}</span>
                   </div>
                 )}
               </div>
 
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-600">Status:</span>
+              <div className="pt-2 border-t text-left">
+                <div className="flex items-center justify-between mb-2 text-left">
+                  <span className="text-xs text-gray-600 text-left">Status:</span>
                   <Badge className={`text-xs ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {customer.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Zahlung:</span>
+                <div className="flex items-center justify-between text-left">
+                  <span className="text-xs text-gray-600 text-left">Zahlung:</span>
                   <Badge variant="outline" className="text-xs">
                     {customer.payment_status}
                   </Badge>
@@ -230,7 +230,7 @@ export function Customers() {
                   onClick={() => setSelectedCustomer(customer)}
                   className="flex-1 text-xs"
                 >
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className="h-3 w-3 mr-1 text-red-600" />
                   Details
                 </Button>
                 {canCreateCustomers() && (
@@ -241,7 +241,7 @@ export function Customers() {
                       onClick={() => setEditingCustomer(customer)}
                       className="flex-1 text-xs"
                     >
-                      <Edit className="h-3 w-3 mr-1" />
+                      <Edit className="h-3 w-3 mr-1 text-red-600" />
                       Bearbeiten
                     </Button>
                     <AlertDialog>
@@ -251,14 +251,14 @@ export function Customers() {
                           size="sm"
                           className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
+                          <Trash2 className="h-3 w-3 mr-1 text-red-600" />
                           Löschen
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Kunde löschen</AlertDialogTitle>
-                          <AlertDialogDescription>
+                        <AlertDialogHeader className="text-left">
+                          <AlertDialogTitle className="text-left">Kunde löschen</AlertDialogTitle>
+                          <AlertDialogDescription className="text-left">
                             Sind Sie sicher, dass Sie den Kunden "{customer.name}" löschen möchten? 
                             Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
                             Daten wie Termine und Einnahmen ebenfalls löschen.
@@ -285,21 +285,23 @@ export function Customers() {
 
       {filteredCustomers.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kunden gefunden</h3>
-            <p className="text-gray-600 mb-4">
-              {customers.length === 0 
-                ? "Fügen Sie Ihren ersten Kunden hinzu, um zu beginnen."
-                : "Keine Kunden entsprechen Ihren Suchkriterien."
-              }
-            </p>
-            {canCreateCustomers() && customers.length === 0 && (
-              <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Ersten Kunden hinzufügen
-              </Button>
-            )}
+          <CardContent className="text-left py-12">
+            <div className="flex flex-col items-start text-left">
+              <Users className="h-12 w-12 text-red-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Kunden gefunden</h3>
+              <p className="text-gray-600 mb-4 text-left">
+                {customers.length === 0 
+                  ? "Fügen Sie Ihren ersten Kunden hinzu, um zu beginnen."
+                  : "Keine Kunden entsprechen Ihren Suchkriterien."
+                }
+              </p>
+              {canCreateCustomers() && customers.length === 0 && (
+                <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
+                  <Plus className="h-4 w-4 mr-2 text-white" />
+                  Ersten Kunden hinzufügen
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

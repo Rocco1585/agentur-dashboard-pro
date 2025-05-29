@@ -118,7 +118,7 @@ export function Dashboard() {
   if (customersLoading || revenuesLoading || expensesLoading || todosLoading || appointmentsLoading) {
     return (
       <div className="w-full p-4">
-        <div className="text-lg text-gray-900">Lade Dashboard...</div>
+        <div className="text-lg text-gray-900 text-left">Lade Dashboard...</div>
       </div>
     );
   }
@@ -126,8 +126,8 @@ export function Dashboard() {
   return (
     <div className="w-full max-w-none p-4">
       <div className="w-full text-left">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Willkommen zurück! Hier ist Ihre Übersicht.</p>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Dashboard</h1>
+        <p className="text-gray-600 text-left">Willkommen zurück! Hier ist Ihre Übersicht.</p>
       </div>
 
       {/* Team Notice */}
@@ -137,9 +137,9 @@ export function Dashboard() {
             <CardContent className="p-4 w-full">
               <div className="flex items-start text-left w-full">
                 <MessageSquare className="h-5 w-5 text-red-600 mr-2 mt-1 flex-shrink-0" />
-                <div className="w-full">
-                  <h4 className="font-semibold text-gray-900 mb-1">Team-Notiz</h4>
-                  <p className="text-gray-900 text-sm whitespace-pre-wrap">{teamNotice}</p>
+                <div className="w-full text-left">
+                  <h4 className="font-semibold text-gray-900 mb-1 text-left">Team-Notiz</h4>
+                  <p className="text-gray-900 text-sm whitespace-pre-wrap text-left">{teamNotice}</p>
                 </div>
               </div>
             </CardContent>
@@ -159,8 +159,8 @@ export function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-left w-full">
-                <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
-                <p className="text-xs text-green-600 font-medium">
+                <div className="text-xl lg:text-2xl font-bold text-gray-900 text-left">{stat.value}</div>
+                <p className="text-xs text-green-600 font-medium text-left">
                   {stat.change} vs. letzter Monat
                 </p>
               </CardContent>
@@ -175,8 +175,8 @@ export function Dashboard() {
           {/* Upcoming ToDos */}
           <Card className="w-full">
             <CardHeader className="w-full">
-              <CardTitle className="flex items-center justify-between w-full">
-                <div className="flex items-center">
+              <CardTitle className="flex items-center justify-between w-full text-left">
+                <div className="flex items-center text-left">
                   <Calendar className="h-5 w-5 mr-2 text-red-600" />
                   <span className="text-gray-900">Bevorstehende ToDos</span>
                 </div>
@@ -210,9 +210,9 @@ export function Dashboard() {
                   displayedTodos.map((todo) => (
                     <div key={todo.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg w-full">
                       <div className="flex-1 text-left">
-                        <p className="font-medium text-gray-900">{todo.title}</p>
-                        <p className="text-sm text-gray-900">{todo.description}</p>
-                        <p className="text-sm text-gray-700">
+                        <p className="font-medium text-gray-900 text-left">{todo.title}</p>
+                        <p className="text-sm text-gray-900 text-left">{todo.description}</p>
+                        <p className="text-sm text-gray-700 text-left">
                           {todo.due_date ? new Date(todo.due_date).toLocaleDateString('de-DE') : 'Kein Datum'}
                         </p>
                       </div>
@@ -233,8 +233,8 @@ export function Dashboard() {
           {/* Team Appointments */}
           <Card className="w-full">
             <CardHeader className="w-full">
-              <CardTitle className="flex items-center justify-between w-full">
-                <div className="flex items-center">
+              <CardTitle className="flex items-center justify-between w-full text-left">
+                <div className="flex items-center text-left">
                   <CheckCircle className="h-5 w-5 mr-2 text-red-600" />
                   <span className="text-gray-900">Anstehende Termine</span>
                 </div>
@@ -268,9 +268,9 @@ export function Dashboard() {
                   upcoming_appointments.map((appointment) => (
                     <div key={appointment.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg w-full">
                       <div className="flex-1 text-left">
-                        <p className="font-medium text-gray-900">{appointment.customers?.name || 'Unbekannt'}</p>
-                        <p className="text-sm text-gray-900">{appointment.customers?.contact || 'Kein Kontakt'}</p>
-                        <p className="text-xs text-gray-700">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
+                        <p className="font-medium text-gray-900 text-left">{appointment.customers?.name || 'Unbekannt'}</p>
+                        <p className="text-sm text-gray-900 text-left">{appointment.customers?.contact || 'Kein Kontakt'}</p>
+                        <p className="text-xs text-gray-700 text-left">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
                       </div>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium ml-2 flex-shrink-0">
                         {pipelineStages.find(stage => stage.id === appointment.result)?.name || appointment.result}
