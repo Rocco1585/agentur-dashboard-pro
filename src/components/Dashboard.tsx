@@ -62,13 +62,14 @@ export function Dashboard() {
 
       let topPerformer = 'N/A';
       if (appointmentStats && appointmentStats.length > 0) {
-        const memberStats = {};
+        const memberStats: { [key: string]: { name: string; count: number } } = {};
         appointmentStats.forEach(appointment => {
           if (appointment.team_member_id && appointment.team_members) {
             const id = appointment.team_member_id;
+            const memberName = (appointment.team_members as any)?.name;
             if (!memberStats[id]) {
               memberStats[id] = {
-                name: appointment.team_members.name,
+                name: memberName,
                 count: 0
               };
             }
