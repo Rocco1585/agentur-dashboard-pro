@@ -15,6 +15,7 @@ import { CreateAppointmentPage } from "@/components/CreateAppointmentPage";
 import { AuditLogs } from "@/components/AuditLogs";
 import { UserManagement } from "@/components/UserManagement";
 import { CustomerDashboard } from "@/components/CustomerDashboard";
+import { CustomerDashboardView } from "@/components/CustomerDashboardView";
 import { Login } from "@/components/Login";
 import { AdminSetup } from "@/components/AdminSetup";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,8 +50,9 @@ function AppContent() {
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <Routes>
-            {/* Customer routes */}
+            {/* Customer dashboard routes */}
             <Route path="/customer-dashboard/:customerId" element={<CustomerDashboard />} />
+            <Route path="/customer-dashboard-view/:customerId" element={<CustomerDashboardView />} />
             
             {/* Main routes - only accessible for non-customers */}
             {canAccessMainNavigation() && (

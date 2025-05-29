@@ -6,6 +6,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -159,14 +160,12 @@ export function Dashboard() {
 
       {/* Team Notification */}
       {showTeamNotification && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <MessageSquare className="h-5 w-5 mr-2 text-blue-600" />
-              <span className="text-blue-800 font-medium">Team-Notiz aktiv</span>
-            </div>
-          </CardContent>
-        </Card>
+        <Alert className="border-yellow-200 bg-yellow-50">
+          <MessageSquare className="h-4 w-4 text-yellow-600" />
+          <AlertDescription className="text-left text-yellow-800">
+            <strong>Team-Notiz aktiv:</strong> Wichtige Informationen für das Team sind verfügbar.
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Revenue Cards */}
