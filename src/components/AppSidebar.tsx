@@ -22,7 +22,6 @@ import {
   CheckSquare, 
   Settings, 
   FileText, 
-  UserCog,
   ChevronRight,
   Building2
 } from "lucide-react"
@@ -43,7 +42,6 @@ export function AppSidebar() {
     canAccessSettings,
     canViewAuditLogs,
     canViewTeamMembers,
-    canViewUserManagement,
     canViewCustomerDashboards
   } = useAuth()
   const { teamMembers } = useTeamMembers()
@@ -110,19 +108,17 @@ export function AppSidebar() {
       icon: FileText,
       visible: canViewAuditLogs()
     },
-    {
-      title: "Benutzerverwaltung",
-      url: "/user-management",
-      icon: UserCog,
-      visible: canViewUserManagement()
-    },
   ].filter(item => item.visible)
 
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>CRM Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel>
+            <span className="text-lg font-bold">
+              <span className="text-red-600">C</span>edric<span className="text-red-600">O</span>rt.de
+            </span>
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
