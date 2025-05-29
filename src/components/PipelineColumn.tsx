@@ -12,6 +12,7 @@ interface Appointment {
   type: string;
   description?: string;
   result: string;
+  notes?: string;
   customers?: {
     id: string;
     name: string;
@@ -24,6 +25,11 @@ interface Appointment {
     booked_appointments: number;
     completed_appointments: number;
     pipeline_stage: string;
+  };
+  team_members?: {
+    id: string;
+    name: string;
+    role: string;
   };
 }
 
@@ -61,7 +67,7 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
     <div className="flex-1 min-w-80">
       <Card className="h-full">
         <CardHeader className={`${color} text-white`}>
-          <CardTitle className="text-center">
+          <CardTitle className="text-center text-sm">
             {title} ({appointments.length})
           </CardTitle>
         </CardHeader>
@@ -88,7 +94,7 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
                     >
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-sm font-semibold text-gray-900">
+                          <CardTitle className="text-xs font-semibold text-gray-900 text-left">
                             {appointment.customers?.name || 'Unbekannter Kunde'}
                           </CardTitle>
                           <Button
@@ -104,19 +110,22 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-3 w-3 text-gray-500" />
-                          <span className="text-xs text-gray-600">{appointment.type}</span>
+                          <span className="text-xs text-gray-600 text-left">{appointment.type}</span>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="space-y-1">
-                          <div className="flex items-center text-xs text-gray-600">
+                          <div className="flex items-center text-xs text-gray-600 text-left">
                             <Clock className="h-3 w-3 mr-1" />
                             {new Date(appointment.date).toLocaleDateString('de-DE')}
                             {appointment.time && ` um ${appointment.time}`}
                           </div>
+                          <div className="flex items-center text-xs text-gray-600 text-left">
+                            <User className="h-3 w-3 mr-1" />
+                            {appointment.team_members?.name || 'Nicht zugewiesen'}
+                          </div>
                           {appointment.customers && (
-                            <div className="flex items-center text-xs text-gray-600">
-                              <User className="h-3 w-3 mr-1" />
+                            <div className="text-xs text-gray-600 text-left">
                               {appointment.customers.contact || appointment.customers.name}
                             </div>
                           )}
@@ -134,8 +143,14 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
                         </div>
 
                         {appointment.description && (
-                          <div className="text-xs text-gray-600 mt-2 truncate">
+                          <div className="text-xs text-gray-600 mt-2 truncate text-left">
                             {appointment.description}
+                          </div>
+                        )}
+                        
+                        {appointment.notes && (
+                          <div className="text-xs text-gray-500 mt-1 truncate text-left">
+                            Notizen: {appointment.notes}
                           </div>
                         )}
                       </CardContent>

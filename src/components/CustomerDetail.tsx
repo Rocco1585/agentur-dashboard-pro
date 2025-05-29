@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Calendar, Euro, TrendingUp, Phone, Mail, User, Clock, CheckCircle } from "lucide-react";
+import { ArrowLeft, Save, Calendar, Euro, TrendingUp, Phone, Mail, User, Clock, CheckCircle, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +20,7 @@ export interface CustomerDetailProps {
 }
 
 export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailProps) {
-  const { canEditCustomers } = useAuth();
+  const { canEditCustomers, isAdmin, isMember, user } = useAuth();
   const [formData, setFormData] = useState({
     name: customer.name || '',
     email: customer.email || '',
@@ -41,6 +41,12 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
     completedAppointments: 0,
     pendingAppointments: 0
   });
+  const [showAddRevenue, setShowAddRevenue] = useState(false);
+  const [newRevenue, setNewRevenue] = useState({
+    description: '',
+    amount: '',
+    date: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     fetchCustomerData();
@@ -48,7 +54,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
   const fetchCustomerData = async () => {
     try {
-      // Fetch appointments for this customer with all related data
+      // Fetch appointments for this customer with all related data and time field
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
@@ -65,6 +71,11 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
             booked_appointments,
             completed_appointments,
             pipeline_stage
+          ),
+          team_members (
+            id,
+            name,
+            role
           )
         `)
         .eq('customer_id', customer.id)
@@ -98,6 +109,11 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
     } catch (error) {
       console.error('Error fetching customer data:', error);
+      toast({
+        title: "Fehler",
+        description: "Kundendaten konnten nicht geladen werden.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -142,6 +158,16 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    // Only allow admins to move appointments
+    if (!isAdmin()) {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Nur Administratoren können Termine verschieben.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -173,6 +199,58 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
       toast({
         title: "Fehler",
         description: "Status konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddRevenue = async () => {
+    if (!isAdmin()) {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Nur Administratoren können Einnahmen hinzufügen.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newRevenue.description && newRevenue.amount && newRevenue.date) {
+      try {
+        const { error } = await supabase
+          .from('revenues')
+          .insert({
+            customer_id: customer.id,
+            description: newRevenue.description,
+            amount: parseFloat(newRevenue.amount),
+            date: newRevenue.date
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Einnahme hinzugefügt",
+          description: "Die Einnahme wurde erfolgreich hinzugefügt.",
+        });
+
+        setNewRevenue({
+          description: '',
+          amount: '',
+          date: new Date().toISOString().split('T')[0]
+        });
+        setShowAddRevenue(false);
+        fetchCustomerData(); // Refresh data
+      } catch (error) {
+        console.error('Error adding revenue:', error);
+        toast({
+          title: "Fehler",
+          description: "Einnahme konnte nicht hinzugefügt werden.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Felder aus.",
         variant: "destructive",
       });
     }
@@ -223,19 +301,19 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
   const pipelineColumns = [
     { 
       id: 'termin_ausstehend', 
-      title: 'Termin Ausstehend', 
+      title: 'Ausstehend', 
       color: 'bg-blue-600',
       appointments: appointmentsByStatus.termin_ausstehend
     },
     { 
       id: 'termin_erschienen', 
-      title: 'Termin Erschienen', 
+      title: 'Erschienen', 
       color: 'bg-yellow-600',
       appointments: appointmentsByStatus.termin_erschienen
     },
     { 
       id: 'termin_abgeschlossen', 
-      title: 'Termin Abgeschlossen', 
+      title: 'Abgeschlossen', 
       color: 'bg-green-600',
       appointments: appointmentsByStatus.termin_abgeschlossen
     },
@@ -247,13 +325,13 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
     },
     { 
       id: 'termin_abgesagt', 
-      title: 'Termin Abgesagt', 
+      title: 'Abgesagt', 
       color: 'bg-red-600',
       appointments: appointmentsByStatus.termin_abgesagt
     },
     { 
       id: 'termin_verschoben', 
-      title: 'Termin Verschoben', 
+      title: 'Verschoben', 
       color: 'bg-orange-600',
       appointments: appointmentsByStatus.termin_verschoben
     }
@@ -266,11 +344,11 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
           <ArrowLeft className="h-4 w-4 mr-2" />
           Zurück
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">
+        <div className="text-left">
+          <h1 className="text-2xl font-bold text-left">
             {canEditCustomers() ? 'Kunde bearbeiten' : 'Kundendetails'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-left">
             {canEditCustomers() ? 'Kundendetails verwalten' : 'Kundeninformationen anzeigen'}
           </p>
         </div>
@@ -280,40 +358,40 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gesamt-Umsatz</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Gesamt-Umsatz</CardTitle>
             <Euro className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-left">
             <div className="text-2xl font-bold">€{customerStats.totalRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Termine gesamt</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Termine gesamt</CardTitle>
             <Calendar className="h-4 w-4 text-red-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-left">
             <div className="text-2xl font-bold">{customerStats.totalAppointments}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Abgeschlossen</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Abgeschlossen</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-left">
             <div className="text-2xl font-bold">{customerStats.completedAppointments}</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Geplant</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Geplant</CardTitle>
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="text-left">
             <div className="text-2xl font-bold">{customerStats.pendingAppointments}</div>
           </CardContent>
         </Card>
@@ -330,7 +408,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         <TabsContent value="details">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center justify-between text-left">
                 <span>{customer.name}</span>
                 <Badge className={customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                   {customer.is_active ? 'Aktiv' : 'Inaktiv'}
@@ -345,6 +423,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     disabled={!canEditCustomers()}
+                    className="text-left"
                   />
                   <Input
                     placeholder="Email"
@@ -352,19 +431,21 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     value={formData.email}
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                     disabled={!canEditCustomers()}
+                    className="text-left"
                   />
                   <Input
                     placeholder="Telefon"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     disabled={!canEditCustomers()}
+                    className="text-left"
                   />
                   <Select 
                     value={formData.priority} 
                     onValueChange={(value) => setFormData({...formData, priority: value})}
                     disabled={!canEditCustomers()}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-left">
                       <SelectValue placeholder="Priorität" />
                     </SelectTrigger>
                     <SelectContent>
@@ -378,7 +459,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     onValueChange={(value) => setFormData({...formData, payment_status: value})}
                     disabled={!canEditCustomers()}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="text-left">
                       <SelectValue placeholder="Zahlungsstatus" />
                     </SelectTrigger>
                     <SelectContent>
@@ -395,6 +476,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     value={formData.satisfaction}
                     onChange={(e) => setFormData({...formData, satisfaction: parseInt(e.target.value) || 5})}
                     disabled={!canEditCustomers()}
+                    className="text-left"
                   />
                 </div>
                 <Textarea
@@ -403,6 +485,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                   onChange={(e) => setFormData({...formData, contact: e.target.value})}
                   rows={4}
                   disabled={!canEditCustomers()}
+                  className="text-left"
                 />
                 {canEditCustomers() && (
                   <div className="flex gap-2 pt-4">
@@ -424,7 +507,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         <TabsContent value="appointments">
           <Card>
             <CardHeader>
-              <CardTitle>Termine</CardTitle>
+              <CardTitle className="text-left">Termine</CardTitle>
             </CardHeader>
             <CardContent>
               {appointments.length > 0 ? (
@@ -432,14 +515,20 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                   {appointments.map((appointment: any) => (
                     <div key={appointment.id} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{appointment.type}</h4>
-                          <p className="text-sm text-gray-600">
+                        <div className="text-left">
+                          <h4 className="font-medium text-left">{appointment.type}</h4>
+                          <p className="text-sm text-gray-600 text-left">
                             {new Date(appointment.date).toLocaleDateString('de-DE')} 
                             {appointment.time && ` um ${appointment.time}`}
                           </p>
+                          <p className="text-sm text-gray-600 text-left">
+                            Betreuer: {appointment.team_members?.name || 'Nicht zugewiesen'}
+                          </p>
                           {appointment.description && (
-                            <p className="text-sm mt-2">{appointment.description}</p>
+                            <p className="text-sm mt-2 text-left">{appointment.description}</p>
+                          )}
+                          {appointment.notes && (
+                            <p className="text-sm mt-1 text-gray-500 text-left">Notizen: {appointment.notes}</p>
                           )}
                         </div>
                         <Badge className={getStatusColor(appointment.result)}>
@@ -450,7 +539,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">Keine Termine vorhanden</p>
+                <p className="text-gray-600 text-left">Keine Termine vorhanden</p>
               )}
             </CardContent>
           </Card>
@@ -459,32 +548,79 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         <TabsContent value="revenues">
           <Card>
             <CardHeader>
-              <CardTitle>Einnahmen</CardTitle>
+              <CardTitle className="text-left flex items-center justify-between">
+                Einnahmen
+                {isAdmin() && (
+                  <Button 
+                    onClick={() => setShowAddRevenue(!showAddRevenue)}
+                    className="bg-green-600 hover:bg-green-700"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Einnahme hinzufügen
+                  </Button>
+                )}
+              </CardTitle>
             </CardHeader>
             <CardContent>
+              {showAddRevenue && isAdmin() && (
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="font-medium mb-3 text-left">Neue Einnahme hinzufügen</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Input
+                      placeholder="Beschreibung"
+                      value={newRevenue.description}
+                      onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
+                      className="text-left"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Betrag (€)"
+                      value={newRevenue.amount}
+                      onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
+                      className="text-left"
+                    />
+                    <Input
+                      type="date"
+                      value={newRevenue.date}
+                      onChange={(e) => setNewRevenue({...newRevenue, date: e.target.value})}
+                      className="text-left"
+                    />
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleAddRevenue} className="bg-green-600 hover:bg-green-700">
+                      Hinzufügen
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddRevenue(false)}>
+                      Abbrechen
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {revenues.length > 0 ? (
                 <div className="space-y-4">
                   {revenues.map((revenue: any) => (
                     <div key={revenue.id} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-medium">€{Number(revenue.amount).toFixed(2)}</h4>
-                          <p className="text-sm text-gray-600">
+                        <div className="text-left">
+                          <h4 className="font-medium text-left">€{Number(revenue.amount).toFixed(2)}</h4>
+                          <p className="text-sm text-gray-600 text-left">
                             {new Date(revenue.date).toLocaleDateString('de-DE')}
                           </p>
                           {revenue.description && (
-                            <p className="text-sm mt-1">{revenue.description}</p>
+                            <p className="text-sm mt-1 text-left">{revenue.description}</p>
                           )}
                         </div>
                         <Badge className="bg-green-100 text-green-800">
-                          {revenue.category || 'Allgemein'}
+                          Einnahme
                         </Badge>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600">Keine Einnahmen verzeichnet</p>
+                <p className="text-gray-600 text-left">Keine Einnahmen verzeichnet</p>
               )}
             </CardContent>
           </Card>
@@ -493,7 +629,10 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         <TabsContent value="pipeline">
           <Card>
             <CardHeader>
-              <CardTitle>Termin Pipeline - {customer.name}</CardTitle>
+              <CardTitle className="text-left text-sm">Termin Pipeline - {customer.name}</CardTitle>
+              {isMember() && !isAdmin() && (
+                <p className="text-sm text-gray-600 text-left">Nur ansehen - Verschieben nur für Administratoren</p>
+              )}
             </CardHeader>
             <CardContent>
               <DragDropContext onDragEnd={handleDragEnd}>
@@ -506,7 +645,6 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                       customers={column.appointments}
                       color={column.color}
                       onCustomerClick={(appointment) => {
-                        // Optional: Handle appointment click in pipeline
                         console.log('Appointment clicked:', appointment);
                       }}
                     />

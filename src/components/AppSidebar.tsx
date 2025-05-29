@@ -1,182 +1,174 @@
 
+import { Calendar, Users, UserPlus, Euro, Settings, CheckSquare, TrendingUp, BarChart, Shield, LogOut, User, FileText } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { 
-  Home, 
-  Users, 
-  Flame, 
-  CalendarPlus, 
-  Euro, 
-  CheckSquare, 
-  Settings, 
-  FileText, 
-  ChevronRight,
-  Building2
-} from "lucide-react"
-import { Link, useLocation } from "react-router-dom"
-import { useAuth } from "@/hooks/useAuth"
-import { useTeamMembers } from "@/hooks/useSupabaseData"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/sidebar";
+import { useLocation, useNavigate } from "react-router-dom";
+
+const items = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: BarChart,
+    requiredPermission: "canAccessMainNavigation"
+  },
+  {
+    title: "Kunden",
+    url: "/customers",
+    icon: Users,
+    requiredPermission: "canViewCustomers"
+  },
+  {
+    title: "Hot Leads",
+    url: "/hot-leads",
+    icon: TrendingUp,
+    requiredPermission: "canViewCustomers"
+  },
+  {
+    title: "Termin erstellen",
+    url: "/create-appointment",
+    icon: Calendar,
+    requiredPermission: "canAccessMainNavigation"
+  },
+  {
+    title: "Team Mitglieder",
+    url: "/team-members",
+    icon: UserPlus,
+    requiredPermission: "canViewTeamMembers"
+  },
+  {
+    title: "Einnahmen & Ausgaben",
+    url: "/revenue",
+    icon: Euro,
+    requiredPermission: "canManageRevenues"
+  },
+  {
+    title: "To-Do Liste",
+    url: "/todos",
+    icon: CheckSquare,
+    requiredPermission: "canViewTodos"
+  },
+  {
+    title: "Audit Logs",
+    url: "/audit-logs",
+    icon: FileText,
+    requiredPermission: "canViewAuditLogs"
+  },
+  {
+    title: "Einstellungen",
+    url: "/settings",
+    icon: Settings,
+    requiredPermission: "canAccessSettings"
+  }
+];
 
 export function AppSidebar() {
-  const location = useLocation()
+  const location = useLocation();
+  const navigate = useNavigate();
   const { 
     user, 
     logout, 
-    canAccessMainNavigation, 
+    canAccessMainNavigation,
     canViewCustomers,
+    canViewTeamMembers,
     canManageRevenues,
     canViewTodos,
-    canAccessSettings,
     canViewAuditLogs,
+    canAccessSettings
+  } = useAuth();
+
+  const permissionMap = {
+    canAccessMainNavigation,
+    canViewCustomers,
     canViewTeamMembers,
-    canViewCustomerDashboards
-  } = useAuth()
-  const { teamMembers } = useTeamMembers()
+    canManageRevenues,
+    canViewTodos,
+    canViewAuditLogs,
+    canAccessSettings
+  };
 
-  if (!user) return null
+  const filteredItems = items.filter(item => {
+    const hasPermission = permissionMap[item.requiredPermission as keyof typeof permissionMap];
+    return typeof hasPermission === 'function' ? hasPermission() : hasPermission;
+  });
 
-  // Get customer dashboards for admins only
-  const customerDashboards = canViewCustomerDashboards() ? teamMembers.filter(member => 
-    member.user_role === 'kunde' && member.customer_dashboard_name
-  ) : []
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
-  const items = [
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: Home,
-      visible: canAccessMainNavigation()
-    },
-    {
-      title: "Kunden",
-      url: "/customers",
-      icon: Users,
-      visible: canViewCustomers()
-    },
-    {
-      title: "Hot Leads",
-      url: "/hot-leads",
-      icon: Flame,
-      visible: canAccessMainNavigation()
-    },
-    {
-      title: "Termin erstellen",
-      url: "/create-appointment",
-      icon: CalendarPlus,
-      visible: canAccessMainNavigation()
-    },
-    {
-      title: "Teammitglieder",
-      url: "/team-members",
-      icon: Users,
-      visible: canViewTeamMembers()
-    },
-    {
-      title: "Einnahmen",
-      url: "/revenue",
-      icon: Euro,
-      visible: canManageRevenues()
-    },
-    {
-      title: "TODOs",
-      url: "/todos",
-      icon: CheckSquare,
-      visible: canViewTodos()
-    },
-    {
-      title: "Einstellungen",
-      url: "/settings",
-      icon: Settings,
-      visible: canAccessSettings()
-    },
-    {
-      title: "Audit Logs",
-      url: "/audit-logs",
-      icon: FileText,
-      visible: canViewAuditLogs()
-    },
-  ].filter(item => item.visible)
+  if (!user) {
+    return null;
+  }
 
   return (
     <Sidebar>
+      <SidebarHeader className="border-b p-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">
+              <span className="text-red-500">C</span><span className="text-red-500">O</span>
+            </span>
+          </div>
+          <div className="text-left">
+            <h2 className="text-lg font-bold text-black">CedricOrt.de</h2>
+          </div>
+        </div>
+      </SidebarHeader>
+      
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>
-            <span className="text-lg font-bold">
-              <span className="text-red-600">C</span>edric<span className="text-red-600">O</span>rt.de
-            </span>
-          </SidebarGroupLabel>
+          <SidebarGroupLabel className="text-left">Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
-                    <Link to={item.url}>
-                      <item.icon />
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === item.url}
+                    className="text-left"
+                  >
+                    <a href={item.url} className="flex items-center gap-3">
+                      <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </Link>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              
-              {/* Customer Dashboards - only visible to admins */}
-              {canViewCustomerDashboards() && customerDashboards.length > 0 && (
-                <Collapsible>
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton>
-                        <Building2 />
-                        <span>Kunden-Dashboards</span>
-                        <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {customerDashboards.map((customer) => (
-                          <SidebarMenuSubItem key={customer.id}>
-                            <SidebarMenuSubButton asChild>
-                              <Link to={`/customer-dashboard/${customer.id}`}>
-                                <span>{customer.customer_dashboard_name}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        
-        <div className="mt-auto p-4">
-          <div className="text-sm text-gray-600 mb-2">
-            Angemeldet als: {user.name}
-          </div>
-          <Button 
-            onClick={logout} 
-            variant="outline" 
-            size="sm" 
-            className="w-full"
-          >
-            Abmelden
-          </Button>
-        </div>
       </SidebarContent>
+
+      <SidebarFooter className="border-t p-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-3 p-2 text-left">
+              <User className="h-4 w-4 text-red-600" />
+              <div className="text-left">
+                <div className="text-sm font-medium text-left">{user.name}</div>
+                <div className="text-xs text-gray-600 text-left">{user.user_role}</div>
+              </div>
+            </div>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} className="text-left">
+              <LogOut className="h-4 w-4" />
+              <span>Abmelden</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
