@@ -39,60 +39,64 @@ export function HotLeads() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Lade Hot Leads...</div>
+      <div className="w-full p-4">
+        <div className="text-lg text-left">Lade Hot Leads...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Hot Leads</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre heißen Leads</p>
+    <div className="space-y-6 p-4 w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+        <div className="text-left w-full">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Hot Leads</h1>
+          <p className="text-gray-600 text-left">Verwalten Sie Ihre heißen Leads</p>
         </div>
         <Button 
           onClick={() => setShowAddForm(!showAddForm)}
           className="w-full sm:w-auto"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2 text-red-600" />
           Hot Lead hinzufügen
         </Button>
       </div>
 
       {/* Add Hot Lead Form */}
       {showAddForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Neuen Hot Lead hinzufügen</CardTitle>
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="text-lg text-left w-full">Neuen Hot Lead hinzufügen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <CardContent className="w-full">
+            <div className="space-y-4 w-full">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
                 <Input
                   placeholder="Firmenname"
                   value={newLead.name}
                   onChange={(e) => setNewLead({...newLead, name: e.target.value})}
+                  className="w-full"
                 />
                 <Input
                   placeholder="Ansprechpartner"
                   value={newLead.contact}
                   onChange={(e) => setNewLead({...newLead, contact: e.target.value})}
+                  className="w-full"
                 />
                 <Input
                   placeholder="Email"
                   type="email"
                   value={newLead.email}
                   onChange={(e) => setNewLead({...newLead, email: e.target.value})}
+                  className="w-full"
                 />
                 <Input
                   placeholder="Telefon"
                   value={newLead.phone}
                   onChange={(e) => setNewLead({...newLead, phone: e.target.value})}
+                  className="w-full"
                 />
                 <Select value={newLead.priority} onValueChange={(value) => setNewLead({...newLead, priority: value})}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -105,15 +109,16 @@ export function HotLeads() {
                   placeholder="Quelle"
                   value={newLead.source}
                   onChange={(e) => setNewLead({...newLead, source: e.target.value})}
+                  className="w-full"
                 />
               </div>
               <Textarea
                 placeholder="Notizen"
                 value={newLead.notes}
                 onChange={(e) => setNewLead({...newLead, notes: e.target.value})}
-                className="min-h-[80px]"
+                className="min-h-[80px] w-full"
               />
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full">
                 <Button onClick={handleAddLead} className="flex-1">
                   <Save className="h-4 w-4 mr-2" />
                   Hinzufügen
@@ -129,14 +134,14 @@ export function HotLeads() {
       )}
 
       {/* Hot Leads Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 w-full">
         {hotLeads.length === 0 ? (
-          <div className="col-span-full">
-            <Card>
-              <CardContent className="text-center py-12">
-                <Flame className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Hot Leads</h3>
-                <p className="text-gray-600 mb-4">Fügen Sie Ihren ersten Hot Lead hinzu, um zu beginnen.</p>
+          <div className="col-span-full w-full">
+            <Card className="w-full">
+              <CardContent className="text-left py-12 w-full">
+                <Flame className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Hot Leads</h3>
+                <p className="text-gray-600 mb-4 text-left">Fügen Sie Ihren ersten Hot Lead hinzu, um zu beginnen.</p>
                 <Button onClick={() => setShowAddForm(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Hot Lead hinzufügen
@@ -146,12 +151,12 @@ export function HotLeads() {
           </div>
         ) : (
           hotLeads.map((lead) => (
-            <Card key={lead.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center justify-between">
-                  <div className="flex items-center">
+            <Card key={lead.id} className="hover:shadow-lg transition-shadow w-full">
+              <CardHeader className="pb-2 w-full">
+                <CardTitle className="text-lg flex items-center justify-between w-full">
+                  <div className="flex items-center text-left">
                     <Flame className="h-5 w-5 mr-2 text-orange-600" />
-                    <span className="truncate">{lead.name}</span>
+                    <span className="truncate text-left">{lead.name}</span>
                   </div>
                   <Badge 
                     className={`text-xs ${
@@ -164,34 +169,38 @@ export function HotLeads() {
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-3 w-full">
                 {editingLead?.id === lead.id ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full">
                     <Input
                       value={editingLead.name}
                       onChange={(e) => setEditingLead({...editingLead, name: e.target.value})}
                       placeholder="Firmenname"
+                      className="w-full"
                     />
                     <Input
                       value={editingLead.contact || ''}
                       onChange={(e) => setEditingLead({...editingLead, contact: e.target.value})}
                       placeholder="Ansprechpartner"
+                      className="w-full"
                     />
                     <Input
                       value={editingLead.email || ''}
                       onChange={(e) => setEditingLead({...editingLead, email: e.target.value})}
                       placeholder="Email"
+                      className="w-full"
                     />
                     <Input
                       value={editingLead.phone || ''}
                       onChange={(e) => setEditingLead({...editingLead, phone: e.target.value})}
                       placeholder="Telefon"
+                      className="w-full"
                     />
                     <Select 
                       value={editingLead.priority} 
                       onValueChange={(value) => setEditingLead({...editingLead, priority: value})}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -204,14 +213,15 @@ export function HotLeads() {
                       value={editingLead.source || ''}
                       onChange={(e) => setEditingLead({...editingLead, source: e.target.value})}
                       placeholder="Quelle"
+                      className="w-full"
                     />
                     <Textarea
                       value={editingLead.notes || ''}
                       onChange={(e) => setEditingLead({...editingLead, notes: e.target.value})}
                       placeholder="Notizen"
-                      className="min-h-[60px]"
+                      className="min-h-[60px] w-full"
                     />
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full">
                       <Button 
                         size="sm" 
                         onClick={() => handleUpdateLead(lead.id, editingLead)}
@@ -233,39 +243,39 @@ export function HotLeads() {
                   </div>
                 ) : (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-2 w-full">
                       {lead.contact && (
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center text-sm text-left w-full">
                           <User className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
-                          <span className="truncate">{lead.contact}</span>
+                          <span className="truncate text-left">{lead.contact}</span>
                         </div>
                       )}
                       {lead.email && (
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center text-sm text-left w-full">
                           <Mail className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
-                          <span className="truncate">{lead.email}</span>
+                          <span className="truncate text-left">{lead.email}</span>
                         </div>
                       )}
                       {lead.phone && (
-                        <div className="flex items-center text-sm">
+                        <div className="flex items-center text-sm text-left w-full">
                           <Phone className="h-4 w-4 mr-2 text-gray-600 flex-shrink-0" />
-                          <span className="truncate">{lead.phone}</span>
+                          <span className="truncate text-left">{lead.phone}</span>
                         </div>
                       )}
                       {lead.source && (
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 text-left w-full">
                           <strong>Quelle:</strong> {lead.source}
                         </div>
                       )}
                     </div>
 
                     {lead.notes && (
-                      <div className="pt-2 border-t">
-                        <p className="text-sm text-gray-600">{lead.notes}</p>
+                      <div className="pt-2 border-t w-full">
+                        <p className="text-sm text-gray-600 text-left w-full">{lead.notes}</p>
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-2 w-full">
                       <Button
                         variant="outline"
                         size="sm"

@@ -129,47 +129,47 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
+    <div className="space-y-6 w-full">
+      <div className="flex items-center space-x-4 w-full">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-2 text-red-600" />
           Zurück
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{member.name}</h1>
-          <p className="text-gray-600">{editableData.position} • {editableData.email}</p>
+        <div className="text-left w-full">
+          <h1 className="text-3xl font-bold text-gray-900 text-left">{member.name}</h1>
+          <p className="text-gray-600 text-left">{editableData.position} • {editableData.email}</p>
         </div>
       </div>
 
       {/* Member Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Gesamteinnahmen</CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        <Card className="w-full">
+          <CardHeader className="pb-2 w-full">
+            <CardTitle className="text-sm text-gray-600 text-left w-full">Gesamteinnahmen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
+          <CardContent className="w-full">
+            <div className="flex items-center w-full text-left">
               <TrendingUp className="h-5 w-5 text-green-600 mr-2" />
               <span className="text-2xl font-bold text-green-600">€{totalEarnings}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Auszahlungen</CardTitle>
+        <Card className="w-full">
+          <CardHeader className="pb-2 w-full">
+            <CardTitle className="text-sm text-gray-600 text-left w-full">Auszahlungen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
+          <CardContent className="w-full">
+            <div className="flex items-center w-full text-left">
               <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-2xl font-bold text-red-600">€{totalExpenses}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 flex items-center">
+        <Card className="w-full">
+          <CardHeader className="pb-2 w-full">
+            <CardTitle className="text-sm text-gray-600 flex items-center text-left w-full">
               Performance
               {!isEditingPerformance && (
                 <Button variant="ghost" size="sm" onClick={() => setIsEditingPerformance(true)} className="ml-2 h-6 w-6 p-0">
@@ -178,9 +178,9 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full">
             {isEditingPerformance ? (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 w-full text-left">
                 <Input
                   type="number"
                   min="1"
@@ -197,7 +197,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center">
+              <div className="flex items-center w-full text-left">
                 <User className="h-5 w-5 text-purple-600 mr-2" />
                 <span className="text-2xl font-bold text-purple-600">{editableData.performance}/10</span>
               </div>
@@ -207,10 +207,10 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       </div>
 
       {/* Member Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="flex items-center text-left w-full">
               Kontaktdaten & Info
               {!isEditingContact && (
                 <Button variant="ghost" size="sm" onClick={() => setIsEditingContact(true)} className="ml-2">
@@ -219,27 +219,29 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
               )}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 w-full">
             {isEditingContact ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Email:</label>
+              <div className="space-y-4 w-full">
+                <div className="w-full">
+                  <label className="text-sm font-medium text-left">Email:</label>
                   <Input
                     value={editableData.email}
                     onChange={(e) => setEditableData({...editableData, email: e.target.value})}
+                    className="w-full"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Telefon:</label>
+                <div className="w-full">
+                  <label className="text-sm font-medium text-left">Telefon:</label>
                   <Input
                     value={editableData.phone}
                     onChange={(e) => setEditableData({...editableData, phone: e.target.value})}
+                    className="w-full"
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Position:</label>
+                <div className="w-full">
+                  <label className="text-sm font-medium text-left">Position:</label>
                   <Select value={editableData.position} onValueChange={(value) => setEditableData({...editableData, position: value})}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -249,15 +251,16 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Seit:</label>
+                <div className="w-full">
+                  <label className="text-sm font-medium text-left">Seit:</label>
                   <Input
                     type="date"
                     value={editableData.startDate}
                     onChange={(e) => setEditableData({...editableData, startDate: e.target.value})}
+                    className="w-full"
                   />
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 w-full">
                   <Button onClick={saveContactData}>
                     <Save className="h-4 w-4 mr-2" />
                     Speichern
@@ -269,28 +272,28 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
                 </div>
               </div>
             ) : (
-              <>
-                <div><strong>Email:</strong> {editableData.email}</div>
-                <div><strong>Telefon:</strong> {editableData.phone}</div>
-                <div><strong>Position:</strong> {editableData.position}</div>
-                <div><strong>Seit:</strong> {editableData.startDate}</div>
-                <div><strong>Performance:</strong> 
+              <div className="w-full text-left">
+                <div className="text-left"><strong>Email:</strong> {editableData.email}</div>
+                <div className="text-left"><strong>Telefon:</strong> {editableData.phone}</div>
+                <div className="text-left"><strong>Position:</strong> {editableData.position}</div>
+                <div className="text-left"><strong>Seit:</strong> {editableData.startDate}</div>
+                <div className="text-left"><strong>Performance:</strong> 
                   <Badge className="ml-2 bg-green-100 text-green-800">{editableData.performance}/10</Badge>
                 </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Notizen</CardTitle>
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="text-left w-full">Notizen</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="w-full">
             <Textarea 
               value={notes} 
               onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[120px]"
+              className="min-h-[120px] w-full"
               placeholder="Notizen über das Teammitglied..."
             />
             <Button className="mt-2">Notizen speichern</Button>
@@ -299,18 +302,18 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       </div>
 
       {/* Recent Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-green-600">Letzte Einnahmen</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="text-green-600 text-left w-full">Letzte Einnahmen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="w-full">
+            <div className="space-y-2 w-full">
               {earnings.slice(-5).map(earning => (
-                <div key={earning.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <div>
-                    <div className="font-medium text-sm">{earning.customer}</div>
-                    <div className="text-xs text-gray-600">{earning.date} • {earning.type}</div>
+                <div key={earning.id} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
+                  <div className="text-left">
+                    <div className="font-medium text-sm text-left">{earning.customer}</div>
+                    <div className="text-xs text-gray-600 text-left">{earning.date} • {earning.type}</div>
                   </div>
                   <span className="font-bold text-green-600">€{earning.amount}</span>
                 </div>
@@ -319,17 +322,17 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-red-600">Letzte Auszahlungen</CardTitle>
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="text-red-600 text-left w-full">Letzte Auszahlungen</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="w-full">
+            <div className="space-y-2 w-full">
               {expenses.slice(-5).map(expense => (
-                <div key={expense.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <div>
-                    <div className="font-medium text-sm">{expense.description}</div>
-                    <div className="text-xs text-gray-600">{expense.date}</div>
+                <div key={expense.id} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
+                  <div className="text-left">
+                    <div className="font-medium text-sm text-left">{expense.description}</div>
+                    <div className="text-xs text-gray-600 text-left">{expense.date}</div>
                   </div>
                   <span className="font-bold text-red-600">€{expense.amount}</span>
                 </div>
@@ -338,16 +341,16 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-blue-600">Letzte Termine</CardTitle>
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="text-blue-600 text-left w-full">Letzte Termine</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
+          <CardContent className="w-full">
+            <div className="space-y-2 w-full">
               {memberAppointments.slice(-5).map(appointment => (
-                <div key={appointment.id} className="p-2 bg-gray-50 rounded">
-                  <div className="font-medium text-sm">{appointment.customers?.name || appointment.type}</div>
-                  <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
+                <div key={appointment.id} className="p-2 bg-gray-50 rounded w-full">
+                  <div className="font-medium text-sm text-left">{appointment.customers?.name || appointment.type}</div>
+                  <div className="text-xs text-gray-600 text-left">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
                   <Badge className="text-xs mt-1">{appointment.result}</Badge>
                 </div>
               ))}
