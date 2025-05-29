@@ -1,15 +1,26 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Search, User, Mail, Phone, Euro, Calendar, Edit, Eye, Trash2 } from "lucide-react";
-import { TeamMemberDetail } from "./TeamMemberDetail";
+import { 
+  Trash2, 
+  Search, 
+  User, 
+  Phone, 
+  Mail, 
+  Calendar,
+  Euro,
+  TrendingUp,
+  Plus,
+  Eye
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useTeamMembers, useCustomers } from '@/hooks/useSupabaseData';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { CreateTeamMemberForm } from './CreateTeamMemberForm';
+import { TeamMemberDetail } from './TeamMemberDetail';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,36 +34,38 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function TeamMembers() {
-  const { teamMembers, loading, updateTeamMember, addTeamMember } = useTeamMembers();
-  const { customers } = useCustomers();
-  const { canCreateCustomers, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('alle');
-  const [filterStatus, setFilterStatus] = useState('alle');
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newMember, setNewMember] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    role: '',
-    payouts: 0,
-    performance: '5'
-  });
 
-  const positions = [
-    'Einlernphase',
-    'Opening (KAQ) B2B',
-    'Opening (Chat DMS) b2b',
-    'Setting b2b',
-    'Closing b2b',
-    'TikTok Poster b2c',
-    'TikTok Manager b2c',
-    'Setter b2c',
-    'Closer b2c',
-    'Manager b2b',
-    'Inhaber'
-  ];
+  useEffect(() => {
+    fetchTeamMembers();
+  }, []);
+
+  const fetchTeamMembers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .neq('user_role', 'kunde')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTeamMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      toast({
+        title: "Fehler",
+        description: "Teammitglieder konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const deleteTeamMember = async (memberId: string, memberName: string) => {
     try {
@@ -62,343 +75,238 @@ export function TeamMembers() {
         .eq('id', memberId);
 
       if (error) throw error;
-      
-      window.location.reload();
+
+      setTeamMembers(teamMembers.filter(member => member.id !== memberId));
       
       toast({
         title: "Teammitglied gelöscht",
         description: `${memberName} wurde erfolgreich gelöscht.`,
-        className: "text-left bg-yellow-100 border-yellow-300",
       });
     } catch (error) {
       console.error('Error deleting team member:', error);
       toast({
         title: "Fehler",
-        description: `Teammitglied konnte nicht gelöscht werden.`,
+        description: "Teammitglied konnte nicht gelöscht werden.",
         variant: "destructive",
-        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };
 
-  const handleAddMember = async () => {
-    if (newMember.name && newMember.email) {
-      const memberData = {
-        ...newMember,
-        is_active: true,
-        password: 'passwort',
-        user_role: 'member'
-      };
-      await addTeamMember(memberData);
-      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0, performance: '5' });
-      setShowAddForm(false);
-    } else {
-      toast({
-        title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
-        variant: "destructive",
-        className: "text-left bg-yellow-100 border-yellow-300",
-      });
+  const getPerformanceColor = (performance: string) => {
+    switch (performance) {
+      case 'Exzellent':
+        return 'bg-green-100 text-green-800';
+      case 'Sehr gut':
+        return 'bg-blue-100 text-blue-800';
+      case 'Gut':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Verbesserungswürdig':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const filteredMembers = teamMembers.filter(member => {
-    const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.phone?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === 'alle' || member.role === filterRole;
-    const matchesStatus = filterStatus === 'alle' || 
-                         (filterStatus === 'aktiv' && member.is_active) ||
-                         (filterStatus === 'inaktiv' && !member.is_active);
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const getRoleColor = (userRole: string) => {
+    switch (userRole) {
+      case 'admin':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const filteredMembers = teamMembers.filter(member =>
+    member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.role?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
-      <div className="w-full p-4 sm:p-6">
-        <div className="text-lg text-left">Lade Teammitglieder...</div>
+      <div className="space-y-6 p-6">
+        <div className="text-lg">Lade Teammitglieder...</div>
+      </div>
+    );
+  }
+
+  if (showCreateForm) {
+    return (
+      <div className="space-y-6 p-6">
+        <CreateTeamMemberForm 
+          onClose={() => setShowCreateForm(false)}
+          onMemberCreated={fetchTeamMembers}
+        />
       </div>
     );
   }
 
   if (selectedMember) {
     return (
-      <TeamMemberDetail 
-        member={selectedMember} 
-        customers={customers}
-        onBack={() => setSelectedMember(null)}
-        onUpdate={(updatedMember) => {
-          setSelectedMember(updatedMember);
-        }}
-      />
+      <div className="space-y-6 p-6">
+        <TeamMemberDetail 
+          member={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          onMemberUpdated={fetchTeamMembers}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Teammitglieder</h1>
-          <p className="text-gray-600 text-left">Verwalten Sie Ihr Team</p>
+    <div className="space-y-6 p-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Teammitglieder</h1>
+          <p className="text-gray-600">Verwalten Sie Ihr Team</p>
         </div>
-        {canCreateCustomers() && (
+        {isAdmin() && (
           <Button 
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+            onClick={() => setShowCreateForm(true)}
+            className="bg-red-600 hover:bg-red-700"
           >
-            <Plus className="h-4 w-4 mr-2 text-white" />
-            Teammitglied hinzufügen
+            <Plus className="h-4 w-4 mr-2" />
+            Neues Teammitglied
           </Button>
         )}
       </div>
 
-      {/* Add Member Form */}
-      {showAddForm && canCreateCustomers() && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-left">Neues Teammitglied hinzufügen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                placeholder="Name *"
-                value={newMember.name}
-                onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-              />
-              <Input
-                placeholder="Email *"
-                type="email"
-                value={newMember.email}
-                onChange={(e) => setNewMember({...newMember, email: e.target.value})}
-              />
-              <Input
-                placeholder="Telefon"
-                value={newMember.phone}
-                onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
-              />
-              <Select value={newMember.role} onValueChange={(value) => setNewMember({...newMember, role: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Position auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map(position => (
-                    <SelectItem key={position} value={position}>{position}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Auszahlungen"
-                type="number"
-                value={newMember.payouts}
-                onChange={(e) => setNewMember({...newMember, payouts: parseFloat(e.target.value) || 0})}
-              />
-              <Select value={newMember.performance} onValueChange={(value) => setNewMember({...newMember, performance: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Performance" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                  <SelectItem value="4">4</SelectItem>
-                  <SelectItem value="5">5</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <Button onClick={handleAddMember} className="flex-1 bg-red-600 hover:bg-red-700">
-                Teammitglied hinzufügen
-              </Button>
-              <Button variant="outline" onClick={() => setShowAddForm(false)} className="flex-1">
-                Abbrechen
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search and Filter */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
-          <Input
-            placeholder="Teammitglieder suchen..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={filterRole} onValueChange={setFilterRole}>
-          <SelectTrigger>
-            <SelectValue placeholder="Position filtern" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="alle">Alle Positionen</SelectItem>
-            {positions.map(position => (
-              <SelectItem key={position} value={position}>{position}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger>
-            <SelectValue placeholder="Status filtern" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="alle">Alle Status</SelectItem>
-            <SelectItem value="aktiv">Aktiv</SelectItem>
-            <SelectItem value="inaktiv">Inaktiv</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
+        <Input
+          placeholder="Teammitglieder suchen..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Team Members Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-        {filteredMembers.map((member) => {
-          // Performance aus Datenbank nutzen
-          const performanceValue = typeof member.performance === 'string' ? parseInt(member.performance) || 5 : member.performance || 5;
-          
-          return (
-            <Card key={member.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center justify-between text-left">
-                  <div className="flex items-center min-w-0 flex-1 text-left">
-                    <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                    <span className="truncate text-gray-900 text-sm text-left">{member.name}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredMembers.map((member) => (
+          <Card key={member.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <div className="flex items-center min-w-0 flex-1">
+                  <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
+                  <span className="truncate text-gray-900 text-sm">{member.name}</span>
+                </div>
+                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${getRoleColor(member.user_role)}`}>
+                  {member.user_role === 'admin' ? 'Admin' : 'Mitglied'}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 pt-0">
+              <div className="space-y-2">
+                {member.email && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
+                    <span className="truncate">{member.email}</span>
                   </div>
-                  <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
-                    performanceValue >= 4 ? 'bg-green-100 text-green-800' :
-                    performanceValue === 3 ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {performanceValue}/5
+                )}
+                {member.phone && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
+                    <span className="truncate">{member.phone}</span>
+                  </div>
+                )}
+                <div className="text-xs text-gray-600">
+                  <strong>Position:</strong> {member.role || 'Nicht angegeben'}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-500">Performance:</span>
+                  <Badge className={`ml-1 text-xs ${getPerformanceColor(member.performance)}`}>
+                    {member.performance || 'Gut'}
                   </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-left pt-0">
-                <div className="space-y-2 text-left">
-                  {member.email && (
-                    <div className="flex items-center text-xs text-gray-600 text-left">
-                      <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                      <span className="truncate text-left">{member.email}</span>
-                    </div>
-                  )}
-                  {member.phone && (
-                    <div className="flex items-center text-xs text-gray-600 text-left">
-                      <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                      <span className="truncate text-left">{member.phone}</span>
-                    </div>
-                  )}
-                  {member.role && (
-                    <div className="flex items-center text-xs text-left">
-                      <Badge variant="outline" className="text-xs px-2 py-1">
-                        {member.role}
-                      </Badge>
-                    </div>
-                  )}
                 </div>
-
-                <div className="pt-2 border-t text-left">
-                  <div className="flex items-center justify-between mb-2 text-left">
-                    <span className="text-xs text-gray-600 text-left">Status:</span>
-                    <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {member.is_active ? 'Aktiv' : 'Inaktiv'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between mb-2 text-left">
-                    <span className="text-xs text-gray-600 text-left">Auszahlungen:</span>
-                    <div className="flex items-center text-xs text-gray-900">
-                      <Euro className="h-3 w-3 mr-1 text-red-600" />
-                      {member.payouts?.toFixed(2) || '0.00'}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-left">
-                    <span className="text-xs text-gray-600 text-left">Termine:</span>
-                    <div className="flex items-center text-xs text-gray-900">
-                      <Calendar className="h-3 w-3 mr-1 text-red-600" />
-                      {member.appointment_count || 0}
-                    </div>
-                  </div>
+                <div>
+                  <span className="text-gray-500">Status:</span>
+                  <Badge className={`ml-1 text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {member.is_active ? 'Aktiv' : 'Inaktiv'}
+                  </Badge>
                 </div>
+              </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 pt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedMember(member)}
-                    className="flex-1 text-xs"
-                  >
-                    <Eye className="h-3 w-3 mr-1 text-red-600" />
-                    Details
-                  </Button>
-                  {canCreateCustomers() && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setSelectedMember(member)}
-                      className="flex-1 text-xs"
-                    >
-                      <Edit className="h-3 w-3 mr-1 text-red-600" />
-                      Bearbeiten
-                    </Button>
-                  )}
-                  {isAdmin() && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                <div className="flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
+                  <span>{member.appointment_count || 0} Termine</span>
+                </div>
+                <div className="flex items-center">
+                  <Euro className="h-3 w-3 mr-1" />
+                  <span>€{(member.payouts || 0).toFixed(0)}</span>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-600">
+                <strong>Aktiv seit:</strong> {member.active_since ? new Date(member.active_since).toLocaleDateString('de-DE') : 'Nicht angegeben'}
+              </div>
+
+              <div className="pt-3 border-t flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedMember(member)}
+                  className="flex-1 text-xs"
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Details
+                </Button>
+                
+                {isAdmin() && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Teammitglied löschen</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Sind Sie sicher, dass Sie das Teammitglied "{member.name}" endgültig löschen möchten? 
+                          Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
+                          Daten wie Termine, Einnahmen und Auszahlungen ebenfalls löschen.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteTeamMember(member.id, member.name)}
+                          className="bg-red-600 hover:bg-red-700"
                         >
-                          <Trash2 className="h-3 w-3 mr-1 text-red-600" />
-                          Löschen
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader className="text-left">
-                          <AlertDialogTitle className="text-left">Teammitglied löschen</AlertDialogTitle>
-                          <AlertDialogDescription className="text-left">
-                            Sind Sie sicher, dass Sie das Teammitglied "{member.name}" löschen möchten? 
-                            Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
-                            Daten wie Termine und Auszahlungen ebenfalls löschen.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => deleteTeamMember(member.id, member.name)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Endgültig löschen
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                          Endgültig löschen
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {filteredMembers.length === 0 && (
         <Card>
-          <CardContent className="text-left py-12">
-            <div className="flex flex-col items-start text-left">
-              <Users className="h-12 w-12 text-red-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Teammitglieder gefunden</h3>
-              <p className="text-gray-600 mb-4 text-left">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center">
+              <User className="h-12 w-12 text-red-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teammitglieder gefunden</h3>
+              <p className="text-gray-600 text-center">
                 {teamMembers.length === 0 
-                  ? "Fügen Sie Ihr erstes Teammitglied hinzu, um zu beginnen."
+                  ? "Noch keine Teammitglieder angelegt. Erstellen Sie Ihr erstes Teammitglied."
                   : "Keine Teammitglieder entsprechen Ihren Suchkriterien."
                 }
               </p>
-              {canCreateCustomers() && teamMembers.length === 0 && (
-                <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
-                  <Plus className="h-4 w-4 mr-2 text-white" />
-                  Erstes Teammitglied hinzufügen
-                </Button>
-              )}
             </div>
           </CardContent>
         </Card>

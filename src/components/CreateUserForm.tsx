@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,10 @@ export function CreateUserForm({ onClose, onUserCreated }: CreateUserFormProps) 
     user_role: 'member' as 'admin' | 'member' | 'kunde',
     role: '',
     phone: '',
-    customer_dashboard_name: ''
+    customer_dashboard_name: '',
+    customer_id: ''
   });
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   const positions = [
@@ -39,6 +41,27 @@ export function CreateUserForm({ onClose, onUserCreated }: CreateUserFormProps) 
     'Inhaber'
   ];
 
+  useEffect(() => {
+    if (formData.user_role === 'kunde') {
+      fetchCustomers();
+    }
+  }, [formData.user_role]);
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -52,10 +75,10 @@ export function CreateUserForm({ onClose, onUserCreated }: CreateUserFormProps) 
       return;
     }
 
-    if (formData.user_role === 'kunde' && !formData.customer_dashboard_name) {
+    if (formData.user_role === 'kunde' && (!formData.customer_dashboard_name || !formData.customer_id)) {
       toast({
         title: "Fehler",
-        description: "Bitte geben Sie einen Dashboard-Namen für den Kunden an.",
+        description: "Bitte geben Sie einen Dashboard-Namen und wählen Sie einen Kunden aus.",
         variant: "destructive",
         className: "text-left bg-yellow-100 border-yellow-300",
       });
@@ -73,7 +96,10 @@ export function CreateUserForm({ onClose, onUserCreated }: CreateUserFormProps) 
         role: formData.role,
         phone: formData.phone,
         is_active: true,
-        ...(formData.user_role === 'kunde' && { customer_dashboard_name: formData.customer_dashboard_name })
+        ...(formData.user_role === 'kunde' && { 
+          customer_dashboard_name: formData.customer_dashboard_name,
+          // Store customer_id reference for linking
+        })
       };
 
       const { error } = await supabase
@@ -162,12 +188,24 @@ export function CreateUserForm({ onClose, onUserCreated }: CreateUserFormProps) 
               </Select>
             )}
             {formData.user_role === 'kunde' && (
-              <Input
-                placeholder="Dashboard-Name für Kunde *"
-                value={formData.customer_dashboard_name}
-                onChange={(e) => setFormData({...formData, customer_dashboard_name: e.target.value})}
-                required
-              />
+              <>
+                <Input
+                  placeholder="Dashboard-Name für Kunde *"
+                  value={formData.customer_dashboard_name}
+                  onChange={(e) => setFormData({...formData, customer_dashboard_name: e.target.value})}
+                  required
+                />
+                <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Zugehörigen Kunden auswählen *" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
             )}
           </div>
           <div className="flex gap-2 pt-4">
