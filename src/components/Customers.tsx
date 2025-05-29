@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ import {
 export function Customers() {
   const { customers, loading, updateCustomer, addCustomer } = useCustomers();
   const { canCreateCustomers } = useAuth();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [filterPriority, setFilterPriority] = useState('alle');
   const [filterStatus, setFilterStatus] = useState('alle');
@@ -36,6 +36,19 @@ export function Customers() {
 
   const deleteCustomer = async (customerId: string, customerName: string) => {
     try {
+      // Delete related appointments first
+      await supabase
+        .from('appointments')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Delete related revenues
+      await supabase
+        .from('revenues')
+        .delete()
+        .eq('customer_id', customerId);
+
+      // Delete the customer
       const { error } = await supabase
         .from('customers')
         .delete()
@@ -43,12 +56,13 @@ export function Customers() {
 
       if (error) throw error;
       
-      // Refresh the customers list
+      // Refresh the page to update the list
       window.location.reload();
       
       toast({
         title: "Kunde gelöscht",
         description: `${customerName} wurde erfolgreich gelöscht.`,
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     } catch (error) {
       console.error('Error deleting customer:', error);
@@ -56,6 +70,7 @@ export function Customers() {
         title: "Fehler",
         description: `Kunde konnte nicht gelöscht werden.`,
         variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };

@@ -1,20 +1,31 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, Search, User, Mail, Phone, Euro, Calendar, Edit, Eye } from "lucide-react";
+import { Plus, Users, Search, User, Mail, Phone, Euro, Calendar, Edit, Eye, Trash2 } from "lucide-react";
 import { TeamMemberDetail } from "./TeamMemberDetail";
 import { toast } from "@/hooks/use-toast";
 import { useTeamMembers, useCustomers } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function TeamMembers() {
   const { teamMembers, loading, updateTeamMember, addTeamMember } = useTeamMembers();
   const { customers } = useCustomers();
-  const { canCreateCustomers } = useAuth();
+  const { canCreateCustomers, isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('alle');
   const [filterStatus, setFilterStatus] = useState('alle');
@@ -29,7 +40,6 @@ export function TeamMembers() {
     performance: '5'
   });
 
-  // Definierte Positionen
   const positions = [
     'Einlernphase',
     'Opening (KAQ) B2B',
@@ -43,6 +53,33 @@ export function TeamMembers() {
     'Manager b2b',
     'Inhaber'
   ];
+
+  const deleteTeamMember = async (memberId: string, memberName: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', memberId);
+
+      if (error) throw error;
+      
+      window.location.reload();
+      
+      toast({
+        title: "Teammitglied gelöscht",
+        description: `${memberName} wurde erfolgreich gelöscht.`,
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    } catch (error) {
+      console.error('Error deleting team member:', error);
+      toast({
+        title: "Fehler",
+        description: `Teammitglied konnte nicht gelöscht werden.`,
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    }
+  };
 
   const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
@@ -60,6 +97,7 @@ export function TeamMembers() {
         title: "Fehler",
         description: "Bitte füllen Sie alle Pflichtfelder aus.",
         variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };
@@ -298,6 +336,39 @@ export function TeamMembers() {
                     <Edit className="h-3 w-3 mr-1 text-red-600" />
                     Bearbeiten
                   </Button>
+                )}
+                {isAdmin() && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1 text-red-600" />
+                        Löschen
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader className="text-left">
+                        <AlertDialogTitle className="text-left">Teammitglied löschen</AlertDialogTitle>
+                        <AlertDialogDescription className="text-left">
+                          Sind Sie sicher, dass Sie das Teammitglied "{member.name}" löschen möchten? 
+                          Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
+                          Daten wie Termine und Auszahlungen ebenfalls löschen.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteTeamMember(member.id, member.name)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Endgültig löschen
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </CardContent>
