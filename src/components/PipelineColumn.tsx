@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,9 +38,10 @@ interface PipelineColumnProps {
   customers: Appointment[];
   color: string;
   onCustomerClick: (appointment: Appointment) => void;
+  showDeleteButton?: boolean;
 }
 
-export function PipelineColumn({ title, stageId, customers: appointments, color, onCustomerClick }: PipelineColumnProps) {
+export function PipelineColumn({ title, stageId, customers: appointments, color, onCustomerClick, showDeleteButton = true }: PipelineColumnProps) {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Hoch': return 'bg-red-100 text-red-800';
@@ -97,16 +97,18 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
                           <CardTitle className="text-xs font-semibold text-gray-900 text-left">
                             {appointment.customers?.name || 'Unbekannter Kunde'}
                           </CardTitle>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onCustomerClick(appointment);
-                            }}
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
+                          {showDeleteButton && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onCustomerClick(appointment);
+                              }}
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
                           <Calendar className="h-3 w-3 text-gray-500" />
