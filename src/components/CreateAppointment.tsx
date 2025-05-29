@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Calendar, User, Mail, Phone, Building } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -23,7 +22,6 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
     time: '',
     customer_id: '',
     team_member_id: '',
-    description: '',
     email: '',
     phone: '',
     company_name: '',
@@ -64,7 +62,6 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
           type: 'Termin',
           customer_id: formData.customer_id,
           team_member_id: formData.team_member_id,
-          description: formData.description,
           result: formData.pipeline_stage
         });
 
@@ -195,7 +192,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
                 </Select>
               </div>
 
-              <div className="text-left">
+              <div className="text-left md:col-span-2">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   Termin Status
                 </label>
@@ -267,18 +264,6 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
                   placeholder="Max Mustermann"
                 />
               </div>
-            </div>
-
-            <div className="text-left">
-              <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
-                Beschreibung
-              </label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Weitere Details zum Termin..."
-                rows={3}
-              />
             </div>
 
             <div className="flex gap-4">

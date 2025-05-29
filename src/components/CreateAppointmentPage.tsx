@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar as CalendarIcon, ArrowLeft, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, ArrowLeft, Plus, User, Mail, Phone, Building } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,10 +21,21 @@ export function CreateAppointmentPage() {
     team_member_id: '',
     date: '',
     time: '',
-    type: '',
-    description: '',
-    notes: ''
+    pipeline_stage: 'termin_ausstehend',
+    email: '',
+    phone: '',
+    company_name: '',
+    contact_person: ''
   });
+
+  const pipelineStages = [
+    { value: 'termin_ausstehend', label: 'Termin Ausstehend' },
+    { value: 'termin_erschienen', label: 'Termin Erschienen' },
+    { value: 'termin_abgeschlossen', label: 'Termin Abgeschlossen' },
+    { value: 'follow_up', label: 'Follow Up' },
+    { value: 'termin_abgesagt', label: 'Termin Abgesagt' },
+    { value: 'termin_verschoben', label: 'Termin Verschoben' }
+  ];
 
   useEffect(() => {
     fetchCustomers();
@@ -65,10 +75,10 @@ export function CreateAppointmentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.customer_id || !formData.date || !formData.type) {
+    if (!formData.customer_id || !formData.date || !formData.email || !formData.phone || !formData.company_name) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        description: "Bitte füllen Sie alle Pflichtfelder aus (Kunde, Datum, E-Mail, Telefon, Firmenname).",
         variant: "destructive",
       });
       return;
@@ -82,10 +92,8 @@ export function CreateAppointmentPage() {
         team_member_id: formData.team_member_id || null,
         date: formData.date,
         time: formData.time || null,
-        type: formData.type,
-        description: formData.description || null,
-        notes: formData.notes || null,
-        result: 'termin_ausstehend'
+        type: 'Termin',
+        result: formData.pipeline_stage
       };
 
       const { data, error } = await supabase
@@ -95,6 +103,37 @@ export function CreateAppointmentPage() {
         .single();
 
       if (error) throw error;
+
+      // Kontaktdaten des Kunden aktualisieren
+      if (formData.customer_id) {
+        await supabase
+          .from('customers')
+          .update({
+            email: formData.email,
+            phone: formData.phone,
+            contact: formData.contact_person,
+            pipeline_stage: formData.pipeline_stage
+          })
+          .eq('id', formData.customer_id);
+      }
+
+      // Appointment_count des Teammitglieds erhöhen
+      if (formData.team_member_id) {
+        const { data: currentMember } = await supabase
+          .from('team_members')
+          .select('appointment_count')
+          .eq('id', formData.team_member_id)
+          .single();
+
+        if (currentMember) {
+          await supabase
+            .from('team_members')
+            .update({
+              appointment_count: (currentMember.appointment_count || 0) + 1
+            })
+            .eq('id', formData.team_member_id);
+        }
+      }
 
       await logAuditEvent('INSERT', 'appointments', data.id, null, appointmentData);
 
@@ -212,49 +251,77 @@ export function CreateAppointmentPage() {
 
                 <div className="space-y-2 md:col-span-2">
                   <label className="text-sm font-medium text-gray-700 text-left block">
-                    Termintyp *
+                    Termin Status
                   </label>
                   <Select
-                    value={formData.type}
-                    onValueChange={(value) => setFormData({...formData, type: value})}
+                    value={formData.pipeline_stage}
+                    onValueChange={(value) => setFormData({...formData, pipeline_stage: value})}
                   >
                     <SelectTrigger className="text-left">
-                      <SelectValue placeholder="Termintyp auswählen" />
+                      <SelectValue placeholder="Termin Status auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Beratung">Beratung</SelectItem>
-                      <SelectItem value="Behandlung">Behandlung</SelectItem>
-                      <SelectItem value="Nachkontrolle">Nachkontrolle</SelectItem>
-                      <SelectItem value="Ersttermin">Ersttermin</SelectItem>
-                      <SelectItem value="Follow-up">Follow-up</SelectItem>
+                      {pipelineStages.map(stage => (
+                        <SelectItem key={stage.value} value={stage.value}>
+                          {stage.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700 text-left block">
-                    Beschreibung
+                    <Mail className="h-4 w-4 inline mr-1 text-red-600" />
+                    E-Mail Interessent *
                   </label>
-                  <Textarea
-                    placeholder="Beschreibung des Termins..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
+                  <Input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    placeholder="kunde@beispiel.de"
                     className="text-left"
                   />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700 text-left block">
-                    Notizen
+                    <Phone className="h-4 w-4 inline mr-1 text-red-600" />
+                    Telefon Interessent *
                   </label>
-                  <Textarea
-                    placeholder="Zusätzliche Notizen..."
-                    value={formData.notes}
-                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                    rows={3}
+                  <Input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    placeholder="+49 123 456789"
+                    className="text-left"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 text-left block">
+                    <Building className="h-4 w-4 inline mr-1 text-red-600" />
+                    Firma Interessent *
+                  </label>
+                  <Input
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({...formData, company_name: e.target.value})}
+                    placeholder="Firma GmbH"
+                    className="text-left"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700 text-left block">
+                    <User className="h-4 w-4 inline mr-1 text-red-600" />
+                    AP Interessent
+                  </label>
+                  <Input
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({...formData, contact_person: e.target.value})}
+                    placeholder="Max Mustermann"
                     className="text-left"
                   />
                 </div>
