@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp, MessageSquare } from "lucide-react";
+import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp, MessageSquare, Calculator } from "lucide-react";
 import { useCustomers, useRevenues, useTodos, useAppointments, useExpenses } from '@/hooks/useSupabaseData';
+import { useTaxSettings } from '@/hooks/useTaxSettings';
 import { supabase } from '@/integrations/supabase/client';
 
 export function Dashboard() {
@@ -17,6 +17,7 @@ export function Dashboard() {
   const { expenses, loading: expensesLoading } = useExpenses();
   const { todos, loading: todosLoading } = useTodos();
   const { appointments, loading: appointmentsLoading } = useAppointments();
+  const { taxRate } = useTaxSettings();
 
   const pipelineStages = [
     { id: 'termin_ausstehend', name: 'Termin Ausstehend' },
@@ -54,6 +55,8 @@ export function Dashboard() {
   // Calculate statistics from real data
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const netProfit = totalRevenue - totalExpenses;
+  const taxReserve = netProfit > 0 ? (netProfit * taxRate) / 100 : 0;
   const activeCustomers = customers.filter(c => c.is_active === true).length;
 
   // Calculate 30-day revenue
@@ -62,12 +65,22 @@ export function Dashboard() {
   const revenue30Days = revenues
     .filter(r => new Date(r.date) >= thirtyDaysAgo)
     .reduce((sum, r) => sum + Number(r.amount), 0);
+  const expenses30Days = expenses
+    .filter(e => new Date(e.date) >= thirtyDaysAgo)
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const netProfit30Days = revenue30Days - expenses30Days;
+  const taxReserve30Days = netProfit30Days > 0 ? (netProfit30Days * taxRate) / 100 : 0;
 
   // Today's revenue
   const today = new Date().toISOString().split('T')[0];
   const revenueToday = revenues
     .filter(r => r.date === today)
     .reduce((sum, r) => sum + Number(r.amount), 0);
+  const expensesToday = expenses
+    .filter(e => e.date === today)
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const netProfitToday = revenueToday - expensesToday;
+  const taxReserveToday = netProfitToday > 0 ? (netProfitToday * taxRate) / 100 : 0;
 
   const stats = [
     {
@@ -78,10 +91,10 @@ export function Dashboard() {
       color: "text-red-600",
     },
     {
-      title: "Umsatz Heute",
-      value: `€${revenueToday.toLocaleString()}`,
-      change: "+8%",
-      icon: Euro,
+      title: "Steuerrücklage 30 Tage",
+      value: `€${taxReserve30Days.toLocaleString()}`,
+      change: `${taxRate}%`,
+      icon: Calculator,
       color: "text-red-600",
     },
     {

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Euro, TrendingUp, TrendingDown, Calculator, Calendar, Filter } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useRevenues, useExpenses, useCustomers } from '@/hooks/useSupabaseData';
+import { useTaxSettings } from '@/hooks/useTaxSettings';
 import { useAuth } from '@/hooks/useAuth';
 
 export function Revenue() {
@@ -15,6 +16,7 @@ export function Revenue() {
   const { expenses, loading: expensesLoading, addExpense } = useExpenses();
   const { customers } = useCustomers();
   const { canManageRevenues } = useAuth();
+  const { taxRate } = useTaxSettings();
   const [showAddRevenue, setShowAddRevenue] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [timeFilter, setTimeFilter] = useState('all');
@@ -127,6 +129,7 @@ export function Revenue() {
   const totalRevenue = filteredRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
   const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const netProfit = totalRevenue - totalExpenses;
+  const taxReserve = netProfit > 0 ? (netProfit * taxRate) / 100 : 0;
 
   // Daily stats
   const today = new Date().toISOString().split('T')[0];
@@ -135,6 +138,7 @@ export function Revenue() {
   const dailyRevenue = todayRevenues.reduce((sum, r) => sum + Number(r.amount), 0);
   const dailyExpenses = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
   const dailyProfit = dailyRevenue - dailyExpenses;
+  const dailyTaxReserve = dailyProfit > 0 ? (dailyProfit * taxRate) / 100 : 0;
 
   if (revenuesLoading || expensesLoading) {
     return (
@@ -222,7 +226,7 @@ export function Revenue() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="text-left">
               <div className="flex items-center mb-1">
                 <TrendingUp className="h-4 w-4 text-red-600 mr-2" />
@@ -246,12 +250,19 @@ export function Revenue() {
                 €{dailyProfit.toFixed(2)}
               </span>
             </div>
+            <div className="text-left">
+              <div className="flex items-center mb-1">
+                <Euro className="h-4 w-4 text-red-600 mr-2" />
+                <span className="text-sm text-gray-600">Steuerrücklage ({taxRate}%)</span>
+              </div>
+              <span className="text-xl font-bold text-blue-600">€{dailyTaxReserve.toFixed(2)}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600 text-left">Gefilterte Einnahmen</CardTitle>
@@ -286,6 +297,18 @@ export function Revenue() {
               <span className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 €{netProfit.toFixed(2)}
               </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600 text-left">Steuerrücklage ({taxRate}%)</CardTitle>
+          </CardHeader>
+          <CardContent className="text-left">
+            <div className="flex items-center">
+              <Euro className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-2xl font-bold text-blue-600">€{taxReserve.toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
