@@ -23,7 +23,7 @@ export function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [viewMode, setViewMode('list'); // 'list' or 'pipeline'
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'pipeline'
 
   useEffect(() => {
     fetchCustomers();
