@@ -74,7 +74,12 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-red-600 font-bold text-lg text-right">CedricOrt.de</SidebarGroupLabel>
+          <SidebarGroupLabel className="font-bold text-lg">
+            <span className="text-red-600">C</span>
+            <span className="text-gray-900">edric</span>
+            <span className="text-red-600">O</span>
+            <span className="text-gray-900">rt.de</span>
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -84,8 +89,8 @@ export function AppSidebar() {
                     isActive={location.pathname === item.url}
                   >
                     <Link to={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="text-red-600" />
+                      <span className="text-gray-900">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

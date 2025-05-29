@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, User, Building, Phone, Mail, FileText, Save, ArrowLeft } from "lucide-react";
+import { Calendar, User, Building, Phone, Mail, FileText, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useCustomers, useTeamMembers, useAppointments } from '@/hooks/useSupabaseData';
 
@@ -14,11 +14,14 @@ export function CreateAppointment() {
   const { teamMembers, loading: teamMembersLoading } = useTeamMembers();
   const { addAppointment } = useAppointments();
   
+  // Set today as default date
+  const today = new Date().toISOString().split('T')[0];
+  
   const [appointmentData, setAppointmentData] = useState({
     customer_id: '',
     team_member_id: '',
     type: 'Beratungsgespräch',
-    date: '',
+    date: today,
     description: '',
     notes: '',
     result: 'termin_ausstehend',
@@ -33,14 +36,6 @@ export function CreateAppointment() {
     'Follow-up',
     'Abschlussgespräch',
     'Nachbesprechung'
-  ];
-
-  const pipelineStages = [
-    'termin_ausstehend',
-    'termin_erschienen',
-    'termin_abgeschlossen',
-    'follow_up',
-    'verloren'
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,12 +53,12 @@ export function CreateAppointment() {
     try {
       await addAppointment(appointmentData);
       
-      // Reset form
+      // Reset form with today's date
       setAppointmentData({
         customer_id: '',
         team_member_id: '',
         type: 'Beratungsgespräch',
-        date: '',
+        date: today,
         description: '',
         notes: '',
         result: 'termin_ausstehend',
@@ -86,56 +81,56 @@ export function CreateAppointment() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg text-right">Lade Daten...</div>
+        <div className="text-lg text-gray-900">Lade Daten...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4 text-right">
-      <div className="flex items-center justify-end space-x-4">
-        <div className="text-right">
+    <div className="space-y-6 p-4">
+      <div className="flex items-center justify-start space-x-4">
+        <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Termin erstellen</h1>
-          <p className="text-gray-600">Neuen Termin für einen Kunden anlegen</p>
+          <p className="text-gray-900">Neuen Termin für einen Kunden anlegen</p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-end text-right">
-            <span className="mr-2">Termin Details</span>
-            <Calendar className="h-5 w-5" />
+          <CardTitle className="flex items-center">
+            <Calendar className="h-5 w-5 mr-2 text-red-600" />
+            <span className="text-gray-900">Termin Details</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Kunde und Teammitglied */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right">Kunde *</label>
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900">Kunde *</label>
                 <Select 
                   value={appointmentData.customer_id} 
                   onValueChange={(value) => setAppointmentData({...appointmentData, customer_id: value})}
                 >
-                  <SelectTrigger className="text-right">
+                  <SelectTrigger>
                     <SelectValue placeholder="Kunde auswählen">
-                      <div className="flex items-center justify-end">
-                        <span className="mr-2">
+                      <div className="flex items-center">
+                        <Building className="h-4 w-4 mr-2 text-red-600" />
+                        <span className="text-gray-900">
                           {appointmentData.customer_id ? 
                             customers.find(c => c.id === appointmentData.customer_id)?.name : 
                             "Kunde auswählen"
                           }
                         </span>
-                        <Building className="h-4 w-4" />
                       </div>
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {customers.map(customer => (
                       <SelectItem key={customer.id} value={customer.id}>
-                        <div className="flex flex-col text-right">
-                          <span className="font-medium">{customer.name}</span>
-                          <span className="text-xs text-gray-500">{customer.email}</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{customer.name}</span>
+                          <span className="text-xs text-gray-700">{customer.email}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -143,31 +138,31 @@ export function CreateAppointment() {
                 </Select>
               </div>
 
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right">Teammitglied *</label>
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900">Teammitglied *</label>
                 <Select 
                   value={appointmentData.team_member_id} 
                   onValueChange={(value) => setAppointmentData({...appointmentData, team_member_id: value})}
                 >
-                  <SelectTrigger className="text-right">
+                  <SelectTrigger>
                     <SelectValue placeholder="Teammitglied auswählen">
-                      <div className="flex items-center justify-end">
-                        <span className="mr-2">
+                      <div className="flex items-center">
+                        <User className="h-4 w-4 mr-2 text-red-600" />
+                        <span className="text-gray-900">
                           {appointmentData.team_member_id ? 
                             teamMembers.find(tm => tm.id === appointmentData.team_member_id)?.name : 
                             "Teammitglied auswählen"
                           }
                         </span>
-                        <User className="h-4 w-4" />
                       </div>
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {teamMembers.map(member => (
                       <SelectItem key={member.id} value={member.id}>
-                        <div className="flex flex-col text-right">
-                          <span className="font-medium">{member.name}</span>
-                          <span className="text-xs text-gray-500">{member.role}</span>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-gray-900">{member.name}</span>
+                          <span className="text-xs text-gray-700">{member.role}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -178,29 +173,29 @@ export function CreateAppointment() {
 
             {/* Termin Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right">Datum *</label>
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900">Datum *</label>
                 <Input
                   type="date"
                   value={appointmentData.date}
                   onChange={(e) => setAppointmentData({...appointmentData, date: e.target.value})}
                   required
-                  className="text-right"
+                  className="text-gray-900"
                 />
               </div>
 
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right">Terminart</label>
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900">Terminart</label>
                 <Select 
                   value={appointmentData.type} 
                   onValueChange={(value) => setAppointmentData({...appointmentData, type: value})}
                 >
-                  <SelectTrigger className="text-right">
-                    <SelectValue className="text-right" />
+                  <SelectTrigger>
+                    <SelectValue className="text-gray-900" />
                   </SelectTrigger>
                   <SelectContent>
                     {appointmentTypes.map(type => (
-                      <SelectItem key={type} value={type} className="text-right">{type}</SelectItem>
+                      <SelectItem key={type} value={type} className="text-gray-900">{type}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -208,97 +203,97 @@ export function CreateAppointment() {
             </div>
 
             {/* Pipeline Status */}
-            <div className="text-right">
-              <label className="text-sm font-medium mb-2 block text-right text-red-600">Pipeline Status</label>
+            <div>
+              <label className="text-sm font-medium mb-2 block text-red-600">Pipeline Status</label>
               <Select 
                 value={appointmentData.result} 
                 onValueChange={(value) => setAppointmentData({...appointmentData, result: value})}
               >
-                <SelectTrigger className="text-right border-red-200 focus:border-red-500">
-                  <SelectValue className="text-right" />
+                <SelectTrigger className="border-red-200 focus:border-red-500">
+                  <SelectValue className="text-gray-900" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="termin_ausstehend" className="text-right">Termin ausstehend</SelectItem>
-                  <SelectItem value="termin_erschienen" className="text-right">Termin erschienen</SelectItem>
-                  <SelectItem value="termin_abgeschlossen" className="text-right">Termin abgeschlossen</SelectItem>
-                  <SelectItem value="follow_up" className="text-right">Follow-up</SelectItem>
-                  <SelectItem value="verloren" className="text-right">Verloren</SelectItem>
+                  <SelectItem value="termin_ausstehend" className="text-gray-900">Termin ausstehend</SelectItem>
+                  <SelectItem value="termin_erschienen" className="text-gray-900">Termin erschienen</SelectItem>
+                  <SelectItem value="termin_abgeschlossen" className="text-gray-900">Termin abgeschlossen</SelectItem>
+                  <SelectItem value="follow_up" className="text-gray-900">Follow-up</SelectItem>
+                  <SelectItem value="verloren" className="text-gray-900">Verloren</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Kontaktdaten */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right flex items-center justify-end">
-                  <span className="mr-2">Email</span>
-                  <Mail className="h-4 w-4" />
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900 flex items-center">
+                  <Mail className="h-4 w-4 mr-2 text-red-600" />
+                  <span>Email</span>
                 </label>
                 <Input
                   type="email"
                   value={appointmentData.email}
                   onChange={(e) => setAppointmentData({...appointmentData, email: e.target.value})}
                   placeholder="kunde@email.de"
-                  className="text-right"
+                  className="text-gray-900"
                 />
               </div>
 
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right flex items-center justify-end">
-                  <span className="mr-2">Telefon</span>
-                  <Phone className="h-4 w-4" />
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900 flex items-center">
+                  <Phone className="h-4 w-4 mr-2 text-red-600" />
+                  <span>Telefon</span>
                 </label>
                 <Input
                   type="tel"
                   value={appointmentData.phone}
                   onChange={(e) => setAppointmentData({...appointmentData, phone: e.target.value})}
                   placeholder="+49 123 456789"
-                  className="text-right"
+                  className="text-gray-900"
                 />
               </div>
 
-              <div className="text-right">
-                <label className="text-sm font-medium mb-2 block text-right flex items-center justify-end">
-                  <span className="mr-2">Firmenname extern</span>
-                  <Building className="h-4 w-4" />
+              <div>
+                <label className="text-sm font-medium mb-2 block text-gray-900 flex items-center">
+                  <Building className="h-4 w-4 mr-2 text-red-600" />
+                  <span>Firmenname extern</span>
                 </label>
                 <Input
                   type="text"
                   value={appointmentData.company_name}
                   onChange={(e) => setAppointmentData({...appointmentData, company_name: e.target.value})}
                   placeholder="Externe Firma"
-                  className="text-right"
+                  className="text-gray-900"
                 />
               </div>
             </div>
 
             {/* Gesprächsinhalt */}
-            <div className="text-right">
-              <label className="text-sm font-medium mb-2 block flex items-center justify-end text-right">
-                <span className="mr-2">Gesprächsinhalt</span>
-                <FileText className="h-4 w-4" />
+            <div>
+              <label className="text-sm font-medium mb-2 block flex items-center text-gray-900">
+                <FileText className="h-4 w-4 mr-2 text-red-600" />
+                <span>Gesprächsinhalt</span>
               </label>
               <Textarea
                 value={appointmentData.description}
                 onChange={(e) => setAppointmentData({...appointmentData, description: e.target.value})}
                 placeholder="Beschreibung des geplanten Gesprächs..."
-                className="min-h-[100px] text-right"
+                className="min-h-[100px] text-gray-900"
               />
             </div>
 
             {/* Notizen */}
-            <div className="text-right">
-              <label className="text-sm font-medium mb-2 block text-right">Zusätzliche Notizen</label>
+            <div>
+              <label className="text-sm font-medium mb-2 block text-gray-900">Zusätzliche Notizen</label>
               <Textarea
                 value={appointmentData.notes}
                 onChange={(e) => setAppointmentData({...appointmentData, notes: e.target.value})}
                 placeholder="Weitere Notizen zum Termin..."
-                className="min-h-[80px] text-right"
+                className="min-h-[80px] text-gray-900"
               />
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-start space-x-2">
               <Button type="submit" className="flex items-center bg-red-600 hover:bg-red-700 text-white">
                 <Save className="h-4 w-4 mr-2" />
                 Termin erstellen

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,28 +74,28 @@ export function Dashboard() {
       value: `€${revenue30Days.toLocaleString()}`,
       change: "+12%",
       icon: TrendingUp,
-      color: "text-green-600",
+      color: "text-red-600",
     },
     {
       title: "Umsatz Heute",
       value: `€${revenueToday.toLocaleString()}`,
       change: "+8%",
       icon: Euro,
-      color: "text-blue-600",
+      color: "text-red-600",
     },
     {
       title: "Gesamtumsatz",
       value: `€${totalRevenue.toLocaleString()}`,
       change: "+15%",
       icon: Target,
-      color: "text-purple-600",
+      color: "text-red-600",
     },
     {
       title: "Aktive Kunden",
       value: activeCustomers.toString(),
       change: "+3",
       icon: Users,
-      color: "text-orange-600",
+      color: "text-red-600",
     },
   ];
 
@@ -118,7 +117,7 @@ export function Dashboard() {
   if (customersLoading || revenuesLoading || expensesLoading || todosLoading || appointmentsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Lade Dashboard...</div>
+        <div className="text-lg text-gray-900">Lade Dashboard...</div>
       </div>
     );
   }
@@ -135,10 +134,10 @@ export function Dashboard() {
         <Card className="bg-green-50 border-green-200">
           <CardContent className="p-4">
             <div className="flex items-start">
-              <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
+              <MessageSquare className="h-5 w-5 text-red-600 mr-2 mt-1 flex-shrink-0" />
               <div>
-                <h4 className="font-semibold text-green-800 mb-1">Team-Notiz</h4>
-                <p className="text-green-700 text-sm whitespace-pre-wrap">{teamNotice}</p>
+                <h4 className="font-semibold text-gray-900 mb-1">Team-Notiz</h4>
+                <p className="text-gray-900 text-sm whitespace-pre-wrap">{teamNotice}</p>
               </div>
             </div>
           </CardContent>
@@ -150,7 +149,7 @@ export function Dashboard() {
         {stats.map((stat, index) => (
           <Card key={index} className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className="text-sm font-medium text-gray-900">
                 {stat.title}
               </CardTitle>
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
@@ -172,7 +171,7 @@ export function Dashboard() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                <Calendar className="h-5 w-5 mr-2 text-red-600" />
                 Bevorstehende ToDos
               </div>
               {todos.length > 5 && (
@@ -185,12 +184,12 @@ export function Dashboard() {
                   {showAllTodos ? (
                     <>
                       <span className="hidden sm:inline">Weniger anzeigen</span>
-                      <ChevronUp className="h-4 w-4 ml-1" />
+                      <ChevronUp className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   ) : (
                     <>
                       <span className="hidden sm:inline">Mehr anzeigen</span>
-                      <ChevronDown className="h-4 w-4 ml-1" />
+                      <ChevronDown className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   )}
                 </Button>
@@ -200,14 +199,14 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {displayedTodos.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">Keine Todos vorhanden</p>
+                <p className="text-gray-900 py-4">Keine Todos vorhanden</p>
               ) : (
                 displayedTodos.map((todo) => (
                   <div key={todo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{todo.title}</p>
-                      <p className="text-sm text-gray-600">{todo.description}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-900">{todo.description}</p>
+                      <p className="text-sm text-gray-700">
                         {todo.due_date ? new Date(todo.due_date).toLocaleDateString('de-DE') : 'Kein Datum'}
                       </p>
                     </div>
@@ -225,12 +224,12 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Team Appointments - nur Pipeline-Stand in blau anzeigen */}
+        {/* Team Appointments */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
-                <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                <CheckCircle className="h-5 w-5 mr-2 text-red-600" />
                 Anstehende Termine
               </div>
               {appointments.length > 5 && (
@@ -243,12 +242,12 @@ export function Dashboard() {
                   {showAllAppointments ? (
                     <>
                       <span className="hidden sm:inline">Weniger anzeigen</span>
-                      <ChevronUp className="h-4 w-4 ml-1" />
+                      <ChevronUp className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   ) : (
                     <>
                       <span className="hidden sm:inline">Mehr anzeigen</span>
-                      <ChevronDown className="h-4 w-4 ml-1" />
+                      <ChevronDown className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   )}
                 </Button>
@@ -258,14 +257,14 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {upcoming_appointments.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">Keine anstehenden Termine</p>
+                <p className="text-gray-900 py-4">Keine anstehenden Termine</p>
               ) : (
                 upcoming_appointments.map((appointment) => (
                   <div key={appointment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{appointment.customers?.name || 'Unbekannt'}</p>
-                      <p className="text-sm text-gray-600">{appointment.customers?.contact || 'Kein Kontakt'}</p>
-                      <p className="text-xs text-gray-500">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
+                      <p className="text-sm text-gray-900">{appointment.customers?.contact || 'Kein Kontakt'}</p>
+                      <p className="text-xs text-gray-700">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
                     </div>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium ml-2 flex-shrink-0">
                       {pipelineStages.find(stage => stage.id === appointment.result)?.name || appointment.result}
