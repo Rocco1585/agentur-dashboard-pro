@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { useCustomers, useRevenues, useTodos, useAppointments } from '@/hooks/useSupabaseData';
+import { useCustomers, useRevenues, useTodos, useAppointments, useExpenses } from '@/hooks/useSupabaseData';
 
 export function Dashboard() {
   const [showAllTodos, setShowAllTodos] = useState(false);
@@ -11,11 +11,13 @@ export function Dashboard() {
   
   const { customers, loading: customersLoading } = useCustomers();
   const { revenues, loading: revenuesLoading } = useRevenues();
+  const { expenses, loading: expensesLoading } = useExpenses();
   const { todos, loading: todosLoading } = useTodos();
   const { appointments, loading: appointmentsLoading } = useAppointments();
 
   // Calculate statistics from real data
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const activeCustomers = customers.filter(c => 
     ['termin_erschienen', 'termin_abgeschlossen', 'follow_up'].includes(c.pipeline_stage)
   ).length;
@@ -73,7 +75,7 @@ export function Dashboard() {
 
   const displayedTodos = showAllTodos ? todos : todos.slice(0, 5);
 
-  if (customersLoading || revenuesLoading || todosLoading || appointmentsLoading) {
+  if (customersLoading || revenuesLoading || expensesLoading || todosLoading || appointmentsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-lg">Lade Dashboard...</div>

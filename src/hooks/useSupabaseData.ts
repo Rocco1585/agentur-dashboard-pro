@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -106,6 +105,11 @@ export function useRevenues() {
       setRevenues(data || []);
     } catch (error) {
       console.error('Error fetching revenues:', error);
+      toast({
+        title: "Fehler",
+        description: "Einnahmen konnten nicht geladen werden.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -145,6 +149,64 @@ export function useRevenues() {
   };
 
   return { revenues, loading, addRevenue, refetch: fetchRevenues };
+}
+
+export function useExpenses() {
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setExpenses(data || []);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      toast({
+        title: "Fehler",
+        description: "Ausgaben konnten nicht geladen werden.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExpenses();
+  }, []);
+
+  const addExpense = async (expenseData: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert([expenseData])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setExpenses(prev => [data, ...prev]);
+      toast({
+        title: "Erfolg",
+        description: "Ausgabe wurde hinzugefügt.",
+      });
+      return data;
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      toast({
+        title: "Fehler",
+        description: "Ausgabe konnte nicht hinzugefügt werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { expenses, loading, addExpense, refetch: fetchExpenses };
 }
 
 export function useTeamMembers() {

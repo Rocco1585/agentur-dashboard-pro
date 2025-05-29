@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, TrendingUp, TrendingDown, Calculator, ChevronDown, ChevronUp, Users, Download } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useRevenues, useExpenses, useTeamMembers, useCustomers } from '@/hooks/useSupabaseData';
 
 export function Revenue() {
-  const [newRevenue, setNewRevenue] = useState({ client: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
+  const [newRevenue, setNewRevenue] = useState({ customer_id: '', amount: '', date: new Date().toISOString().slice(0, 10), description: '' });
   const [newExpense, setNewExpense] = useState({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
   
   // Zeitraumfilter
@@ -25,71 +26,51 @@ export function Revenue() {
   const [showAllExpenses, setShowAllExpenses] = useState(false);
   const [currentRevenuePage, setCurrentRevenuePage] = useState(1);
   const [currentExpensePage, setCurrentExpensePage] = useState(1);
-  
-  const [revenues, setRevenues] = useState([
-    { id: 1, client: 'ABC GmbH', amount: 2500, date: '2025-01-15', reference: 'Webdesign Projekt Q1' },
-    { id: 2, client: 'XYZ Corp', amount: 1800, date: '2025-01-12', reference: 'SEO Beratung' },
-  ]);
-  
-  const [expenses, setExpenses] = useState([
-    { id: 1, description: 'Marketing', amount: 500, date: '2025-01-14', reference: 'Google Ads Kampagne' },
-    { id: 2, description: 'Büroausstattung', amount: 300, date: '2025-01-10', reference: 'Neue Laptops' },
-  ]);
 
-  // Mock Mitarbeiterkosten (würde normalerweise aus TeamMembers kommen)
-  const [teamMemberCosts] = useState([
-    { id: 1, name: 'Max Mustermann', earnings: 4500, date: '2025-01-15' },
-    { id: 2, name: 'Lisa Schmidt', earnings: 3200, date: '2025-01-15' },
-  ]);
+  // Datenbankabfragen
+  const { revenues, loading: revenuesLoading, addRevenue } = useRevenues();
+  const { expenses, loading: expensesLoading, addExpense } = useExpenses();
+  const { teamMembers, loading: teamLoading } = useTeamMembers();
+  const { customers, loading: customersLoading } = useCustomers();
 
-  const customers = [
-    { id: 1, name: 'ABC GmbH' },
-    { id: 2, name: 'XYZ Corp' },
-    { id: 3, name: 'DEF AG' },
-    { id: 4, name: 'GHI GmbH' },
-    { id: 5, name: 'JKL Corp' },
-  ];
-
-  const handleAddRevenue = () => {
-    if (newRevenue.client && newRevenue.amount) {
-      const revenue = {
-        id: Date.now(),
-        client: newRevenue.client,
+  const handleAddRevenue = async () => {
+    if (newRevenue.customer_id && newRevenue.amount && newRevenue.description) {
+      await addRevenue({
+        customer_id: newRevenue.customer_id,
         amount: parseFloat(newRevenue.amount),
         date: newRevenue.date || new Date().toISOString().slice(0, 10),
-        reference: newRevenue.reference || 'Keine Referenz'
-      };
-      setRevenues(prev => [...prev, revenue]);
-      toast({
-        title: "Einnahme hinzugefügt",
-        description: `${newRevenue.client}: €${newRevenue.amount}`,
+        description: newRevenue.description
       });
-      setNewRevenue({ client: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
+      setNewRevenue({ customer_id: '', amount: '', date: new Date().toISOString().slice(0, 10), description: '' });
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     if (newExpense.description && newExpense.amount) {
-      const expense = {
-        id: Date.now(),
+      await addExpense({
         description: newExpense.description,
         amount: parseFloat(newExpense.amount),
         date: newExpense.date || new Date().toISOString().slice(0, 10),
-        reference: newExpense.reference || 'Keine Referenz'
-      };
-      setExpenses(prev => [...prev, expense]);
-      toast({
-        title: "Ausgabe hinzugefügt",
-        description: `${newExpense.description}: €${newExpense.amount}`,
+        reference: newExpense.reference || null
       });
       setNewExpense({ description: '', amount: '', date: new Date().toISOString().slice(0, 10), reference: '' });
+    } else {
+      toast({
+        title: "Fehler",
+        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        variant: "destructive",
+      });
     }
   };
 
   // Filterfunktionen basierend auf Zeitraum
   const filterByTimeRange = (items: any[]) => {
-    const now = new Date();
-    
     switch (timeRange) {
       case 'week':
         const weekStart = new Date(selectedWeek);
@@ -121,12 +102,16 @@ export function Revenue() {
 
   const filteredRevenues = filterByTimeRange(revenues);
   const filteredExpenses = filterByTimeRange(expenses);
-  const filteredTeamCosts = filterByTimeRange(teamMemberCosts);
+  const filteredTeamCosts = filterByTimeRange(teamMembers.map(tm => ({
+    ...tm,
+    date: tm.active_since || new Date().toISOString().slice(0, 10),
+    earnings: tm.payouts || 0
+  })));
 
-  // Berechnungen für den ausgewählten Monat
-  const monthRevenue = filteredRevenues.reduce((sum, r) => sum + r.amount, 0);
-  const monthExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const monthTeamCosts = filteredTeamCosts.reduce((sum, t) => sum + t.earnings, 0);
+  // Berechnungen für den ausgewählten Zeitraum
+  const monthRevenue = filteredRevenues.reduce((sum, r) => sum + Number(r.amount), 0);
+  const monthExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+  const monthTeamCosts = filteredTeamCosts.reduce((sum, t) => sum + Number(t.earnings), 0);
   const monthProfit = monthRevenue - monthExpenses - monthTeamCosts;
   const monthTax = monthProfit * 0.3;
 
@@ -134,8 +119,8 @@ export function Revenue() {
   const exportToExcel = () => {
     const data = [
       ['Typ', 'Beschreibung/Kunde', 'Betrag', 'Datum', 'Referenz'],
-      ...filteredRevenues.map(r => ['Einnahme', r.client, r.amount, r.date, r.reference]),
-      ...filteredExpenses.map(e => ['Ausgabe', e.description, -e.amount, e.date, e.reference]),
+      ...filteredRevenues.map(r => ['Einnahme', r.customers?.name || 'Unbekannt', r.amount, r.date, r.description]),
+      ...filteredExpenses.map(e => ['Ausgabe', e.description, -e.amount, e.date, e.reference || '']),
       ...filteredTeamCosts.map(t => ['Mitarbeiterkosten', t.name, -t.earnings, t.date, 'Mitarbeiterzahlung'])
     ];
     
@@ -177,6 +162,14 @@ export function Revenue() {
         return 'Unbekannt';
     }
   };
+
+  if (revenuesLoading || expensesLoading || teamLoading || customersLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Lade Finanzdaten...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -312,7 +305,6 @@ export function Revenue() {
           <TabsTrigger value="add-expense">Ausgabe hinzufügen</TabsTrigger>
         </TabsList>
 
-        
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
@@ -324,11 +316,11 @@ export function Revenue() {
                   {filteredRevenues.slice(-5).map(revenue => (
                     <div key={revenue.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                       <div>
-                        <div className="font-medium text-sm">{revenue.client}</div>
+                        <div className="font-medium text-sm">{revenue.customers?.name || 'Unbekannter Kunde'}</div>
                         <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
-                        <div className="text-xs text-blue-600">{revenue.reference}</div>
+                        <div className="text-xs text-blue-600">{revenue.description}</div>
                       </div>
-                      <span className="font-bold text-green-600">€{revenue.amount}</span>
+                      <span className="font-bold text-green-600">€{Number(revenue.amount).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -346,9 +338,9 @@ export function Revenue() {
                       <div>
                         <div className="font-medium text-sm">{expense.description}</div>
                         <div className="text-xs text-gray-600">{new Date(expense.date).toLocaleDateString('de-DE')}</div>
-                        <div className="text-xs text-blue-600">{expense.reference}</div>
+                        <div className="text-xs text-blue-600">{expense.reference || 'Keine Referenz'}</div>
                       </div>
-                      <span className="font-bold text-red-600">€{expense.amount}</span>
+                      <span className="font-bold text-red-600">€{Number(expense.amount).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
@@ -370,9 +362,9 @@ export function Revenue() {
                     <div key={revenue.id} className="p-3 bg-green-50 rounded">
                       <div className="flex justify-between items-center">
                         <div>
-                          <div className="font-medium text-sm">{revenue.client}</div>
+                          <div className="font-medium text-sm">{revenue.customers?.name || 'Unbekannt'}</div>
                           <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
-                          <div className="text-xs text-blue-600">{revenue.reference}</div>
+                          <div className="text-xs text-blue-600">{revenue.description}</div>
                         </div>
                         <span className="font-bold text-green-600">€{revenue.amount}</span>
                       </div>
@@ -395,9 +387,9 @@ export function Revenue() {
                           <div key={revenue.id} className="p-3 bg-green-50 rounded">
                             <div className="flex justify-between items-center">
                               <div>
-                                <div className="font-medium text-sm">{revenue.client}</div>
+                                <div className="font-medium text-sm">{revenue.customers?.name || 'Unbekannt'}</div>
                                 <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
-                                <div className="text-xs text-blue-600">{revenue.reference}</div>
+                                <div className="text-xs text-blue-600">{revenue.description}</div>
                               </div>
                               <span className="font-bold text-green-600">€{revenue.amount}</span>
                             </div>
@@ -504,14 +496,14 @@ export function Revenue() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <Label htmlFor="client">Kunde</Label>
-                  <Select value={newRevenue.client} onValueChange={(value) => setNewRevenue({...newRevenue, client: value})}>
+                  <Label htmlFor="customer">Kunde</Label>
+                  <Select value={newRevenue.customer_id} onValueChange={(value) => setNewRevenue({...newRevenue, customer_id: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Kunde auswählen" />
                     </SelectTrigger>
                     <SelectContent>
                       {customers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.name}>{customer.name}</SelectItem>
+                        <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -536,13 +528,12 @@ export function Revenue() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="reference">Referenz (max. 100 Zeichen)</Label>
+                  <Label htmlFor="description">Beschreibung</Label>
                   <Input
-                    id="reference"
+                    id="description"
                     placeholder="z.B. Webdesign Projekt Q1"
-                    maxLength={100}
-                    value={newRevenue.reference}
-                    onChange={(e) => setNewRevenue({...newRevenue, reference: e.target.value})}
+                    value={newRevenue.description}
+                    onChange={(e) => setNewRevenue({...newRevenue, description: e.target.value})}
                   />
                 </div>
               </div>
@@ -592,11 +583,10 @@ export function Revenue() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="expense-reference">Referenz (max. 100 Zeichen)</Label>
+                  <Label htmlFor="expense-reference">Referenz</Label>
                   <Input
                     id="expense-reference"
                     placeholder="z.B. Google Ads Kampagne"
-                    maxLength={100}
                     value={newExpense.reference}
                     onChange={(e) => setNewExpense({...newExpense, reference: e.target.value})}
                   />
