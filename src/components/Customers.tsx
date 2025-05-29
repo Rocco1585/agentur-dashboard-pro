@@ -448,28 +448,6 @@ export function Customers() {
                     </Badge>
                   </div>
 
-                  {/* Termine und Zufriedenheit */}
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
-                    <div className="text-center p-2 bg-blue-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Calendar className="h-3 w-3 text-blue-600" />
-                        <span className="text-xs font-medium text-blue-700">Termine</span>
-                      </div>
-                      <div className="text-lg font-bold text-blue-900">
-                        {customer.completed_appointments || 0}/{customer.booked_appointments || 0}
-                      </div>
-                    </div>
-                    <div className="text-center p-2 bg-amber-50 rounded-lg">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Star className="h-3 w-3 text-amber-600" />
-                        <span className="text-xs font-medium text-amber-700">Zufriedenheit</span>
-                      </div>
-                      <div className="text-lg font-bold text-amber-900">
-                        {customer.satisfaction || 5}/10
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     <Button
                       variant="outline"

@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Euro, Users, Calendar, TrendingUp, Clock, CheckCircle, UserPlus, Phone, Mail } from "lucide-react";
+import { Euro, Users, Calendar, TrendingUp, Clock, CheckCircle, UserPlus, Phone, Mail, MessageSquare } from "lucide-react";
 
 export function Dashboard() {
   const { user, canAccessMainNavigation, canViewCustomers, canViewTeamMembers, canManageRevenues, isAdmin } = useAuth();
@@ -26,15 +25,39 @@ export function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedYearPeriod, setSelectedYearPeriod] = useState('month');
   const [recentCustomers, setRecentCustomers] = useState([]);
+  const [teamNotice, setTeamNotice] = useState('');
+  const [showTeamNotice, setShowTeamNotice] = useState(false);
 
   useEffect(() => {
     if (canAccessMainNavigation()) {
       fetchStats();
+      fetchTeamNotice();
       if (canViewCustomers()) {
         fetchRecentCustomers();
       }
     }
   }, [user]);
+
+  const fetchTeamNotice = async () => {
+    try {
+      const { data: noticeData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'team_notice')
+        .single();
+      
+      const { data: showData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'show_team_notice')
+        .single();
+
+      if (noticeData) setTeamNotice(noticeData.value);
+      if (showData) setShowTeamNotice(showData.value === 'true');
+    } catch (error) {
+      console.log('No team notice settings found');
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -135,6 +158,21 @@ export function Dashboard() {
         <h1 className="text-3xl font-bold text-gray-900 text-left">Dashboard</h1>
         <p className="text-gray-600 text-left">Willkommen zurück, {user?.name}</p>
       </div>
+
+      {/* Team-Notiz */}
+      {showTeamNotice && teamNotice && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-start">
+              <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-green-800 mb-1 text-left">Team-Notiz</h4>
+                <p className="text-green-700 text-sm whitespace-pre-wrap text-left">{teamNotice}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Overview Stats */}
       <div>
