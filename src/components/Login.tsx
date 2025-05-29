@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { AuthResponse } from '@/types/auth';
 
 interface LoginProps {
   onLogin: (user: any) => void;
@@ -41,16 +42,18 @@ export function Login({ onLogin }: LoginProps) {
         throw error;
       }
 
-      if (data.success) {
+      const authResponse = data as AuthResponse;
+
+      if (authResponse.success) {
         toast({
           title: "Login erfolgreich",
-          description: `Willkommen zurück, ${data.user.name}!`,
+          description: `Willkommen zurück, ${authResponse.user?.name}!`,
         });
-        onLogin(data.user);
+        onLogin(authResponse.user);
       } else {
         toast({
           title: "Login fehlgeschlagen",
-          description: data.error || "Ungültige Email oder Passwort.",
+          description: authResponse.error || "Ungültige Email oder Passwort.",
           variant: "destructive",
         });
       }
