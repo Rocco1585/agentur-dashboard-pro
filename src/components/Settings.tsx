@@ -118,14 +118,14 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full p-6">
         <div className="text-lg">Lade Einstellungen...</div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-none p-4">
+    <div className="w-full max-w-none p-6">
       <div className="w-full text-left mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Einstellungen</h1>
         <p className="text-gray-600">Verwalten Sie Ihre System-Einstellungen</p>
@@ -223,63 +223,67 @@ export function Settings() {
         </TabsContent>
 
         <TabsContent value="finance" className="space-y-6">
-          {/* Tax Settings */}
-          <Card className="w-full">
-            <CardHeader className="w-full">
-              <CardTitle className="flex items-center w-full">
-                <Calculator className="h-5 w-5 mr-2 text-red-600" />
-                Steuer-Einstellungen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 w-full">
-              <div className="space-y-4 w-full">
-                <div className="space-y-2 w-full">
-                  <label className="text-sm font-medium">Steuersatz (%):</label>
-                  <Input
-                    type="number"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(e.target.value)}
-                    placeholder="19"
-                    className="w-full max-w-xs"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Dieser Steuersatz wird für die Berechnung der Steuerrücklagen auf dem Dashboard verwendet.
-                  </p>
-                </div>
+          {/* Tax Settings - Zentriert */}
+          <div className="flex justify-center">
+            <Card className="w-full max-w-2xl">
+              <CardHeader className="w-full">
+                <CardTitle className="flex items-center w-full">
+                  <Calculator className="h-5 w-5 mr-2 text-red-600" />
+                  Steuer-Einstellungen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6 w-full">
+                <div className="space-y-4 w-full">
+                  <div className="space-y-2 w-full">
+                    <label className="text-sm font-medium">Steuersatz (%):</label>
+                    <Input
+                      type="number"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(e.target.value)}
+                      placeholder="19"
+                      className="w-full max-w-xs"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Dieser Steuersatz wird für die Berechnung der Steuerrücklagen auf dem Dashboard verwendet.
+                    </p>
+                  </div>
 
-                {/* Preview */}
-                <div className="space-y-2 w-full">
-                  <label className="text-sm font-medium">Beispielrechnung:</label>
-                  <Card className="bg-blue-50 border-blue-200 w-full max-w-md">
-                    <CardContent className="p-4 w-full">
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span>Einnahmen (Beispiel):</span>
-                          <span className="font-medium">€10.000</span>
+                  {/* Preview - Zentriert */}
+                  <div className="space-y-2 w-full flex flex-col items-center">
+                    <label className="text-sm font-medium">Beispielrechnung:</label>
+                    <Card className="bg-blue-50 border-blue-200 w-full max-w-md">
+                      <CardContent className="p-4 w-full">
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span>Einnahmen (Beispiel):</span>
+                            <span className="font-medium">€10.000</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Steuersatz:</span>
+                            <span className="font-medium">{taxRate}%</span>
+                          </div>
+                          <div className="border-t pt-1 flex justify-between font-semibold">
+                            <span>Steuerrücklage:</span>
+                            <span>€{((10000 * parseFloat(taxRate || '0')) / 100).toFixed(2)}</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span>Steuersatz:</span>
-                          <span className="font-medium">{taxRate}%</span>
-                        </div>
-                        <div className="border-t pt-1 flex justify-between font-semibold">
-                          <span>Steuerrücklage:</span>
-                          <span>€{((10000 * parseFloat(taxRate || '0')) / 100).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-                <Button onClick={saveTaxSettings} className="w-full sm:w-auto">
-                  <Save className="h-4 w-4 mr-2" />
-                  Steuer-Einstellungen speichern
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="flex justify-center">
+                    <Button onClick={saveTaxSettings} className="w-full sm:w-auto">
+                      <Save className="h-4 w-4 mr-2" />
+                      Steuer-Einstellungen speichern
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="users" className="space-y-6">

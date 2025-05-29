@@ -24,9 +24,24 @@ export function UserManagement() {
     phone: ''
   });
 
+  // Definierte Positionen (gleiche wie bei Teammitgliedern)
+  const positions = [
+    'Einlernphase',
+    'Opening (KAQ) B2B',
+    'Opening (Chat DMS) b2b',
+    'Setting b2b',
+    'Closing b2b',
+    'TikTok Poster b2c',
+    'TikTok Manager b2c',
+    'Setter b2c',
+    'Closer b2c',
+    'Manager b2b',
+    'Inhaber'
+  ];
+
   if (!canViewAuditLogs()) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full p-6">
         <Card>
           <CardContent className="p-8 text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
@@ -42,7 +57,9 @@ export function UserManagement() {
       const userData = {
         ...newUser,
         password_hash: newUser.password, // In einer echten Anwendung würde das Passwort gehasht
-        is_active: true
+        is_active: true,
+        payouts: 0,
+        performance: '5'
       };
       await addTeamMember(userData);
       setNewUser({ name: '', email: '', password: '', user_role: 'member', role: '', phone: '' });
@@ -64,14 +81,14 @@ export function UserManagement() {
 
   if (loading) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full p-6">
         <div className="text-lg">Lade Benutzerverwaltung...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Benutzerverwaltung</h1>
@@ -131,11 +148,16 @@ export function UserManagement() {
                 value={newUser.phone}
                 onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
               />
-              <Input
-                placeholder="Position"
-                value={newUser.role}
-                onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-              />
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Position auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {positions.map(position => (
+                    <SelectItem key={position} value={position}>{position}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={newUser.user_role} onValueChange={(value: 'admin' | 'member') => setNewUser({...newUser, user_role: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Benutzerrolle auswählen" />
@@ -161,7 +183,7 @@ export function UserManagement() {
       )}
 
       {/* Users List */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {teamMembers.map((member) => (
           <Card key={member.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">

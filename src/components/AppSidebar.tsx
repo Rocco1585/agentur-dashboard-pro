@@ -9,6 +9,7 @@ import {
   Users,
   Flame,
   Plus,
+  Eye,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -22,6 +23,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useAuth } from '@/hooks/useAuth'
 
 // Menu items.
 const items = [
@@ -69,12 +71,24 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
+  const { canViewAuditLogs } = useAuth()
+
+  // Admin-only items
+  const adminItems = [
+    {
+      title: "Audit-Logs",
+      url: "/audit-logs",
+      icon: Eye,
+    },
+  ]
+
+  const allItems = canViewAuditLogs() ? [...items, ...adminItems] : items
 
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="font-bold text-lg">
+          <SidebarGroupLabel className="font-bold text-lg px-4">
             <span className="text-red-600">C</span>
             <span className="text-gray-900">edric</span>
             <span className="text-red-600">O</span>
@@ -82,7 +96,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
+              {allItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 

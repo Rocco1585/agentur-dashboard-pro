@@ -14,7 +14,7 @@ export function AuditLogs() {
 
   if (!canViewAuditLogs()) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full p-6">
         <Card>
           <CardContent className="p-8 text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
@@ -27,7 +27,7 @@ export function AuditLogs() {
 
   if (loading) {
     return (
-      <div className="w-full p-4">
+      <div className="w-full p-6">
         <div className="text-lg">Lade Audit-Logs...</div>
       </div>
     );
@@ -59,7 +59,7 @@ export function AuditLogs() {
   };
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-6">
       <div className="w-full text-left mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Audit-Logs</h1>
         <p className="text-gray-600">Übersicht aller Systemänderungen</p>
