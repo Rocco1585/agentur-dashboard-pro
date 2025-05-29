@@ -19,7 +19,8 @@ export function UserManagement() {
     email: '',
     user_role: 'member' as 'admin' | 'member',
     role: '',
-    phone: ''
+    phone: '',
+    password: 'passwort'
   });
 
   // Definierte Positionen (gleiche wie bei Teammitgliedern)
@@ -59,7 +60,7 @@ export function UserManagement() {
         performance: '5'
       };
       await addTeamMember(userData);
-      setNewUser({ name: '', email: '', user_role: 'member', role: '', phone: '' });
+      setNewUser({ name: '', email: '', user_role: 'member', role: '', phone: '', password: 'passwort' });
       setShowAddForm(false);
     } else {
       toast({
@@ -124,6 +125,11 @@ export function UserManagement() {
                 value={newUser.phone}
                 onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
               />
+              <Input
+                placeholder="Passwort"
+                value={newUser.password}
+                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+              />
               <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Position auswählen" />
@@ -159,7 +165,7 @@ export function UserManagement() {
       )}
 
       {/* Users List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {teamMembers.map((member) => (
           <Card key={member.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
@@ -168,7 +174,7 @@ export function UserManagement() {
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
                   <span className="truncate text-gray-900 text-sm">{member.name}</span>
                 </div>
-                <Badge className={`${getRoleBadgeColor(member.user_role || 'member')} ml-2 flex-shrink-0 text-xs`}>
+                <Badge className={`${getRoleBadgeColor(member.user_role || 'member')} ml-2 flex-shrink-0 text-xs px-2 py-1`}>
                   {member.user_role === 'admin' ? (
                     <ShieldCheck className="h-3 w-3 mr-1" />
                   ) : (
@@ -221,7 +227,7 @@ export function UserManagement() {
 
       {teamMembers.length === 0 && (
         <Card>
-          <CardContent className="text-left py-12">
+          <CardContent className="text-center py-12">
             <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Benutzer</h3>
             <p className="text-gray-600 mb-4">Fügen Sie Ihren ersten Benutzer hinzu, um zu beginnen.</p>

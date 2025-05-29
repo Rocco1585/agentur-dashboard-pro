@@ -10,6 +10,7 @@ import {
   Flame,
   Plus,
   Eye,
+  LogOut,
 } from "lucide-react"
 import { Link, useLocation } from "react-router-dom"
 
@@ -22,8 +23,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
 } from "@/components/ui/sidebar"
 import { useAuth } from '@/hooks/useAuth'
+import { Button } from "@/components/ui/button"
 
 // Menu items.
 const items = [
@@ -71,7 +74,7 @@ const items = [
 
 export function AppSidebar() {
   const location = useLocation()
-  const { canViewAuditLogs } = useAuth()
+  const { canViewAuditLogs, user, logout } = useAuth()
 
   // Admin-only items
   const adminItems = [
@@ -113,6 +116,25 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      
+      {user && (
+        <SidebarFooter className="p-4 border-t">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{user.name}</p>
+              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="ml-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
+        </SidebarFooter>
+      )}
     </Sidebar>
   )
 }

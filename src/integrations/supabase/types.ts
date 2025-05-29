@@ -341,6 +341,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           name: string
+          password: string
           password_hash: string | null
           payouts: number | null
           performance: string | null
@@ -358,6 +359,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name: string
+          password?: string
           password_hash?: string | null
           payouts?: number | null
           performance?: string | null
@@ -375,6 +377,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           name?: string
+          password?: string
           password_hash?: string | null
           payouts?: number | null
           performance?: string | null
@@ -420,6 +423,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_user: {
+        Args: { user_email: string; user_password: string }
+        Returns: Json
+      }
       has_admin_role: {
         Args: Record<PropertyKey, never>
         Returns: boolean

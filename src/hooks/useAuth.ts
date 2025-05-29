@@ -8,6 +8,7 @@ export interface User {
   name: string;
   email: string;
   user_role: 'admin' | 'member';
+  role: string;
   is_active: boolean;
 }
 
@@ -21,21 +22,31 @@ export function useAuth() {
 
   const checkUser = async () => {
     try {
-      // Simuliere einen eingeloggten Admin-Benutzer für Demo-Zwecke
-      // In einer echten Anwendung würde hier eine echte Authentifizierung stattfinden
-      const mockUser: User = {
-        id: 'admin-user-id',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        user_role: 'admin',
-        is_active: true
-      };
-      setUser(mockUser);
+      // Prüfe ob ein Benutzer im localStorage gespeichert ist
+      const savedUser = localStorage.getItem('dashboard_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
     } catch (error) {
       console.error('Auth check error:', error);
+      localStorage.removeItem('dashboard_user');
     } finally {
       setLoading(false);
     }
+  };
+
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('dashboard_user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('dashboard_user');
+    toast({
+      title: "Abgemeldet",
+      description: "Sie wurden erfolgreich abgemeldet.",
+    });
   };
 
   const isAdmin = () => {
@@ -61,6 +72,8 @@ export function useAuth() {
   return {
     user,
     loading,
+    login,
+    logout,
     isAdmin,
     canCreateCustomers,
     canManageRevenues,
