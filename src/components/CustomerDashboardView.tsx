@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,40 +27,54 @@ export function CustomerDashboardView() {
       console.log('Current user:', user);
       console.log('Is admin:', isAdmin());
 
-      // Überprüfe Berechtigung: Nur der Kunde selbst oder Admins können das Dashboard sehen
-      if (!isAdmin() && user?.id !== customerId) {
-        console.log('No permission: user is not admin and user ID does not match customer ID');
-        setLoading(false);
-        return;
-      }
-
-      // Hole Kundendaten - für Admins aus customers Tabelle, für Kunden aus team_members
+      // Hole Kundendaten - zuerst aus customers Tabelle für Admins
       let customerDataQuery;
       if (isAdmin()) {
-        // Admin kann alle Kunden sehen
-        customerDataQuery = await supabase
+        // Admin kann alle Kunden sehen - zuerst aus customers versuchen
+        const customersQuery = await supabase
           .from('customers')
           .select('*')
           .eq('id', customerId)
-          .single();
+          .maybeSingle();
+
+        console.log('Customers query result:', customersQuery);
+
+        if (customersQuery.data) {
+          setCustomerData(customersQuery.data);
+        } else {
+          // Falls nicht in customers gefunden, aus team_members versuchen
+          const teamMembersQuery = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('id', customerId)
+            .eq('user_role', 'kunde')
+            .maybeSingle();
+
+          console.log('Team members query result:', teamMembersQuery);
+
+          if (teamMembersQuery.data) {
+            setCustomerData(teamMembersQuery.data);
+          }
+        }
       } else {
-        // Kunde kann nur sein eigenes Dashboard sehen
-        customerDataQuery = await supabase
+        // Nicht-Admin: Nur eigenes Dashboard sehen
+        if (user?.id !== customerId) {
+          console.log('No permission: user is not admin and user ID does not match customer ID');
+          setLoading(false);
+          return;
+        }
+
+        const teamMembersQuery = await supabase
           .from('team_members')
           .select('*')
           .eq('id', customerId)
           .eq('user_role', 'kunde')
-          .single();
+          .maybeSingle();
+
+        if (teamMembersQuery.data) {
+          setCustomerData(teamMembersQuery.data);
+        }
       }
-
-      console.log('Customer data query result:', customerDataQuery);
-
-      if (customerDataQuery.error) {
-        console.error('Error fetching customer data:', customerDataQuery.error);
-        throw customerDataQuery.error;
-      }
-
-      setCustomerData(customerDataQuery.data);
 
       // Fetch appointments für diesen Kunden
       const { data: appointmentsData, error: appointmentsError } = await supabase
@@ -169,20 +182,8 @@ export function CustomerDashboardView() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 text-left">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten, oder der Kunde wurde nicht gefunden.</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Überprüfe nochmals die Berechtigung
-  if (!isAdmin() && user?.id !== customerId) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 text-left">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Kunde nicht gefunden</h1>
+          <p className="text-gray-600 mt-2 text-left">Der angeforderte Kunde wurde nicht gefunden oder Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
         </div>
       </div>
     );
