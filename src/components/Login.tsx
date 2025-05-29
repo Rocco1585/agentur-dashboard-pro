@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,7 @@ export function Login({ onLogin }: LoginProps) {
         throw error;
       }
 
-      const authResponse = data as AuthResponse;
+      const authResponse = data as unknown as AuthResponse;
 
       if (authResponse.success) {
         toast({
