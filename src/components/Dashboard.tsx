@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -124,16 +125,16 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6 p-4">
-      <div>
+      <div className="text-left">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Willkommen zurück! Hier ist Ihre Übersicht.</p>
       </div>
 
       {/* Team Notice */}
       {showTeamNotice && teamNotice && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-red-50 border-red-200">
           <CardContent className="p-4">
-            <div className="flex items-start">
+            <div className="flex items-start text-left">
               <MessageSquare className="h-5 w-5 text-red-600 mr-2 mt-1 flex-shrink-0" />
               <div>
                 <h4 className="font-semibold text-gray-900 mb-1">Team-Notiz</h4>
@@ -149,12 +150,12 @@ export function Dashboard() {
         {stats.map((stat, index) => (
           <Card key={index} className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-900">
+              <CardTitle className="text-sm font-medium text-gray-900 text-left">
                 {stat.title}
               </CardTitle>
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
             </CardHeader>
-            <CardContent>
+            <CardContent className="text-left">
               <div className="text-xl lg:text-2xl font-bold text-gray-900">{stat.value}</div>
               <p className="text-xs text-green-600 font-medium">
                 {stat.change} vs. letzter Monat
@@ -172,7 +173,7 @@ export function Dashboard() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-red-600" />
-                Bevorstehende ToDos
+                <span className="text-gray-900">Bevorstehende ToDos</span>
               </div>
               {todos.length > 5 && (
                 <Button 
@@ -183,12 +184,12 @@ export function Dashboard() {
                 >
                   {showAllTodos ? (
                     <>
-                      <span className="hidden sm:inline">Weniger anzeigen</span>
+                      <span className="hidden sm:inline text-gray-900">Weniger anzeigen</span>
                       <ChevronUp className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Mehr anzeigen</span>
+                      <span className="hidden sm:inline text-gray-900">Mehr anzeigen</span>
                       <ChevronDown className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   )}
@@ -199,11 +200,11 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {displayedTodos.length === 0 ? (
-                <p className="text-gray-900 py-4">Keine Todos vorhanden</p>
+                <p className="text-gray-900 py-4 text-left">Keine Todos vorhanden</p>
               ) : (
                 displayedTodos.map((todo) => (
-                  <div key={todo.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
+                  <div key={todo.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1 text-left">
                       <p className="font-medium text-gray-900">{todo.title}</p>
                       <p className="text-sm text-gray-900">{todo.description}</p>
                       <p className="text-sm text-gray-700">
@@ -230,7 +231,7 @@ export function Dashboard() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center">
                 <CheckCircle className="h-5 w-5 mr-2 text-red-600" />
-                Anstehende Termine
+                <span className="text-gray-900">Anstehende Termine</span>
               </div>
               {appointments.length > 5 && (
                 <Button 
@@ -241,12 +242,12 @@ export function Dashboard() {
                 >
                   {showAllAppointments ? (
                     <>
-                      <span className="hidden sm:inline">Weniger anzeigen</span>
+                      <span className="hidden sm:inline text-gray-900">Weniger anzeigen</span>
                       <ChevronUp className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   ) : (
                     <>
-                      <span className="hidden sm:inline">Mehr anzeigen</span>
+                      <span className="hidden sm:inline text-gray-900">Mehr anzeigen</span>
                       <ChevronDown className="h-4 w-4 ml-1 text-red-600" />
                     </>
                   )}
@@ -257,11 +258,11 @@ export function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {upcoming_appointments.length === 0 ? (
-                <p className="text-gray-900 py-4">Keine anstehenden Termine</p>
+                <p className="text-gray-900 py-4 text-left">Keine anstehenden Termine</p>
               ) : (
                 upcoming_appointments.map((appointment) => (
-                  <div key={appointment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
+                  <div key={appointment.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1 text-left">
                       <p className="font-medium text-gray-900">{appointment.customers?.name || 'Unbekannt'}</p>
                       <p className="text-sm text-gray-900">{appointment.customers?.contact || 'Kein Kontakt'}</p>
                       <p className="text-xs text-gray-700">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>

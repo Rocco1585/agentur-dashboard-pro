@@ -64,7 +64,7 @@ export function ToDos() {
   return (
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="text-left">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">ToDos</h1>
           <p className="text-gray-900">Verwalten Sie Ihre Aufgaben</p>
         </div>
@@ -81,7 +81,7 @@ export function ToDos() {
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-gray-900">Neues ToDo hinzufügen</CardTitle>
+            <CardTitle className="text-lg text-gray-900 text-left">Neues ToDo hinzufügen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -134,7 +134,7 @@ export function ToDos() {
       <div className="space-y-4">
         {todos.length === 0 ? (
           <Card>
-            <CardContent className="py-12">
+            <CardContent className="py-12 text-left">
               <CheckCircle className="h-12 w-12 text-red-600 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Keine ToDos</h3>
               <p className="text-gray-900 mb-4">Fügen Sie Ihr erstes ToDo hinzu, um zu beginnen.</p>
@@ -201,7 +201,7 @@ export function ToDos() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 text-left">
                           <h3 className={`font-medium text-gray-900 ${todo.completed ? 'line-through' : ''}`}>
                             {todo.title}
                           </h3>

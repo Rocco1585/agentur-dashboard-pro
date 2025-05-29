@@ -71,13 +71,13 @@ export function TeamMembers() {
   return (
     <div className="space-y-6 p-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="text-left">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Teammitglieder</h1>
           <p className="text-gray-600">Verwalten Sie Ihr Team</p>
         </div>
         <Button 
           onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full sm:w-auto"
+          className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
         >
           <Plus className="h-4 w-4 mr-2" />
           Teammitglied hinzufügen
@@ -88,7 +88,7 @@ export function TeamMembers() {
       {showAddForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Neues Teammitglied hinzufügen</CardTitle>
+            <CardTitle className="text-lg text-left">Neues Teammitglied hinzufügen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -134,12 +134,12 @@ export function TeamMembers() {
               />
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <Button onClick={handleAddMember} className="flex-1">
+              <Button onClick={handleAddMember} className="flex-1 bg-red-600 hover:bg-red-700">
                 <Save className="h-4 w-4 mr-2" />
                 Hinzufügen
               </Button>
               <Button variant="outline" onClick={() => setShowAddForm(false)} className="flex-1">
-                <X className="h-4 w-4 mr-2" />
+                <X className="h-4 w-4 mr-2 text-red-600" />
                 Abbrechen
               </Button>
             </div>
@@ -156,22 +156,22 @@ export function TeamMembers() {
             onClick={() => setSelectedMember(member)}
           >
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center">
-                <User className="h-5 w-5 mr-2 text-blue-600" />
-                <span className="truncate">{member.name}</span>
+              <CardTitle className="text-lg flex items-center text-left">
+                <User className="h-5 w-5 mr-2 text-red-600" />
+                <span className="truncate text-gray-900">{member.name}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 text-left">
               <div className="space-y-2">
                 {member.email && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <Mail className="h-4 w-4 mr-2 flex-shrink-0 text-red-600" />
                     <span className="truncate">{member.email}</span>
                   </div>
                 )}
                 {member.phone && (
                   <div className="flex items-center text-sm text-gray-600">
-                    <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <Phone className="h-4 w-4 mr-2 flex-shrink-0 text-red-600" />
                     <span className="truncate">{member.phone}</span>
                   </div>
                 )}
@@ -185,16 +185,16 @@ export function TeamMembers() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                <div className="text-center">
-                  <div className="flex items-center justify-center">
-                    <Calendar className="h-4 w-4 text-gray-600 mr-1" />
+                <div className="text-left">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 text-red-600 mr-1" />
                   </div>
                   <div className="text-lg font-bold text-gray-700">{member.appointment_count || 0}</div>
                   <div className="text-xs text-gray-600">Termine</div>
                 </div>
-                <div className="text-center">
-                  <div className="flex items-center justify-center">
-                    <Euro className="h-4 w-4 text-gray-600 mr-1" />
+                <div className="text-left">
+                  <div className="flex items-center">
+                    <Euro className="h-4 w-4 text-red-600 mr-1" />
                   </div>
                   <div className="text-lg font-bold text-gray-700">€{member.payouts || 0}</div>
                   <div className="text-xs text-gray-600">Auszahlung</div>
@@ -215,11 +215,11 @@ export function TeamMembers() {
 
       {teamMembers.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <CardContent className="text-left py-12">
+            <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teammitglieder</h3>
             <p className="text-gray-600 mb-4">Fügen Sie Ihr erstes Teammitglied hinzu, um zu beginnen.</p>
-            <Button onClick={() => setShowAddForm(true)}>
+            <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
               <Plus className="h-4 w-4 mr-2" />
               Teammitglied hinzufügen
             </Button>
