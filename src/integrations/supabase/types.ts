@@ -393,6 +393,7 @@ export type Database = {
           active_since: string | null
           appointment_count: number | null
           created_at: string
+          customer_dashboard_name: string | null
           email: string | null
           id: string
           is_active: boolean | null
@@ -411,6 +412,7 @@ export type Database = {
           active_since?: string | null
           appointment_count?: number | null
           created_at?: string
+          customer_dashboard_name?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
@@ -429,6 +431,7 @@ export type Database = {
           active_since?: string | null
           appointment_count?: number | null
           created_at?: string
+          customer_dashboard_name?: string | null
           email?: string | null
           id?: string
           is_active?: boolean | null
@@ -490,7 +493,7 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: "admin" | "member"
+      user_role: "admin" | "member" | "kunde"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -606,7 +609,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      user_role: ["admin", "member"],
+      user_role: ["admin", "member", "kunde"],
     },
   },
 } as const

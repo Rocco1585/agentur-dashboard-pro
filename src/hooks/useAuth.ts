@@ -7,9 +7,10 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  user_role: 'admin' | 'member';
+  user_role: 'admin' | 'member' | 'kunde';
   role: string;
   is_active: boolean;
+  customer_dashboard_name?: string;
 }
 
 export function useAuth() {
@@ -40,7 +41,6 @@ export function useAuth() {
 
   const checkUser = async () => {
     try {
-      // Prüfe ob ein Benutzer im localStorage gespeichert ist
       const savedUser = localStorage.getItem('dashboard_user');
       if (savedUser) {
         setUser(JSON.parse(savedUser));
@@ -57,7 +57,6 @@ export function useAuth() {
     setUser(userData);
     localStorage.setItem('dashboard_user', JSON.stringify(userData));
     
-    // Log login event
     await logAuditEvent('LOGIN', 'user_sessions', userData.id, null, {
       user_id: userData.id,
       user_name: userData.name,
@@ -68,7 +67,6 @@ export function useAuth() {
 
   const logout = async () => {
     if (user) {
-      // Log logout event
       await logAuditEvent('LOGOUT', 'user_sessions', user.id, null, {
         user_id: user.id,
         user_name: user.name,
@@ -82,12 +80,15 @@ export function useAuth() {
       title: "Abgemeldet",
       description: "Sie wurden erfolgreich abgemeldet.",
     });
-    // Automatische Weiterleitung zum Login - reload der Seite triggert den Login
     window.location.reload();
   };
 
   const isAdmin = () => {
     return user?.user_role === 'admin';
+  };
+
+  const isCustomer = () => {
+    return user?.user_role === 'kunde';
   };
 
   const canCreateCustomers = () => {
@@ -106,16 +107,22 @@ export function useAuth() {
     return isAdmin();
   };
 
+  const canAccessMainNavigation = () => {
+    return !isCustomer();
+  };
+
   return {
     user,
     loading,
     login,
     logout,
     isAdmin,
+    isCustomer,
     canCreateCustomers,
     canManageRevenues,
     canCreateTodos,
     canViewAuditLogs,
+    canAccessMainNavigation,
     logAuditEvent
   };
 }

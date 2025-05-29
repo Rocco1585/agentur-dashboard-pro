@@ -14,6 +14,7 @@ import { HotLeads } from "@/components/HotLeads";
 import { CreateAppointmentPage } from "@/components/CreateAppointmentPage";
 import { AuditLogs } from "@/components/AuditLogs";
 import { UserManagement } from "@/components/UserManagement";
+import { CustomerDashboard } from "@/components/CustomerDashboard";
 import { Login } from "@/components/Login";
 import { AdminSetup } from "@/components/AdminSetup";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,7 +24,7 @@ import "./App.css";
 const queryClient = new QueryClient();
 
 function AppContent() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, login, canAccessMainNavigation } = useAuth();
 
   if (loading) {
     return (
@@ -48,16 +49,30 @@ function AppContent() {
         <AppSidebar />
         <main className="flex-1 overflow-auto">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/hot-leads" element={<HotLeads />} />
-            <Route path="/create-appointment" element={<CreateAppointmentPage />} />
-            <Route path="/team-members" element={<TeamMembers />} />
-            <Route path="/revenue" element={<Revenue />} />
-            <Route path="/todos" element={<ToDos />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/audit-logs" element={<AuditLogs />} />
-            <Route path="/user-management" element={<UserManagement />} />
+            {/* Customer routes */}
+            <Route path="/customer-dashboard/:customerId" element={<CustomerDashboard />} />
+            
+            {/* Main routes - only accessible for non-customers */}
+            {canAccessMainNavigation() && (
+              <>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/customers" element={<Customers />} />
+                <Route path="/hot-leads" element={<HotLeads />} />
+                <Route path="/create-appointment" element={<CreateAppointmentPage />} />
+                <Route path="/team-members" element={<TeamMembers />} />
+                <Route path="/revenue" element={<Revenue />} />
+                <Route path="/todos" element={<ToDos />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
+                <Route path="/user-management" element={<UserManagement />} />
+              </>
+            )}
+            
+            {/* Redirect customers to their dashboard */}
+            {!canAccessMainNavigation() && (
+              <Route path="/" element={<CustomerDashboard />} />
+            )}
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

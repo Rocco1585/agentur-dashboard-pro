@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Search, User, Edit, Plus } from "lucide-react";
+import { Trash2, Search, User, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { CreateUserForm } from './CreateUserForm';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,7 @@ export function UserManagement() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -79,6 +81,28 @@ export function UserManagement() {
     }
   };
 
+  const getRoleBadgeColor = (userRole: string) => {
+    switch (userRole) {
+      case 'admin':
+        return 'bg-red-100 text-red-800';
+      case 'kunde':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getRoleDisplayName = (userRole: string) => {
+    switch (userRole) {
+      case 'admin':
+        return 'Admin';
+      case 'kunde':
+        return 'Kunde';
+      default:
+        return 'Mitglied';
+    }
+  };
+
   const filteredUsers = users.filter(user =>
     user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -89,7 +113,7 @@ export function UserManagement() {
       <div className="space-y-6 p-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2">Sie haben keine Berechtigung, diese Seite zu betrachen.</p>
+          <p className="text-gray-600 mt-2">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
         </div>
       </div>
     );
@@ -103,11 +127,31 @@ export function UserManagement() {
     );
   }
 
+  if (showCreateForm) {
+    return (
+      <div className="space-y-6 p-6">
+        <CreateUserForm 
+          onClose={() => setShowCreateForm(false)}
+          onUserCreated={fetchUsers}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-6">
-      <div className="text-left">
-        <h1 className="text-3xl font-bold text-gray-900 text-left">Benutzerverwaltung</h1>
-        <p className="text-gray-600 text-left">Verwalten Sie alle Benutzer des Systems</p>
+      <div className="flex justify-between items-center">
+        <div className="text-left">
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Benutzerverwaltung</h1>
+          <p className="text-gray-600 text-left">Verwalten Sie alle Benutzer des Systems</p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateForm(true)}
+          className="bg-red-600 hover:bg-red-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Benutzer erstellen
+        </Button>
       </div>
 
       {/* Search */}
@@ -131,10 +175,8 @@ export function UserManagement() {
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
                   <span className="truncate text-gray-900 text-sm text-left">{user.name}</span>
                 </div>
-                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
-                  user.user_role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {user.user_role === 'admin' ? 'Admin' : 'Mitglied'}
+                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${getRoleBadgeColor(user.user_role)}`}>
+                  {getRoleDisplayName(user.user_role)}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -143,9 +185,16 @@ export function UserManagement() {
                 <div className="text-xs text-gray-600 text-left">
                   <strong>Email:</strong> {user.email || 'Nicht angegeben'}
                 </div>
-                <div className="text-xs text-gray-600 text-left">
-                  <strong>Position:</strong> {user.role || 'Nicht angegeben'}
-                </div>
+                {user.user_role !== 'kunde' && (
+                  <div className="text-xs text-gray-600 text-left">
+                    <strong>Position:</strong> {user.role || 'Nicht angegeben'}
+                  </div>
+                )}
+                {user.user_role === 'kunde' && user.customer_dashboard_name && (
+                  <div className="text-xs text-gray-600 text-left">
+                    <strong>Dashboard:</strong> {user.customer_dashboard_name}
+                  </div>
+                )}
                 <div className="text-xs text-gray-600 text-left">
                   <strong>Status:</strong> 
                   <Badge className={`ml-2 text-xs ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
