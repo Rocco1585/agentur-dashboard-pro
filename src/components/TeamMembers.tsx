@@ -12,7 +12,6 @@ import {
   Mail, 
   Calendar,
   Euro,
-  TrendingUp,
   Plus,
   Eye
 } from "lucide-react";
@@ -146,7 +145,6 @@ export function TeamMembers() {
       <div className="space-y-6 p-6">
         <TeamMemberDetail 
           member={selectedMember}
-          onClose={() => setSelectedMember(null)}
           onMemberUpdated={fetchTeamMembers}
         />
       </div>
@@ -263,7 +261,7 @@ export function TeamMembers() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 px-2"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>

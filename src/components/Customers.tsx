@@ -147,7 +147,6 @@ export function Customers() {
       <div className="space-y-6 p-6">
         <CustomerDetail 
           customer={selectedCustomer}
-          onClose={() => setSelectedCustomer(null)}
           onCustomerUpdated={fetchCustomers}
         />
       </div>
@@ -263,7 +262,7 @@ export function Customers() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 px-2"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
