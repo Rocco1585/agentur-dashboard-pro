@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/toaster";
-import Dashboard from "@/components/Dashboard";
+import { Dashboard } from "@/components/Dashboard";
 import { Customers } from "@/components/Customers";
 import { TeamMembers } from "@/components/TeamMembers";
 import { Revenue } from "@/components/Revenue";
