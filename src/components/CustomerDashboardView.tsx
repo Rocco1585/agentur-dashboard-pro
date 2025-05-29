@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Euro, TrendingUp, CheckCircle, Clock } from "lucide-react";
+import { Calendar, Euro, TrendingUp, CheckCircle, Clock, User } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { PipelineColumn } from './PipelineColumn';
@@ -138,19 +138,17 @@ export function CustomerDashboardView() {
         setAppointments(appointmentsData || []);
       }
 
-      // Fetch revenues nur für Admins
-      if (isAdmin()) {
-        const { data: revenuesData, error: revenuesError } = await supabase
-          .from('revenues')
-          .select('*')
-          .eq('customer_id', customerId)
-          .order('date', { ascending: false });
+      // Fetch revenues für diesen Kunden
+      const { data: revenuesData, error: revenuesError } = await supabase
+        .from('revenues')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('date', { ascending: false });
 
-        if (revenuesError) {
-          console.error('Error fetching revenues:', revenuesError);
-        } else {
-          setRevenues(revenuesData || []);
-        }
+      if (revenuesError) {
+        console.error('Error fetching revenues:', revenuesError);
+      } else {
+        setRevenues(revenuesData || []);
       }
     } catch (error) {
       console.error('Error fetching customer data:', error);
@@ -243,9 +241,18 @@ export function CustomerDashboardView() {
     );
   }
 
+  // Berechne Statistiken
+  const totalAppointments = appointments.length;
   const completedAppointments = appointments.filter(apt => apt.result === 'termin_abgeschlossen').length;
   const pendingAppointments = appointments.filter(apt => apt.result === 'termin_ausstehend').length;
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+  const averageRevenuePerAppointment = completedAppointments > 0 ? totalRevenue / completedAppointments : 0;
+
+  // Bevorstehende Termine (sortiert nach Datum)
+  const upcomingAppointments = appointments
+    .filter(apt => new Date(apt.date) >= new Date() && apt.result === 'termin_ausstehend')
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, 5);
 
   // Group appointments by status for pipeline view
   const appointmentsByStatus = {
@@ -310,7 +317,7 @@ export function CustomerDashboardView() {
         )}
       </div>
 
-      {/* Dashboard Content */}
+      {/* Übersichts-Statistiken */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -318,9 +325,9 @@ export function CustomerDashboardView() {
             <Calendar className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-left">{appointments.length}</div>
+            <div className="text-2xl font-bold text-left">{totalAppointments}</div>
             <p className="text-xs text-gray-600 text-left">
-              Alle Termine
+              Alle gebuchten Termine
             </p>
           </CardContent>
         </Card>
@@ -351,21 +358,94 @@ export function CustomerDashboardView() {
           </CardContent>
         </Card>
 
-        {isAdmin() && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-left">Umsatz</CardTitle>
-              <Euro className="h-4 w-4 text-red-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-left">€{totalRevenue.toFixed(2)}</div>
-              <p className="text-xs text-gray-600 text-left">{revenues.length} Transaktionen</p>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-left">Gesamtumsatz</CardTitle>
+            <Euro className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-left">€{totalRevenue.toFixed(2)}</div>
+            <p className="text-xs text-gray-600 text-left">
+              ⌀ €{averageRevenuePerAppointment.toFixed(2)} pro Termin
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Termin Pipeline */}
+      {/* Bevorstehende Termine */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-left text-lg">Bevorstehende Termine</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {upcomingAppointments.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingAppointments.map((appointment) => (
+                <div key={appointment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <div>
+                      <p className="font-medium text-left">{appointment.type}</p>
+                      <p className="text-sm text-gray-600 text-left">
+                        {new Date(appointment.date).toLocaleDateString('de-DE')}
+                        {appointment.time && ` um ${appointment.time}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {appointment.team_members && (
+                      <div className="flex items-center space-x-1">
+                        <User className="h-3 w-3 text-gray-500" />
+                        <span className="text-sm text-gray-600 text-left">{appointment.team_members.name}</span>
+                      </div>
+                    )}
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {appointment.result.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-4 text-left">Keine bevorstehenden Termine</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Einnahmen Übersicht */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-left text-lg">Einnahmen Übersicht</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {revenues.length > 0 ? (
+            <div className="space-y-3">
+              {revenues.slice(0, 5).map((revenue) => (
+                <div key={revenue.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium text-left">{revenue.description}</p>
+                    <p className="text-sm text-gray-600 text-left">
+                      {new Date(revenue.date).toLocaleDateString('de-DE')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600 text-left">€{Number(revenue.amount).toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+              {revenues.length > 5 && (
+                <p className="text-sm text-gray-600 text-center text-left">
+                  ...und {revenues.length - 5} weitere Einnahmen
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-4 text-left">Keine Einnahmen verzeichnet</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Termin Pipeline mit Drag & Drop */}
       <Card>
         <CardHeader>
           <CardTitle className="text-left text-lg">Termin Pipeline</CardTitle>
@@ -388,18 +468,6 @@ export function CustomerDashboardView() {
               ))}
             </div>
           </DragDropContext>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-left">Willkommen in Ihrem persönlichen Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-600 text-left">
-            Hier können Sie Ihre Termine einsehen und den Status Ihrer Projekte verfolgen.
-            {isAdmin() && " Als Admin sehen Sie zusätzliche Informationen wie Umsätze und detaillierte Statistiken."}
-          </p>
         </CardContent>
       </Card>
     </div>
