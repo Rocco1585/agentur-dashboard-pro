@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
@@ -15,12 +15,32 @@ export function Dashboard() {
   const { todos, loading: todosLoading } = useTodos();
   const { appointments, loading: appointmentsLoading } = useAppointments();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🏠 Dashboard data status:', {
+      customers: { length: customers.length, loading: customersLoading },
+      revenues: { length: revenues.length, loading: revenuesLoading },
+      expenses: { length: expenses.length, loading: expensesLoading },
+      todos: { length: todos.length, loading: todosLoading },
+      appointments: { length: appointments.length, loading: appointmentsLoading }
+    });
+  }, [customers, revenues, expenses, todos, appointments, customersLoading, revenuesLoading, expensesLoading, todosLoading, appointmentsLoading]);
+
   // Calculate statistics from real data
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
   const activeCustomers = customers.filter(c => 
     ['termin_erschienen', 'termin_abgeschlossen', 'follow_up'].includes(c.pipeline_stage)
   ).length;
+
+  console.log('📊 Dashboard calculations:', {
+    totalRevenue,
+    totalExpenses,
+    activeCustomers,
+    revenuesCount: revenues.length,
+    expensesCount: expenses.length,
+    customersCount: customers.length
+  });
 
   // Calculate 30-day revenue
   const thirtyDaysAgo = new Date();
@@ -88,6 +108,18 @@ export function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Willkommen zurück! Hier ist Ihre Übersicht.</p>
+      </div>
+
+      {/* Debug Info */}
+      <div className="bg-gray-100 p-4 rounded-lg text-sm">
+        <h3 className="font-semibold mb-2">Debug Info:</h3>
+        <div className="grid grid-cols-5 gap-4">
+          <div>Kunden: {customers.length}</div>
+          <div>Einnahmen: {revenues.length}</div>
+          <div>Ausgaben: {expenses.length}</div>
+          <div>Todos: {todos.length}</div>
+          <div>Termine: {appointments.length}</div>
+        </div>
       </div>
 
       {/* Stats Grid */}

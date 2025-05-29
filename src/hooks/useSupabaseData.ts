@@ -7,19 +7,27 @@ export function useCustomers() {
   const [loading, setLoading] = useState(true);
 
   const fetchCustomers = async () => {
+    console.log('🔄 Fetching customers...');
     try {
       const { data, error } = await supabase
         .from('customers')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('✅ Customers fetch result:', { data, error });
+      
+      if (error) {
+        console.error('❌ Customers fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Customers loaded:', data?.length || 0);
       setCustomers(data || []);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      console.error('❌ Error fetching customers:', error);
       toast({
         title: "Fehler",
-        description: "Kunden konnten nicht geladen werden.",
+        description: `Kunden konnten nicht geladen werden: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -32,6 +40,7 @@ export function useCustomers() {
   }, []);
 
   const updateCustomer = async (id: string, updates: any) => {
+    console.log('🔄 Updating customer:', id, updates);
     try {
       const { data, error } = await supabase
         .from('customers')
@@ -40,7 +49,12 @@ export function useCustomers() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Customer update result:', { data, error });
+
+      if (error) {
+        console.error('❌ Customer update error:', error);
+        throw error;
+      }
       
       setCustomers(prev => prev.map(c => c.id === id ? data : c));
       toast({
@@ -49,16 +63,17 @@ export function useCustomers() {
       });
       return data;
     } catch (error) {
-      console.error('Error updating customer:', error);
+      console.error('❌ Error updating customer:', error);
       toast({
         title: "Fehler",
-        description: "Kunde konnte nicht aktualisiert werden.",
+        description: `Kunde konnte nicht aktualisiert werden: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const addCustomer = async (customerData: any) => {
+    console.log('🔄 Adding customer:', customerData);
     try {
       const { data, error } = await supabase
         .from('customers')
@@ -66,7 +81,12 @@ export function useCustomers() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Customer add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Customer add error:', error);
+        throw error;
+      }
       
       setCustomers(prev => [data, ...prev]);
       toast({
@@ -75,10 +95,10 @@ export function useCustomers() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding customer:', error);
+      console.error('❌ Error adding customer:', error);
       toast({
         title: "Fehler",
-        description: "Kunde konnte nicht hinzugefügt werden.",
+        description: `Kunde konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -92,6 +112,7 @@ export function useRevenues() {
   const [loading, setLoading] = useState(true);
 
   const fetchRevenues = async () => {
+    console.log('🔄 Fetching revenues...');
     try {
       const { data, error } = await supabase
         .from('revenues')
@@ -101,13 +122,20 @@ export function useRevenues() {
         `)
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      console.log('✅ Revenues fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Revenues fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Revenues loaded:', data?.length || 0);
       setRevenues(data || []);
     } catch (error) {
-      console.error('Error fetching revenues:', error);
+      console.error('❌ Error fetching revenues:', error);
       toast({
         title: "Fehler",
-        description: "Einnahmen konnten nicht geladen werden.",
+        description: `Einnahmen konnten nicht geladen werden: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -120,6 +148,7 @@ export function useRevenues() {
   }, []);
 
   const addRevenue = async (revenueData: any) => {
+    console.log('🔄 Adding revenue:', revenueData);
     try {
       const { data, error } = await supabase
         .from('revenues')
@@ -130,7 +159,12 @@ export function useRevenues() {
         `)
         .single();
 
-      if (error) throw error;
+      console.log('✅ Revenue add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Revenue add error:', error);
+        throw error;
+      }
       
       setRevenues(prev => [data, ...prev]);
       toast({
@@ -139,10 +173,10 @@ export function useRevenues() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding revenue:', error);
+      console.error('❌ Error adding revenue:', error);
       toast({
         title: "Fehler",
-        description: "Einnahme konnte nicht hinzugefügt werden.",
+        description: `Einnahme konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -156,19 +190,27 @@ export function useExpenses() {
   const [loading, setLoading] = useState(true);
 
   const fetchExpenses = async () => {
+    console.log('🔄 Fetching expenses...');
     try {
       const { data, error } = await supabase
         .from('expenses')
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) throw error;
+      console.log('✅ Expenses fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Expenses fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Expenses loaded:', data?.length || 0);
       setExpenses(data || []);
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      console.error('❌ Error fetching expenses:', error);
       toast({
         title: "Fehler",
-        description: "Ausgaben konnten nicht geladen werden.",
+        description: `Ausgaben konnten nicht geladen werden: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -181,6 +223,7 @@ export function useExpenses() {
   }, []);
 
   const addExpense = async (expenseData: any) => {
+    console.log('🔄 Adding expense:', expenseData);
     try {
       const { data, error } = await supabase
         .from('expenses')
@@ -188,7 +231,12 @@ export function useExpenses() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Expense add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Expense add error:', error);
+        throw error;
+      }
       
       setExpenses(prev => [data, ...prev]);
       toast({
@@ -197,10 +245,10 @@ export function useExpenses() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding expense:', error);
+      console.error('❌ Error adding expense:', error);
       toast({
         title: "Fehler",
-        description: "Ausgabe konnte nicht hinzugefügt werden.",
+        description: `Ausgabe konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -214,16 +262,24 @@ export function useTeamMembers() {
   const [loading, setLoading] = useState(true);
 
   const fetchTeamMembers = async () => {
+    console.log('🔄 Fetching team members...');
     try {
       const { data, error } = await supabase
         .from('team_members')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('✅ Team members fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Team members fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Team members loaded:', data?.length || 0);
       setTeamMembers(data || []);
     } catch (error) {
-      console.error('Error fetching team members:', error);
+      console.error('❌ Error fetching team members:', error);
     } finally {
       setLoading(false);
     }
@@ -234,6 +290,7 @@ export function useTeamMembers() {
   }, []);
 
   const addTeamMember = async (memberData: any) => {
+    console.log('🔄 Adding team member:', memberData);
     try {
       const { data, error } = await supabase
         .from('team_members')
@@ -241,7 +298,12 @@ export function useTeamMembers() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Team member add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Team member add error:', error);
+        throw error;
+      }
       
       setTeamMembers(prev => [data, ...prev]);
       toast({
@@ -250,10 +312,10 @@ export function useTeamMembers() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding team member:', error);
+      console.error('❌ Error adding team member:', error);
       toast({
         title: "Fehler",
-        description: "Teammitglied konnte nicht hinzugefügt werden.",
+        description: `Teammitglied konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -267,16 +329,24 @@ export function useTodos() {
   const [loading, setLoading] = useState(true);
 
   const fetchTodos = async () => {
+    console.log('🔄 Fetching todos...');
     try {
       const { data, error } = await supabase
         .from('todos')
         .select('*')
         .order('due_date', { ascending: true });
 
-      if (error) throw error;
+      console.log('✅ Todos fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Todos fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Todos loaded:', data?.length || 0);
       setTodos(data || []);
     } catch (error) {
-      console.error('Error fetching todos:', error);
+      console.error('❌ Error fetching todos:', error);
     } finally {
       setLoading(false);
     }
@@ -287,6 +357,7 @@ export function useTodos() {
   }, []);
 
   const addTodo = async (todoData: any) => {
+    console.log('🔄 Adding todo:', todoData);
     try {
       const { data, error } = await supabase
         .from('todos')
@@ -294,7 +365,12 @@ export function useTodos() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Todo add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Todo add error:', error);
+        throw error;
+      }
       
       setTodos(prev => [data, ...prev]);
       toast({
@@ -303,16 +379,17 @@ export function useTodos() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding todo:', error);
+      console.error('❌ Error adding todo:', error);
       toast({
         title: "Fehler",
-        description: "Todo konnte nicht hinzugefügt werden.",
+        description: `Todo konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const updateTodo = async (id: string, updates: any) => {
+    console.log('🔄 Updating todo:', id, updates);
     try {
       const { data, error } = await supabase
         .from('todos')
@@ -321,23 +398,34 @@ export function useTodos() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Todo update result:', { data, error });
+
+      if (error) {
+        console.error('❌ Todo update error:', error);
+        throw error;
+      }
       
       setTodos(prev => prev.map(t => t.id === id ? data : t));
       return data;
     } catch (error) {
-      console.error('Error updating todo:', error);
+      console.error('❌ Error updating todo:', error);
     }
   };
 
   const deleteTodo = async (id: string) => {
+    console.log('🔄 Deleting todo:', id);
     try {
       const { error } = await supabase
         .from('todos')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      console.log('✅ Todo delete result:', { error });
+
+      if (error) {
+        console.error('❌ Todo delete error:', error);
+        throw error;
+      }
       
       setTodos(prev => prev.filter(t => t.id !== id));
       toast({
@@ -345,10 +433,10 @@ export function useTodos() {
         description: "Todo wurde gelöscht.",
       });
     } catch (error) {
-      console.error('Error deleting todo:', error);
+      console.error('❌ Error deleting todo:', error);
       toast({
         title: "Fehler",
-        description: "Todo konnte nicht gelöscht werden.",
+        description: `Todo konnte nicht gelöscht werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -362,16 +450,24 @@ export function useHotLeads() {
   const [loading, setLoading] = useState(true);
 
   const fetchHotLeads = async () => {
+    console.log('🔄 Fetching hot leads...');
     try {
       const { data, error } = await supabase
         .from('hot_leads')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('✅ Hot leads fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Hot leads fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Hot leads loaded:', data?.length || 0);
       setHotLeads(data || []);
     } catch (error) {
-      console.error('Error fetching hot leads:', error);
+      console.error('❌ Error fetching hot leads:', error);
     } finally {
       setLoading(false);
     }
@@ -382,6 +478,7 @@ export function useHotLeads() {
   }, []);
 
   const addHotLead = async (leadData: any) => {
+    console.log('🔄 Adding hot lead:', leadData);
     try {
       const { data, error } = await supabase
         .from('hot_leads')
@@ -389,7 +486,12 @@ export function useHotLeads() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Hot lead add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Hot lead add error:', error);
+        throw error;
+      }
       
       setHotLeads(prev => [data, ...prev]);
       toast({
@@ -398,16 +500,17 @@ export function useHotLeads() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding hot lead:', error);
+      console.error('❌ Error adding hot lead:', error);
       toast({
         title: "Fehler",
-        description: "Hot Lead konnte nicht hinzugefügt werden.",
+        description: `Hot Lead konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const updateHotLead = async (id: string, updates: any) => {
+    console.log('🔄 Updating hot lead:', id, updates);
     try {
       const { data, error } = await supabase
         .from('hot_leads')
@@ -416,23 +519,34 @@ export function useHotLeads() {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('✅ Hot lead update result:', { data, error });
+
+      if (error) {
+        console.error('❌ Hot lead update error:', error);
+        throw error;
+      }
       
       setHotLeads(prev => prev.map(l => l.id === id ? data : l));
       return data;
     } catch (error) {
-      console.error('Error updating hot lead:', error);
+      console.error('❌ Error updating hot lead:', error);
     }
   };
 
   const deleteHotLead = async (id: string) => {
+    console.log('🔄 Deleting hot lead:', id);
     try {
       const { error } = await supabase
         .from('hot_leads')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      console.log('✅ Hot lead delete result:', { error });
+
+      if (error) {
+        console.error('❌ Hot lead delete error:', error);
+        throw error;
+      }
       
       setHotLeads(prev => prev.filter(l => l.id !== id));
       toast({
@@ -440,10 +554,10 @@ export function useHotLeads() {
         description: "Hot Lead wurde gelöscht.",
       });
     } catch (error) {
-      console.error('Error deleting hot lead:', error);
+      console.error('❌ Error deleting hot lead:', error);
       toast({
         title: "Fehler",
-        description: "Hot Lead konnte nicht gelöscht werden.",
+        description: `Hot Lead konnte nicht gelöscht werden: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -457,6 +571,7 @@ export function useAppointments() {
   const [loading, setLoading] = useState(true);
 
   const fetchAppointments = async () => {
+    console.log('🔄 Fetching appointments...');
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -466,10 +581,17 @@ export function useAppointments() {
         `)
         .order('date', { ascending: true });
 
-      if (error) throw error;
+      console.log('✅ Appointments fetch result:', { data, error });
+
+      if (error) {
+        console.error('❌ Appointments fetch error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Appointments loaded:', data?.length || 0);
       setAppointments(data || []);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('❌ Error fetching appointments:', error);
     } finally {
       setLoading(false);
     }
@@ -480,6 +602,7 @@ export function useAppointments() {
   }, []);
 
   const addAppointment = async (appointmentData: any) => {
+    console.log('🔄 Adding appointment:', appointmentData);
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -490,7 +613,12 @@ export function useAppointments() {
         `)
         .single();
 
-      if (error) throw error;
+      console.log('✅ Appointment add result:', { data, error });
+
+      if (error) {
+        console.error('❌ Appointment add error:', error);
+        throw error;
+      }
       
       setAppointments(prev => [data, ...prev]);
       toast({
@@ -499,16 +627,17 @@ export function useAppointments() {
       });
       return data;
     } catch (error) {
-      console.error('Error adding appointment:', error);
+      console.error('❌ Error adding appointment:', error);
       toast({
         title: "Fehler",
-        description: "Termin konnte nicht hinzugefügt werden.",
+        description: `Termin konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
       });
     }
   };
 
   const updateAppointment = async (id: string, updates: any) => {
+    console.log('🔄 Updating appointment:', id, updates);
     try {
       const { data, error } = await supabase
         .from('appointments')
@@ -520,23 +649,34 @@ export function useAppointments() {
         `)
         .single();
 
-      if (error) throw error;
+      console.log('✅ Appointment update result:', { data, error });
+
+      if (error) {
+        console.error('❌ Appointment update error:', error);
+        throw error;
+      }
       
       setAppointments(prev => prev.map(a => a.id === id ? data : a));
       return data;
     } catch (error) {
-      console.error('Error updating appointment:', error);
+      console.error('❌ Error updating appointment:', error);
     }
   };
 
   const deleteAppointment = async (id: string) => {
+    console.log('🔄 Deleting appointment:', id);
     try {
       const { error } = await supabase
         .from('appointments')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      console.log('✅ Appointment delete result:', { error });
+
+      if (error) {
+        console.error('❌ Appointment delete error:', error);
+        throw error;
+      }
       
       setAppointments(prev => prev.filter(a => a.id !== id));
       toast({
@@ -544,10 +684,10 @@ export function useAppointments() {
         description: "Termin wurde gelöscht.",
       });
     } catch (error) {
-      console.error('Error deleting appointment:', error);
+      console.error('❌ Error deleting appointment:', error);
       toast({
         title: "Fehler",
-        description: "Termin konnte nicht gelöscht werden.",
+        description: `Termin konnte nicht gelöscht werden: ${error.message}`,
         variant: "destructive",
       });
     }
