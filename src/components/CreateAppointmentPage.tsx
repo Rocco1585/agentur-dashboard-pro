@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,8 +60,9 @@ export function CreateAppointmentPage() {
     try {
       const { data, error } = await supabase
         .from('team_members')
-        .select('id, name, role')
+        .select('id, name, role, user_role')
         .eq('is_active', true)
+        .in('user_role', ['admin', 'member'])
         .order('name');
 
       if (error) throw error;

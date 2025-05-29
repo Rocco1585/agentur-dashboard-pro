@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,12 @@ interface CreateAppointmentProps {
 export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps) {
   const { customers } = useCustomers();
   const { teamMembers } = useTeamMembers();
+  
+  // Filter team members to exclude customers (user_role 'kunde')
+  const availableTeamMembers = teamMembers.filter(member => 
+    member.user_role !== 'kunde'
+  );
+
   const [formData, setFormData] = useState({
     date: '',
     time: '',
@@ -185,7 +190,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
                     <SelectValue placeholder="Teammitglied auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    {teamMembers.map(member => (
+                    {availableTeamMembers.map(member => (
                       <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
                     ))}
                   </SelectContent>
