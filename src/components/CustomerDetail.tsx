@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +38,10 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     email: '',
     phone: '',
     priority: '',
-    payment_status: ''
+    payment_status: '',
+    is_active: false,
+    action_step: '',
+    booked_appointments: 0
   });
 
   const pipelineStages = [
@@ -48,6 +50,15 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen', color: 'bg-green-400' },
     { id: 'follow_up', name: 'Follow-up', color: 'bg-orange-400' },
     { id: 'verloren', name: 'Verloren', color: 'bg-red-400' },
+  ];
+
+  const actionStepOptions = [
+    { value: 'in_vorbereitung', label: 'In Vorbereitung' },
+    { value: 'testphase_aktiv', label: 'Testphase aktiv' },
+    { value: 'upsell_bevorstehend', label: 'Upsell bevorstehend' },
+    { value: 'bestandskunde', label: 'Bestandskunde' },
+    { value: 'pausiert', label: 'Pausiert' },
+    { value: 'abgeschlossen', label: 'Abgeschlossen' }
   ];
 
   useEffect(() => {
@@ -60,7 +71,10 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         email: customer.email || '',
         phone: customer.phone || '',
         priority: customer.priority || '',
-        payment_status: customer.payment_status || ''
+        payment_status: customer.payment_status || '',
+        is_active: customer.is_active || false,
+        action_step: customer.action_step || 'in_vorbereitung',
+        booked_appointments: customer.booked_appointments || 0
       });
       fetchCustomerData();
     }
@@ -85,6 +99,23 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         .order('date', { ascending: false });
       
       setAppointments(appointmentData || []);
+
+      // Calculate completed appointments automatically based on pipeline stages
+      const completedCount = (appointmentData || []).filter(app => 
+        ['termin_abgeschlossen', 'follow_up'].includes(app.result)
+      ).length;
+
+      // Update the customer's completed_appointments in the database
+      if (completedCount !== customer.completed_appointments) {
+        await supabase
+          .from('customers')
+          .update({ completed_appointments: completedCount })
+          .eq('id', customer.id);
+        
+        // Update local state
+        const updatedCustomer = { ...customer, completed_appointments: completedCount };
+        onUpdate(updatedCustomer);
+      }
     } catch (error) {
       console.error('Error fetching customer data:', error);
     }
@@ -108,7 +139,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
       if (error) throw error;
       
-      fetchCustomerData();
+      fetchCustomerData(); // This will recalculate completed appointments
       
       toast({
         title: "Termin aktualisiert",
@@ -133,7 +164,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
       if (error) throw error;
       
-      fetchCustomerData();
+      fetchCustomerData(); // This will recalculate completed appointments
       
       toast({
         title: "Termin gelöscht",
@@ -227,7 +258,10 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       email: customer.email || '',
       phone: customer.phone || '',
       priority: customer.priority || '',
-      payment_status: customer.payment_status || ''
+      payment_status: customer.payment_status || '',
+      is_active: customer.is_active || false,
+      action_step: customer.action_step || 'in_vorbereitung',
+      booked_appointments: customer.booked_appointments || 0
     });
     setIsEditingContact(false);
   };
@@ -289,6 +323,9 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   };
 
   const totalRevenue = customerRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+  const completedAppointments = appointments.filter(app => 
+    ['termin_abgeschlossen', 'follow_up'].includes(app.result)
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -324,7 +361,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <Calendar className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{customer.booked_appointments}</span>
+              <span className="text-2xl font-bold text-gray-700">{editableContact.booked_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -336,7 +373,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{customer.completed_appointments}</span>
+              <span className="text-2xl font-bold text-gray-700">{completedAppointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -425,6 +462,42 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <label className="text-sm font-medium">Status:</label>
+                  <Select 
+                    value={editableContact.is_active ? "aktiv" : "inaktiv"} 
+                    onValueChange={(value) => setEditableContact({...editableContact, is_active: value === "aktiv"})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="aktiv">Aktiv</SelectItem>
+                      <SelectItem value="inaktiv">Inaktiv</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Action Step:</label>
+                  <Select value={editableContact.action_step} onValueChange={(value) => setEditableContact({...editableContact, action_step: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {actionStepOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Termine gebucht:</label>
+                  <Input
+                    type="number"
+                    value={editableContact.booked_appointments}
+                    onChange={(e) => setEditableContact({...editableContact, booked_appointments: parseInt(e.target.value) || 0})}
+                  />
+                </div>
                 <div className="flex space-x-2">
                   <Button onClick={saveContactData}>
                     <Save className="h-4 w-4 mr-2" />
@@ -446,6 +519,16 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 </div>
                 <div><strong>Zahlungsstatus:</strong> 
                   <Badge className="ml-2 bg-gray-100 text-gray-800">{customer.payment_status}</Badge>
+                </div>
+                <div><strong>Status:</strong> 
+                  <Badge className={`ml-2 ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {customer.is_active ? 'Aktiv' : 'Inaktiv'}
+                  </Badge>
+                </div>
+                <div><strong>Action Step:</strong> 
+                  <Badge className="ml-2 bg-blue-100 text-blue-800">
+                    {actionStepOptions.find(opt => opt.value === customer.action_step)?.label || customer.action_step}
+                  </Badge>
                 </div>
               </>
             )}
