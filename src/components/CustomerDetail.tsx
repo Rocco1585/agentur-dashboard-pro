@@ -28,8 +28,6 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
     contact: customer.contact || '',
     priority: customer.priority || 'Mittel',
     payment_status: customer.payment_status || 'Ausstehend',
-    satisfaction: customer.satisfaction || 5,
-    booked_appointments: customer.booked_appointments || 0,
     purchased_appointments: customer.purchased_appointments || 0,
     is_active: customer.is_active
   });
@@ -68,9 +66,6 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
             contact,
             priority,
             payment_status,
-            satisfaction,
-            booked_appointments,
-            completed_appointments,
             purchased_appointments,
             pipeline_stage
           ),
@@ -440,6 +435,15 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     disabled={!canEditCustomers()}
                     className="text-left"
                   />
+                  <Input
+                    placeholder="Gekaufte Termine"
+                    type="number"
+                    min="0"
+                    value={formData.purchased_appointments}
+                    onChange={(e) => setFormData({...formData, purchased_appointments: parseInt(e.target.value) || 0})}
+                    disabled={!canEditCustomers()}
+                    className="text-left"
+                  />
                   <Select 
                     value={formData.priority} 
                     onValueChange={(value) => setFormData({...formData, priority: value})}
@@ -468,34 +472,6 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                       <SelectItem value="Überfällig">Überfällig</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input
-                    placeholder="Zufriedenheit (1-10)"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.satisfaction}
-                    onChange={(e) => setFormData({...formData, satisfaction: parseInt(e.target.value) || 5})}
-                    disabled={!canEditCustomers()}
-                    className="text-left"
-                  />
-                  <Input
-                    placeholder="Gekaufte Termine"
-                    type="number"
-                    min="0"
-                    value={formData.purchased_appointments}
-                    onChange={(e) => setFormData({...formData, purchased_appointments: parseInt(e.target.value) || 0})}
-                    disabled={!canEditCustomers()}
-                    className="text-left"
-                  />
-                  <Input
-                    placeholder="Gebuchte Termine"
-                    type="number"
-                    min="0"
-                    value={formData.booked_appointments}
-                    onChange={(e) => setFormData({...formData, booked_appointments: parseInt(e.target.value) || 0})}
-                    disabled={!canEditCustomers()}
-                    className="text-left"
-                  />
                 </div>
                 <Textarea
                   placeholder="Kontaktinformationen / Notizen"
