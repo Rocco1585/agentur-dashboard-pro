@@ -22,8 +22,7 @@ export function CreateCustomerForm({ onClose, onCustomerCreated }: CreateCustome
     contact: '',
     priority: 'Mittel',
     payment_status: 'Ausstehend',
-    satisfaction: 5,
-    booked_appointments: 0
+    satisfaction: 5
   });
   const [loading, setLoading] = useState(false);
 
@@ -52,7 +51,7 @@ export function CreateCustomerForm({ onClose, onCustomerCreated }: CreateCustome
           priority: formData.priority,
           payment_status: formData.payment_status,
           satisfaction: formData.satisfaction,
-          booked_appointments: formData.booked_appointments,
+          purchased_appointments: 0,
           is_active: true
         });
 
