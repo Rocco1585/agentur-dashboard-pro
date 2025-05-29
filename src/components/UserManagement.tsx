@@ -5,20 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, User, Mail, Shield, ShieldCheck, Save, X, Eye, EyeOff } from "lucide-react";
+import { Plus, Users, User, Mail, Shield, ShieldCheck, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTeamMembers } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
 
 export function UserManagement() {
-  const { teamMembers, loading, addTeamMember, updateTeamMember } = useTeamMembers();
+  const { teamMembers, loading, addTeamMember } = useTeamMembers();
   const { canViewAuditLogs } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    password: '',
     user_role: 'member' as 'admin' | 'member',
     role: '',
     phone: ''
@@ -53,16 +51,15 @@ export function UserManagement() {
   }
 
   const handleAddUser = async () => {
-    if (newUser.name && newUser.email && newUser.password) {
+    if (newUser.name && newUser.email) {
       const userData = {
         ...newUser,
-        password_hash: newUser.password, // In einer echten Anwendung würde das Passwort gehasht
         is_active: true,
         payouts: 0,
         performance: '5'
       };
       await addTeamMember(userData);
-      setNewUser({ name: '', email: '', password: '', user_role: 'member', role: '', phone: '' });
+      setNewUser({ name: '', email: '', user_role: 'member', role: '', phone: '' });
       setShowAddForm(false);
     } else {
       toast({
@@ -122,27 +119,6 @@ export function UserManagement() {
                 value={newUser.email}
                 onChange={(e) => setNewUser({...newUser, email: e.target.value})}
               />
-              <div className="relative">
-                <Input
-                  placeholder="Passwort *"
-                  type={showPassword ? "text" : "password"}
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
               <Input
                 placeholder="Telefon"
                 value={newUser.phone}
@@ -183,16 +159,16 @@ export function UserManagement() {
       )}
 
       {/* Users List */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {teamMembers.map((member) => (
           <Card key={member.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg flex items-center justify-between text-left">
-                <div className="flex items-center">
-                  <User className="h-5 w-5 mr-2 text-red-600" />
-                  <span className="truncate text-gray-900">{member.name}</span>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between text-left">
+                <div className="flex items-center min-w-0 flex-1">
+                  <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
+                  <span className="truncate text-gray-900 text-sm">{member.name}</span>
                 </div>
-                <Badge className={getRoleBadgeColor(member.user_role || 'member')}>
+                <Badge className={`${getRoleBadgeColor(member.user_role || 'member')} ml-2 flex-shrink-0 text-xs`}>
                   {member.user_role === 'admin' ? (
                     <ShieldCheck className="h-3 w-3 mr-1" />
                   ) : (
@@ -202,17 +178,17 @@ export function UserManagement() {
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-left">
+            <CardContent className="space-y-3 text-left pt-0">
               <div className="space-y-2">
                 {member.email && (
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Mail className="h-4 w-4 mr-2 flex-shrink-0 text-red-600" />
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
                     <span className="truncate">{member.email}</span>
                   </div>
                 )}
                 {member.role && (
-                  <div className="flex items-center text-sm">
-                    <Badge variant="outline" className="text-xs">
+                  <div className="flex items-center text-xs">
+                    <Badge variant="outline" className="text-xs px-2 py-1">
                       {member.role}
                     </Badge>
                   </div>
@@ -221,8 +197,8 @@ export function UserManagement() {
 
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Status:</span>
-                  <Badge className={member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  <span className="text-xs text-gray-600">Status:</span>
+                  <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {member.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
