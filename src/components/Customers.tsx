@@ -1,318 +1,308 @@
 
 import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Plus, Users, Eye, Mail, Phone, User, Filter } from "lucide-react";
+import { Plus, Users, Search, User, Mail, Phone, Euro, Calendar, Edit, Eye, Trash2 } from "lucide-react";
 import { CustomerDetail } from "./CustomerDetail";
-import { useCustomers } from "@/hooks/useSupabaseData";
+import { CustomerEditForm } from "./CustomerEditForm";
+import { toast } from "@/hooks/use-toast";
+import { useCustomers } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function Customers() {
   const { customers, loading, updateCustomer, addCustomer } = useCustomers();
+  const { canCreateCustomers } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPriority, setFilterPriority] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
-  const [filterActive, setFilterActive] = useState<string>('all');
-  const [filterActionStep, setFilterActionStep] = useState<string>('all');
-  const [newCustomer, setNewCustomer] = useState({
-    name: '',
-    contact: '',
-    email: '',
-    phone: '',
-    priority: 'Mittel',
-    payment_status: 'Ausstehend',
-    pipeline_stage: 'termin_ausstehend',
-    is_active: false,
-    action_step: 'in_vorbereitung'
-  });
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
 
-  const actionStepOptions = [
-    { value: 'in_vorbereitung', label: 'In Vorbereitung' },
-    { value: 'testphase_aktiv', label: 'Testphase aktiv' },
-    { value: 'upsell_bevorstehend', label: 'Upsell bevorstehend' },
-    { value: 'bestandskunde', label: 'Bestandskunde' },
-    { value: 'pausiert', label: 'Pausiert' },
-    { value: 'abgeschlossen', label: 'Abgeschlossen' }
-  ];
+  const deleteCustomer = async (customerId: string, customerName: string) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', customerId);
 
-  const getActionStepLabel = (value: string) => {
-    return actionStepOptions.find(option => option.value === value)?.label || value;
-  };
-
-  const getActionStepColor = (actionStep: string) => {
-    switch (actionStep) {
-      case 'in_vorbereitung': return 'bg-gray-100 text-gray-800';
-      case 'testphase_aktiv': return 'bg-blue-100 text-blue-800';
-      case 'upsell_bevorstehend': return 'bg-purple-100 text-purple-800';
-      case 'bestandskunde': return 'bg-green-100 text-green-800';
-      case 'pausiert': return 'bg-yellow-100 text-yellow-800';
-      case 'abgeschlossen': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Hoch': return 'bg-red-100 text-red-800';
-      case 'Mittel': return 'bg-yellow-100 text-yellow-800';
-      case 'Niedrig': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status) {
-      case 'Bezahlt': return 'bg-green-100 text-green-800';
-      case 'Ausstehend': return 'bg-yellow-100 text-yellow-800';
-      case 'Überfällig': return 'bg-red-100 text-red-800';
-      case 'Raten': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleAddCustomer = async () => {
-    if (newCustomer.name && newCustomer.contact && newCustomer.email) {
-      await addCustomer(newCustomer);
-      setNewCustomer({
-        name: '',
-        contact: '',
-        email: '',
-        phone: '',
-        priority: 'Mittel',
-        payment_status: 'Ausstehend',
-        pipeline_stage: 'termin_ausstehend',
-        is_active: false,
-        action_step: 'in_vorbereitung'
+      if (error) throw error;
+      
+      // Refresh the customers list
+      window.location.reload();
+      
+      toast({
+        title: "Kunde gelöscht",
+        description: `${customerName} wurde erfolgreich gelöscht.`,
       });
-      setShowNewCustomerDialog(false);
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+      toast({
+        title: "Fehler",
+        description: `Kunde konnte nicht gelöscht werden.`,
+        variant: "destructive",
+      });
     }
   };
 
-  // Filter customers based on active status and action step
   const filteredCustomers = customers.filter(customer => {
-    const activeFilter = filterActive === 'all' || 
-      (filterActive === 'active' && customer.is_active) ||
-      (filterActive === 'inactive' && !customer.is_active);
-    
-    const actionStepFilter = filterActionStep === 'all' || customer.action_step === filterActionStep;
-    
-    return activeFilter && actionStepFilter;
+    const matchesSearch = customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customer.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPriority = !filterPriority || customer.priority === filterPriority;
+    const matchesStatus = !filterStatus || 
+                         (filterStatus === 'aktiv' && customer.is_active) ||
+                         (filterStatus === 'inaktiv' && !customer.is_active);
+    return matchesSearch && matchesPriority && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="w-full p-4 sm:p-6">
+        <div className="text-lg">Lade Kunden...</div>
+      </div>
+    );
+  }
 
   if (selectedCustomer) {
     return (
-      <CustomerDetail
-        customer={selectedCustomer}
+      <CustomerDetail 
+        customer={selectedCustomer} 
         onBack={() => setSelectedCustomer(null)}
         onUpdate={(updatedCustomer) => {
-          updateCustomer(updatedCustomer.id, updatedCustomer);
           setSelectedCustomer(updatedCustomer);
         }}
       />
     );
   }
 
-  if (loading) {
+  if (editingCustomer) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Lade Kunden...</div>
-      </div>
+      <CustomerEditForm
+        customer={editingCustomer}
+        onSave={async (customerData) => {
+          await updateCustomer(editingCustomer.id, customerData);
+          setEditingCustomer(null);
+        }}
+        onCancel={() => setEditingCustomer(null)}
+      />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Users className="h-8 w-8 mr-3" />
-            Kunden
-          </h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Kunden und deren Details.</p>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="text-left">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Kunden</h1>
+          <p className="text-gray-600">Verwalten Sie Ihre Kundenbasis</p>
         </div>
-        <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center">
-              <Plus className="h-4 w-4 mr-2" />
-              Neuer Kunde
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Neuen Kunden hinzufügen</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Firmenname"
-                value={newCustomer.name}
-                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-              />
-              <Input
-                placeholder="Ansprechpartner"
-                value={newCustomer.contact}
-                onChange={(e) => setNewCustomer({...newCustomer, contact: e.target.value})}
-              />
-              <Input
-                placeholder="E-Mail"
-                type="email"
-                value={newCustomer.email}
-                onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
-              />
-              <Input
-                placeholder="Telefon"
-                value={newCustomer.phone}
-                onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-              />
-              <Select value={newCustomer.priority} onValueChange={(value) => setNewCustomer({...newCustomer, priority: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Priorität" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Hoch">Hoch</SelectItem>
-                  <SelectItem value="Mittel">Mittel</SelectItem>
-                  <SelectItem value="Niedrig">Niedrig</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={newCustomer.action_step} onValueChange={(value) => setNewCustomer({...newCustomer, action_step: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Action Step" />
-                </SelectTrigger>
-                <SelectContent>
-                  {actionStepOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={newCustomer.is_active}
-                  onCheckedChange={(checked) => setNewCustomer({...newCustomer, is_active: checked})}
-                />
-                <label className="text-sm font-medium">Aktiv</label>
-              </div>
-              <Button onClick={handleAddCustomer} className="w-full">
-                Kunde hinzufügen
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {canCreateCustomers() && (
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Kunde hinzufügen
+          </Button>
+        )}
       </div>
 
-      {/* Filter Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
-            Filter
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
-              <Select value={filterActive} onValueChange={setFilterActive}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Alle Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  <SelectItem value="active">Aktiv</SelectItem>
-                  <SelectItem value="inactive">Inaktiv</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Action Step</label>
-              <Select value={filterActionStep} onValueChange={setFilterActionStep}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Alle Action Steps" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Alle</SelectItem>
-                  {actionStepOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Add Customer Form */}
+      {showAddForm && canCreateCustomers() && (
+        <CustomerEditForm
+          onSave={async (customerData) => {
+            await addCustomer(customerData);
+            setShowAddForm(false);
+          }}
+          onCancel={() => setShowAddForm(false)}
+        />
+      )}
 
-      {/* Results Summary */}
-      <div className="flex items-center justify-between">
-        <p className="text-gray-600">
-          {filteredCustomers.length} von {customers.length} Kunden angezeigt
-        </p>
+      {/* Search and Filter */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Kunden suchen..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={filterPriority} onValueChange={setFilterPriority}>
+          <SelectTrigger>
+            <SelectValue placeholder="Priorität filtern" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Alle Prioritäten</SelectItem>
+            <SelectItem value="Hoch">Hoch</SelectItem>
+            <SelectItem value="Mittel">Mittel</SelectItem>
+            <SelectItem value="Niedrig">Niedrig</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger>
+            <SelectValue placeholder="Status filtern" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Alle Status</SelectItem>
+            <SelectItem value="aktiv">Aktiv</SelectItem>
+            <SelectItem value="inaktiv">Inaktiv</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Customers Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="cursor-pointer transition-all hover:shadow-md">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  {customer.name}
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  {customer.is_active && (
-                    <div className="w-3 h-3 bg-green-500 rounded-full" title="Aktiv" />
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelectedCustomer(customer)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+          <Card key={customer.id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between text-left">
+                <div className="flex items-center min-w-0 flex-1">
+                  <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
+                  <span className="truncate text-gray-900 text-sm">{customer.name}</span>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4 text-gray-500" />
-                <span className="text-sm text-gray-600">{customer.contact}</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-2">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="h-4 w-4 mr-2" />
-                  {customer.email}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {customer.phone}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Badge className={getPriorityColor(customer.priority)}>
+                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
+                  customer.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
+                  customer.priority === 'Mittel' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>
                   {customer.priority}
                 </Badge>
-                <Badge className={getPaymentStatusColor(customer.payment_status)}>
-                  {customer.payment_status}
-                </Badge>
-                <Badge className={getActionStepColor(customer.action_step)}>
-                  {getActionStepLabel(customer.action_step)}
-                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-left pt-0">
+              <div className="space-y-2">
+                {customer.contact && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <User className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
+                    <span className="truncate">{customer.contact}</span>
+                  </div>
+                )}
+                {customer.email && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
+                    <span className="truncate">{customer.email}</span>
+                  </div>
+                )}
+                {customer.phone && (
+                  <div className="flex items-center text-xs text-gray-600">
+                    <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
+                    <span className="truncate">{customer.phone}</span>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Termine:</span>
-                  <div className="font-semibold">{customer.booked_appointments}</div>
+              <div className="pt-2 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-600">Status:</span>
+                  <Badge className={`text-xs ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {customer.is_active ? 'Aktiv' : 'Inaktiv'}
+                  </Badge>
                 </div>
-                <div>
-                  <span className="text-gray-500">Zufriedenheit:</span>
-                  <div className="font-semibold text-blue-600">{customer.satisfaction}/10</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Zahlung:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {customer.payment_status}
+                  </Badge>
                 </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedCustomer(customer)}
+                  className="flex-1 text-xs"
+                >
+                  <Eye className="h-3 w-3 mr-1" />
+                  Details
+                </Button>
+                {canCreateCustomers() && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingCustomer(customer)}
+                      className="flex-1 text-xs"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Bearbeiten
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Löschen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Kunde löschen</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Sind Sie sicher, dass Sie den Kunden "{customer.name}" löschen möchten? 
+                            Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
+                            Daten wie Termine und Einnahmen ebenfalls löschen.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteCustomer(customer.id, customer.name)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Endgültig löschen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {filteredCustomers.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kunden gefunden</h3>
+            <p className="text-gray-600 mb-4">
+              {customers.length === 0 
+                ? "Fügen Sie Ihren ersten Kunden hinzu, um zu beginnen."
+                : "Keine Kunden entsprechen Ihren Suchkriterien."
+              }
+            </p>
+            {canCreateCustomers() && customers.length === 0 && (
+              <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Ersten Kunden hinzufügen
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
