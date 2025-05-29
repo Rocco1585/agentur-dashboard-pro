@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +10,11 @@ import { ArrowLeft, Plus, Euro, TrendingUp, TrendingDown, User, Calendar, Edit, 
 interface TeamMemberDetailProps {
   member: any;
   onBack: () => void;
+  onUpdate: (updatedMember: any) => void;
   customers: any[];
 }
 
-export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetailProps) {
+export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMemberDetailProps) {
   const [earnings, setEarnings] = useState([
     { id: 1, customer: 'ABC GmbH', amount: 500, date: '15.01.2025', type: 'Provision' },
     { id: 2, customer: 'XYZ Corp', amount: 300, date: '12.01.2025', type: 'Bonus' },
@@ -86,12 +86,16 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
   const saveContactData = () => {
     // Hier würde normalerweise eine API-Anfrage gemacht werden
     console.log('Kontaktdaten gespeichert:', editableData);
+    const updatedMember = { ...member, ...editableData };
+    onUpdate(updatedMember);
     setIsEditingContact(false);
   };
 
   const savePerformance = () => {
     // Hier würde normalerweise eine API-Anfrage gemacht werden
     console.log('Performance gespeichert:', editableData.performance);
+    const updatedMember = { ...member, performance: editableData.performance };
+    onUpdate(updatedMember);
     setIsEditingPerformance(false);
   };
 
