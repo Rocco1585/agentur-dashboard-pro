@@ -30,38 +30,42 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Kunde bearbeiten</CardTitle>
+    <Card className="w-full">
+      <CardHeader className="w-full">
+        <CardTitle className="text-left">Kunde bearbeiten</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <CardContent className="space-y-4 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
           <Input
             placeholder="Firmenname"
             value={editedCustomer.name}
             onChange={(e) => setEditedCustomer({...editedCustomer, name: e.target.value})}
+            className="w-full"
           />
           <Input
             placeholder="Ansprechpartner"
             value={editedCustomer.contact || ''}
             onChange={(e) => setEditedCustomer({...editedCustomer, contact: e.target.value})}
+            className="w-full"
           />
           <Input
             placeholder="E-Mail"
             type="email"
             value={editedCustomer.email || ''}
             onChange={(e) => setEditedCustomer({...editedCustomer, email: e.target.value})}
+            className="w-full"
           />
           <Input
             placeholder="Telefon"
             value={editedCustomer.phone || ''}
             onChange={(e) => setEditedCustomer({...editedCustomer, phone: e.target.value})}
+            className="w-full"
           />
           <Select 
             value={editedCustomer.priority} 
             onValueChange={(value) => setEditedCustomer({...editedCustomer, priority: value})}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Priorität" />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +78,7 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
             value={editedCustomer.payment_status} 
             onValueChange={(value) => setEditedCustomer({...editedCustomer, payment_status: value})}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Zahlungsstatus" />
             </SelectTrigger>
             <SelectContent>
@@ -86,14 +90,14 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          <div className="text-left">
             <label className="text-sm font-medium text-gray-700 mb-2 block">Action Step</label>
             <Select 
               value={editedCustomer.action_step || 'in_vorbereitung'} 
               onValueChange={(value) => setEditedCustomer({...editedCustomer, action_step: value})}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Action Step" />
               </SelectTrigger>
               <SelectContent>
@@ -103,7 +107,7 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="text-left">
             <label className="text-sm font-medium text-gray-700 mb-2 block">Aktiv</label>
             <div className="flex items-center space-x-2 pt-2">
               <Switch
@@ -115,7 +119,7 @@ export function CustomerEditForm({ customer, onSave, onCancel }: CustomerEditFor
           </div>
         </div>
 
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-start space-x-2 w-full">
           <Button variant="outline" onClick={onCancel}>
             <X className="h-4 w-4 mr-2" />
             Abbrechen

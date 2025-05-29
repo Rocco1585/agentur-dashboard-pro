@@ -80,100 +80,104 @@ export function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="w-full p-4">
         <div className="text-lg">Lade Einstellungen...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-4">
-      <div>
+    <div className="w-full max-w-none p-4">
+      <div className="w-full text-left">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Einstellungen</h1>
         <p className="text-gray-600">Verwalten Sie Ihre System-Einstellungen</p>
       </div>
 
       {/* Team Notice Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <MessageSquare className="h-5 w-5 mr-2 text-green-600" />
-            Team-Notiz Verwaltung
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium">Team-Notiz anzeigen</h3>
-                <p className="text-sm text-gray-600">
-                  Aktivieren Sie diese Option, um die Team-Notiz auf dem Dashboard und in der Kundendetailansicht anzuzeigen.
+      <div className="w-full mt-6">
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="flex items-center w-full">
+              <MessageSquare className="h-5 w-5 mr-2 text-red-600" />
+              Team-Notiz Verwaltung
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 w-full">
+            <div className="space-y-4 w-full">
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <h3 className="text-lg font-medium">Team-Notiz anzeigen</h3>
+                  <p className="text-sm text-gray-600">
+                    Aktivieren Sie diese Option, um die Team-Notiz auf dem Dashboard und in der Kundendetailansicht anzuzeigen.
+                  </p>
+                </div>
+                <Switch
+                  checked={showTeamNotice}
+                  onCheckedChange={setShowTeamNotice}
+                />
+              </div>
+
+              <div className="space-y-2 w-full">
+                <label className="text-sm font-medium">Team-Notiz Inhalt:</label>
+                <Textarea
+                  value={teamNotice}
+                  onChange={(e) => setTeamNotice(e.target.value)}
+                  placeholder="Geben Sie hier Ihre Team-Notiz ein..."
+                  className="min-h-[120px] w-full"
+                />
+                <p className="text-xs text-gray-500">
+                  Diese Nachricht wird mit grünem Hintergrund auf dem Dashboard und in der Kundendetailansicht angezeigt.
                 </p>
               </div>
-              <Switch
-                checked={showTeamNotice}
-                onCheckedChange={setShowTeamNotice}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Team-Notiz Inhalt:</label>
-              <Textarea
-                value={teamNotice}
-                onChange={(e) => setTeamNotice(e.target.value)}
-                placeholder="Geben Sie hier Ihre Team-Notiz ein..."
-                className="min-h-[120px]"
-              />
-              <p className="text-xs text-gray-500">
-                Diese Nachricht wird mit grünem Hintergrund auf dem Dashboard und in der Kundendetailansicht angezeigt.
-              </p>
-            </div>
-
-            {/* Preview */}
-            {showTeamNotice && teamNotice && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vorschau:</label>
-                <Card className="bg-green-50 border-green-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-start">
-                      <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <div>
-                        <h4 className="font-semibold text-green-800 mb-1">Team-Notiz</h4>
-                        <p className="text-green-700 text-sm whitespace-pre-wrap">{teamNotice}</p>
+              {/* Preview */}
+              {showTeamNotice && teamNotice && (
+                <div className="space-y-2 w-full">
+                  <label className="text-sm font-medium">Vorschau:</label>
+                  <Card className="bg-green-50 border-green-200 w-full">
+                    <CardContent className="p-4 w-full">
+                      <div className="flex items-start w-full">
+                        <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
+                        <div className="w-full">
+                          <h4 className="font-semibold text-green-800 mb-1">Team-Notiz</h4>
+                          <p className="text-green-700 text-sm whitespace-pre-wrap">{teamNotice}</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
-            <Button onClick={saveTeamNoticeSettings} className="w-full sm:w-auto">
-              <Save className="h-4 w-4 mr-2" />
-              Einstellungen speichern
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <Button onClick={saveTeamNoticeSettings} className="w-full sm:w-auto">
+                <Save className="h-4 w-4 mr-2" />
+                Einstellungen speichern
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* System Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <SettingsIcon className="h-5 w-5 mr-2" />
-            System-Informationen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <div>
-              <strong>Version:</strong> 1.0.0
+      <div className="w-full mt-6">
+        <Card className="w-full">
+          <CardHeader className="w-full">
+            <CardTitle className="flex items-center w-full">
+              <SettingsIcon className="h-5 w-5 mr-2 text-red-600" />
+              System-Informationen
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm w-full">
+              <div>
+                <strong>Version:</strong> 1.0.0
+              </div>
+              <div>
+                <strong>Letztes Update:</strong> {new Date().toLocaleDateString('de-DE')}
+              </div>
             </div>
-            <div>
-              <strong>Letztes Update:</strong> {new Date().toLocaleDateString('de-DE')}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
