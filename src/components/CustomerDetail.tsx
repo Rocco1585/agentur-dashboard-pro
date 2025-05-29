@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface CustomerDetailProps {
   customer: any;
@@ -16,6 +17,7 @@ export interface CustomerDetailProps {
 }
 
 export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailProps) {
+  const { canEditCustomers } = useAuth();
   const [formData, setFormData] = useState({
     name: customer.name || '',
     email: customer.email || '',
@@ -31,6 +33,16 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!canEditCustomers()) {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Sie haben keine Berechtigung, Kunden zu bearbeiten.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -67,8 +79,12 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
           Zurück
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Kunde bearbeiten</h1>
-          <p className="text-gray-600">Kundendetails verwalten</p>
+          <h1 className="text-2xl font-bold">
+            {canEditCustomers() ? 'Kunde bearbeiten' : 'Kundendetails'}
+          </h1>
+          <p className="text-gray-600">
+            {canEditCustomers() ? 'Kundendetails verwalten' : 'Kundeninformationen anzeigen'}
+          </p>
         </div>
       </div>
 
@@ -88,19 +104,26 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                 placeholder="Name"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
+                disabled={!canEditCustomers()}
               />
               <Input
                 placeholder="Email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
+                disabled={!canEditCustomers()}
               />
               <Input
                 placeholder="Telefon"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                disabled={!canEditCustomers()}
               />
-              <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+              <Select 
+                value={formData.priority} 
+                onValueChange={(value) => setFormData({...formData, priority: value})}
+                disabled={!canEditCustomers()}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Priorität" />
                 </SelectTrigger>
@@ -110,7 +133,11 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                   <SelectItem value="Niedrig">Niedrig</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={formData.payment_status} onValueChange={(value) => setFormData({...formData, payment_status: value})}>
+              <Select 
+                value={formData.payment_status} 
+                onValueChange={(value) => setFormData({...formData, payment_status: value})}
+                disabled={!canEditCustomers()}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Zahlungsstatus" />
                 </SelectTrigger>
@@ -127,6 +154,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                 max="10"
                 value={formData.satisfaction}
                 onChange={(e) => setFormData({...formData, satisfaction: parseInt(e.target.value) || 5})}
+                disabled={!canEditCustomers()}
               />
             </div>
             <Textarea
@@ -134,17 +162,20 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
               value={formData.contact}
               onChange={(e) => setFormData({...formData, contact: e.target.value})}
               rows={4}
+              disabled={!canEditCustomers()}
             />
-            <div className="flex gap-2 pt-4">
-              <Button 
-                type="submit" 
-                disabled={loading}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? 'Speichere...' : 'Änderungen speichern'}
-              </Button>
-            </div>
+            {canEditCustomers() && (
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? 'Speichere...' : 'Änderungen speichern'}
+                </Button>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

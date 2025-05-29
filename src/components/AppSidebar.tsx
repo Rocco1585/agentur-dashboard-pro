@@ -31,70 +31,92 @@ import { useAuth } from "@/hooks/useAuth"
 import { useTeamMembers } from "@/hooks/useSupabaseData"
 import { Button } from "@/components/ui/button"
 
-const items = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: Home,
-  },
-  {
-    title: "Kunden",
-    url: "/customers",
-    icon: Users,
-  },
-  {
-    title: "Hot Leads",
-    url: "/hot-leads",
-    icon: Flame,
-  },
-  {
-    title: "Termin erstellen",
-    url: "/create-appointment",
-    icon: CalendarPlus,
-  },
-  {
-    title: "Teammitglieder",
-    url: "/team-members",
-    icon: Users,
-  },
-  {
-    title: "Einnahmen",
-    url: "/revenue",
-    icon: Euro,
-  },
-  {
-    title: "TODOs",
-    url: "/todos",
-    icon: CheckSquare,
-  },
-  {
-    title: "Einstellungen",
-    url: "/settings",
-    icon: Settings,
-  },
-  {
-    title: "Audit Logs",
-    url: "/audit-logs",
-    icon: FileText,
-  },
-  {
-    title: "Benutzerverwaltung",
-    url: "/user-management",
-    icon: UserCog,
-  },
-]
-
 export function AppSidebar() {
   const location = useLocation()
-  const { user, logout, canAccessMainNavigation, isAdmin } = useAuth()
+  const { 
+    user, 
+    logout, 
+    canAccessMainNavigation, 
+    canViewCustomers,
+    canManageRevenues,
+    canCreateTodos,
+    canAccessSettings,
+    canViewAuditLogs,
+    canViewTeamMembers,
+    canViewUserManagement,
+    canViewCustomerDashboards
+  } = useAuth()
   const { teamMembers } = useTeamMembers()
 
   if (!user) return null
 
-  // Get customer dashboards for admins
-  const customerDashboards = teamMembers.filter(member => 
+  // Get customer dashboards for admins only
+  const customerDashboards = canViewCustomerDashboards() ? teamMembers.filter(member => 
     member.user_role === 'kunde' && member.customer_dashboard_name
-  )
+  ) : []
+
+  const items = [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Home,
+      visible: canAccessMainNavigation()
+    },
+    {
+      title: "Kunden",
+      url: "/customers",
+      icon: Users,
+      visible: canViewCustomers()
+    },
+    {
+      title: "Hot Leads",
+      url: "/hot-leads",
+      icon: Flame,
+      visible: canAccessMainNavigation()
+    },
+    {
+      title: "Termin erstellen",
+      url: "/create-appointment",
+      icon: CalendarPlus,
+      visible: canAccessMainNavigation()
+    },
+    {
+      title: "Teammitglieder",
+      url: "/team-members",
+      icon: Users,
+      visible: canViewTeamMembers()
+    },
+    {
+      title: "Einnahmen",
+      url: "/revenue",
+      icon: Euro,
+      visible: canManageRevenues()
+    },
+    {
+      title: "TODOs",
+      url: "/todos",
+      icon: CheckSquare,
+      visible: canCreateTodos()
+    },
+    {
+      title: "Einstellungen",
+      url: "/settings",
+      icon: Settings,
+      visible: canAccessSettings()
+    },
+    {
+      title: "Audit Logs",
+      url: "/audit-logs",
+      icon: FileText,
+      visible: canViewAuditLogs()
+    },
+    {
+      title: "Benutzerverwaltung",
+      url: "/user-management",
+      icon: UserCog,
+      visible: canViewUserManagement()
+    },
+  ].filter(item => item.visible)
 
   return (
     <Sidebar>
@@ -103,7 +125,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>CRM Dashboard</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {canAccessMainNavigation() && items.map((item) => (
+              {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                     <Link to={item.url}>
@@ -115,7 +137,7 @@ export function AppSidebar() {
               ))}
               
               {/* Customer Dashboards - only visible to admins */}
-              {isAdmin() && customerDashboards.length > 0 && (
+              {canViewCustomerDashboards() && customerDashboards.length > 0 && (
                 <Collapsible>
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>

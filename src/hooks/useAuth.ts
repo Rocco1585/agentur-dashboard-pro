@@ -91,8 +91,21 @@ export function useAuth() {
     return user?.user_role === 'kunde';
   };
 
+  const isMember = () => {
+    return user?.user_role === 'member';
+  };
+
+  // Berechtigungsfunktionen
   const canCreateCustomers = () => {
     return isAdmin();
+  };
+
+  const canEditCustomers = () => {
+    return isAdmin();
+  };
+
+  const canViewCustomers = () => {
+    return isAdmin() || isMember();
   };
 
   const canManageRevenues = () => {
@@ -107,8 +120,24 @@ export function useAuth() {
     return isAdmin();
   };
 
+  const canAccessSettings = () => {
+    return isAdmin();
+  };
+
+  const canViewTeamMembers = () => {
+    return isAdmin();
+  };
+
+  const canViewUserManagement = () => {
+    return isAdmin();
+  };
+
   const canAccessMainNavigation = () => {
     return !isCustomer();
+  };
+
+  const canViewCustomerDashboards = () => {
+    return isAdmin();
   };
 
   return {
@@ -118,11 +147,18 @@ export function useAuth() {
     logout,
     isAdmin,
     isCustomer,
+    isMember,
     canCreateCustomers,
+    canEditCustomers,
+    canViewCustomers,
     canManageRevenues,
     canCreateTodos,
     canViewAuditLogs,
+    canAccessSettings,
+    canViewTeamMembers,
+    canViewUserManagement,
     canAccessMainNavigation,
+    canViewCustomerDashboards,
     logAuditEvent
   };
 }

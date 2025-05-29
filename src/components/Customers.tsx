@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,12 +33,26 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function Customers() {
-  const { canCreateCustomers } = useAuth();
+  const { canCreateCustomers, canEditCustomers, canViewCustomers } = useAuth();
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+
+  // Berechtigung prüfen
+  if (!canViewCustomers()) {
+    return (
+      <div className="space-y-6 p-6">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
+            <p className="text-gray-600">Sie haben keine Berechtigung, Kunden anzuzeigen.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchCustomers();
