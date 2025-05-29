@@ -197,11 +197,11 @@ export function TeamMembers() {
                   <SelectValue placeholder="Performance" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="1">1 - Sehr schlecht</SelectItem>
-                  <SelectItem value="2">2 - Schlecht</SelectItem>
-                  <SelectItem value="3">3 - Durchschnittlich</SelectItem>
-                  <SelectItem value="4">4 - Gut</SelectItem>
-                  <SelectItem value="5">5 - Sehr gut</SelectItem>
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                  <SelectItem value="4">4</SelectItem>
+                  <SelectItem value="5">5</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -253,127 +253,132 @@ export function TeamMembers() {
 
       {/* Team Members Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-        {filteredMembers.map((member) => (
-          <Card key={member.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between text-left">
-                <div className="flex items-center min-w-0 flex-1 text-left">
-                  <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                  <span className="truncate text-gray-900 text-sm text-left">{member.name}</span>
+        {filteredMembers.map((member) => {
+          // Performance aus Datenbank nutzen
+          const performanceValue = typeof member.performance === 'string' ? parseInt(member.performance) || 5 : member.performance || 5;
+          
+          return (
+            <Card key={member.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center justify-between text-left">
+                  <div className="flex items-center min-w-0 flex-1 text-left">
+                    <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
+                    <span className="truncate text-gray-900 text-sm text-left">{member.name}</span>
+                  </div>
+                  <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
+                    performanceValue >= 4 ? 'bg-green-100 text-green-800' :
+                    performanceValue === 3 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {performanceValue}/5
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-left pt-0">
+                <div className="space-y-2 text-left">
+                  {member.email && (
+                    <div className="flex items-center text-xs text-gray-600 text-left">
+                      <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
+                      <span className="truncate text-left">{member.email}</span>
+                    </div>
+                  )}
+                  {member.phone && (
+                    <div className="flex items-center text-xs text-gray-600 text-left">
+                      <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
+                      <span className="truncate text-left">{member.phone}</span>
+                    </div>
+                  )}
+                  {member.role && (
+                    <div className="flex items-center text-xs text-left">
+                      <Badge variant="outline" className="text-xs px-2 py-1">
+                        {member.role}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
-                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
-                  member.performance === '5' || member.performance === '4' ? 'bg-green-100 text-green-800' :
-                  member.performance === '3' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {member.performance}/5
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-left pt-0">
-              <div className="space-y-2 text-left">
-                {member.email && (
-                  <div className="flex items-center text-xs text-gray-600 text-left">
-                    <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate text-left">{member.email}</span>
-                  </div>
-                )}
-                {member.phone && (
-                  <div className="flex items-center text-xs text-gray-600 text-left">
-                    <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate text-left">{member.phone}</span>
-                  </div>
-                )}
-                {member.role && (
-                  <div className="flex items-center text-xs text-left">
-                    <Badge variant="outline" className="text-xs px-2 py-1">
-                      {member.role}
+
+                <div className="pt-2 border-t text-left">
+                  <div className="flex items-center justify-between mb-2 text-left">
+                    <span className="text-xs text-gray-600 text-left">Status:</span>
+                    <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {member.is_active ? 'Aktiv' : 'Inaktiv'}
                     </Badge>
                   </div>
-                )}
-              </div>
-
-              <div className="pt-2 border-t text-left">
-                <div className="flex items-center justify-between mb-2 text-left">
-                  <span className="text-xs text-gray-600 text-left">Status:</span>
-                  <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {member.is_active ? 'Aktiv' : 'Inaktiv'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between mb-2 text-left">
-                  <span className="text-xs text-gray-600 text-left">Auszahlungen:</span>
-                  <div className="flex items-center text-xs text-gray-900">
-                    <Euro className="h-3 w-3 mr-1 text-red-600" />
-                    {member.payouts?.toFixed(2) || '0.00'}
+                  <div className="flex items-center justify-between mb-2 text-left">
+                    <span className="text-xs text-gray-600 text-left">Auszahlungen:</span>
+                    <div className="flex items-center text-xs text-gray-900">
+                      <Euro className="h-3 w-3 mr-1 text-red-600" />
+                      {member.payouts?.toFixed(2) || '0.00'}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-left">
+                    <span className="text-xs text-gray-600 text-left">Termine:</span>
+                    <div className="flex items-center text-xs text-gray-900">
+                      <Calendar className="h-3 w-3 mr-1 text-red-600" />
+                      {member.appointment_count || 0}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-left">
-                  <span className="text-xs text-gray-600 text-left">Termine:</span>
-                  <div className="flex items-center text-xs text-gray-900">
-                    <Calendar className="h-3 w-3 mr-1 text-red-600" />
-                    {member.appointment_count || 0}
-                  </div>
-                </div>
-              </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 pt-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedMember(member)}
-                  className="flex-1 text-xs"
-                >
-                  <Eye className="h-3 w-3 mr-1 text-red-600" />
-                  Details
-                </Button>
-                {canCreateCustomers() && (
+                <div className="flex flex-col sm:flex-row gap-2 pt-3">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setSelectedMember(member)}
                     className="flex-1 text-xs"
                   >
-                    <Edit className="h-3 w-3 mr-1 text-red-600" />
-                    Bearbeiten
+                    <Eye className="h-3 w-3 mr-1 text-red-600" />
+                    Details
                   </Button>
-                )}
-                {isAdmin() && (
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3 mr-1 text-red-600" />
-                        Löschen
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader className="text-left">
-                        <AlertDialogTitle className="text-left">Teammitglied löschen</AlertDialogTitle>
-                        <AlertDialogDescription className="text-left">
-                          Sind Sie sicher, dass Sie das Teammitglied "{member.name}" löschen möchten? 
-                          Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
-                          Daten wie Termine und Auszahlungen ebenfalls löschen.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteTeamMember(member.id, member.name)}
-                          className="bg-red-600 hover:bg-red-700"
+                  {canCreateCustomers() && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedMember(member)}
+                      className="flex-1 text-xs"
+                    >
+                      <Edit className="h-3 w-3 mr-1 text-red-600" />
+                      Bearbeiten
+                    </Button>
+                  )}
+                  {isAdmin() && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
-                          Endgültig löschen
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                          <Trash2 className="h-3 w-3 mr-1 text-red-600" />
+                          Löschen
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader className="text-left">
+                          <AlertDialogTitle className="text-left">Teammitglied löschen</AlertDialogTitle>
+                          <AlertDialogDescription className="text-left">
+                            Sind Sie sicher, dass Sie das Teammitglied "{member.name}" löschen möchten? 
+                            Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
+                            Daten wie Termine und Auszahlungen ebenfalls löschen.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteTeamMember(member.id, member.name)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Endgültig löschen
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {filteredMembers.length === 0 && (

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,12 +76,18 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
   const fetchMemberFinancials = async () => {
     try {
-      // Earnings direkt über SQL query
+      // Direkte Abfrage der Tabellen statt RPC
       const { data: earningsData, error: earningsError } = await supabase
-        .rpc('get_team_member_earnings', { member_id: member.id });
+        .from('team_member_earnings')
+        .select('*')
+        .eq('team_member_id', member.id)
+        .order('date', { ascending: false });
       
       const { data: expensesData, error: expensesError } = await supabase
-        .rpc('get_team_member_expenses', { member_id: member.id });
+        .from('team_member_expenses')
+        .select('*')
+        .eq('team_member_id', member.id)
+        .order('date', { ascending: false });
       
       if (earningsError) {
         console.error('Error fetching earnings:', earningsError);
@@ -115,12 +122,13 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
     try {
       const { error } = await supabase
-        .rpc('add_team_member_earning', {
-          member_id: member.id,
-          earning_customer: newEarning.customer,
-          earning_amount: newEarning.amount,
-          earning_description: newEarning.description,
-          earning_date: new Date().toISOString().split('T')[0]
+        .from('team_member_earnings')
+        .insert({
+          team_member_id: member.id,
+          customer: newEarning.customer,
+          amount: newEarning.amount,
+          description: newEarning.description,
+          date: new Date().toISOString().split('T')[0]
         });
 
       if (error) throw error;
@@ -158,11 +166,12 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
     try {
       const { error } = await supabase
-        .rpc('add_team_member_expense', {
-          member_id: member.id,
-          expense_description: newExpense.description,
-          expense_amount: newExpense.amount,
-          expense_date: new Date().toISOString().split('T')[0]
+        .from('team_member_expenses')
+        .insert({
+          team_member_id: member.id,
+          description: newExpense.description,
+          amount: newExpense.amount,
+          date: new Date().toISOString().split('T')[0]
         });
 
       if (error) throw error;
