@@ -218,7 +218,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Mail className="h-4 w-4 inline mr-1 text-red-600" />
-                  E-Mail *
+                  E-Mail Interessent *
                 </label>
                 <Input
                   type="email"
@@ -232,7 +232,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Phone className="h-4 w-4 inline mr-1 text-red-600" />
-                  Telefon *
+                  Telefon Interessent *
                 </label>
                 <Input
                   type="tel"
@@ -246,7 +246,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Building className="h-4 w-4 inline mr-1 text-red-600" />
-                  Firmenname (Interessent) *
+                  Firma Interessent *
                 </label>
                 <Input
                   value={formData.company_name}
@@ -259,7 +259,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <User className="h-4 w-4 inline mr-1 text-red-600" />
-                  Ansprechpartner (Interessent)
+                  AP Interessent
                 </label>
                 <Input
                   value={formData.contact_person}

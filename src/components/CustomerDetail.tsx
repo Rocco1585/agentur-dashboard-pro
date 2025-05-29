@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -369,11 +368,11 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-left">Termine gesamt</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Termine gekauft/gebucht</CardTitle>
             <Calendar className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent className="text-left">
-            <div className="text-2xl font-bold">{customerStats.totalAppointments}</div>
+            <div className="text-2xl font-bold">{formData.purchased_appointments}/{formData.booked_appointments}</div>
           </CardContent>
         </Card>
 
@@ -485,6 +484,15 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                     min="0"
                     value={formData.purchased_appointments}
                     onChange={(e) => setFormData({...formData, purchased_appointments: parseInt(e.target.value) || 0})}
+                    disabled={!canEditCustomers()}
+                    className="text-left"
+                  />
+                  <Input
+                    placeholder="Gebuchte Termine"
+                    type="number"
+                    min="0"
+                    value={formData.booked_appointments}
+                    onChange={(e) => setFormData({...formData, booked_appointments: parseInt(e.target.value) || 0})}
                     disabled={!canEditCustomers()}
                     className="text-left"
                   />

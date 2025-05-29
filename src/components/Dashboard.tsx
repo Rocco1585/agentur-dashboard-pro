@@ -1,619 +1,346 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Calendar, TrendingUp, Star, Clock, Euro, Activity, AlertTriangle } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format, subDays, eachDayOfInterval } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Euro, Users, Calendar, TrendingUp, Clock, CheckCircle, UserPlus, Phone, Mail } from "lucide-react";
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, canAccessMainNavigation, canViewCustomers, canViewTeamMembers, canManageRevenues, isAdmin } = useAuth();
   const [stats, setStats] = useState({
-    activeTeamMembers: 0,
+    totalCustomers: 0,
     activeCustomers: 0,
-    appointmentsNext7Days: 0,
+    totalRevenue: 0,
     totalAppointments: 0,
-    topPerformer: 'N/A',
-    appointmentsPerDay: 0,
-    dailyRevenue: 0,
-    weeklyRevenue: 0,
-    monthlyRevenue: 0,
-    yearlyRevenue: 0,
-    totalRevenue: 0
+    totalTeamMembers: 0,
+    activeTeamMembers: 0,
+    todayRevenue: 0,
+    weekRevenue: 0,
+    monthRevenue: 0,
+    yearRevenue: 0,
+    pendingAppointments: 0,
+    completedAppointments: 0
   });
-  const [recentRevenues, setRecentRevenues] = useState([]);
-  const [recentExpenses, setRecentExpenses] = useState([]);
-  const [appointmentChartData, setAppointmentChartData] = useState([]);
-  const [revenueChartData, setRevenueChartData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [alertMessage, setAlertMessage] = useState('');
-  
-  // State für switchbare Reiter
-  const [revenueTimeframe, setRevenueTimeframe] = useState<'daily' | 'weekly'>('daily');
-  const [longTermTimeframe, setLongTermTimeframe] = useState<'monthly' | 'yearly'>('monthly');
+  const [selectedPeriod, setSelectedPeriod] = useState('today'); // for day/week switcher
+  const [selectedYearPeriod, setSelectedYearPeriod] = useState('month'); // for month/year switcher
+
+  const [recentCustomers, setRecentCustomers] = useState([]);
+  const [recentAppointments, setRecentAppointments] = useState([]);
 
   useEffect(() => {
-    fetchDashboardStats();
-    fetchAlertMessage();
-  }, []);
-
-  const fetchAlertMessage = async () => {
-    try {
-      const { data } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'dashboard_alert_message')
-        .single();
-
-      if (data?.value) {
-        setAlertMessage(data.value);
+    if (canAccessMainNavigation()) {
+      fetchStats();
+      if (canViewCustomers()) {
+        fetchRecentCustomers();
       }
+    }
+  }, [user]);
+
+  const fetchStats = async () => {
+    try {
+      const promises = [];
+
+      if (canViewCustomers()) {
+        promises.push(
+          supabase.from('customers').select('*', { count: 'exact' }),
+          supabase.from('customers').select('*', { count: 'exact' }).eq('is_active', true)
+        );
+      }
+
+      if (canManageRevenues()) {
+        promises.push(
+          supabase.from('revenues').select('amount'),
+          supabase.from('revenues').select('amount').gte('date', new Date().toISOString().split('T')[0]),
+          supabase.from('revenues').select('amount').gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]),
+          supabase.from('revenues').select('amount').gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]),
+          supabase.from('revenues').select('amount').gte('date', new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0])
+        );
+      }
+
+      promises.push(
+        supabase.from('appointments').select('*', { count: 'exact' }),
+        supabase.from('appointments').select('*', { count: 'exact' }).eq('result', 'termin_ausstehend'),
+        supabase.from('appointments').select('*', { count: 'exact' }).in('result', ['termin_abgeschlossen', 'termin_erschienen'])
+      );
+
+      if (canViewTeamMembers()) {
+        promises.push(
+          supabase.from('team_members').select('*', { count: 'exact' }),
+          supabase.from('team_members').select('*', { count: 'exact' }).eq('is_active', true)
+        );
+      }
+
+      const results = await Promise.all(promises);
+      let resultIndex = 0;
+
+      const newStats = { ...stats };
+
+      if (canViewCustomers()) {
+        newStats.totalCustomers = results[resultIndex++].count || 0;
+        newStats.activeCustomers = results[resultIndex++].count || 0;
+      }
+
+      if (canManageRevenues()) {
+        const allRevenues = results[resultIndex++].data || [];
+        const todayRevenues = results[resultIndex++].data || [];
+        const weekRevenues = results[resultIndex++].data || [];
+        const monthRevenues = results[resultIndex++].data || [];
+        const yearRevenues = results[resultIndex++].data || [];
+
+        newStats.totalRevenue = allRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+        newStats.todayRevenue = todayRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+        newStats.weekRevenue = weekRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+        newStats.monthRevenue = monthRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+        newStats.yearRevenue = yearRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
+      }
+
+      newStats.totalAppointments = results[resultIndex++].count || 0;
+      newStats.pendingAppointments = results[resultIndex++].count || 0;
+      newStats.completedAppointments = results[resultIndex++].count || 0;
+
+      if (canViewTeamMembers()) {
+        newStats.totalTeamMembers = results[resultIndex++].count || 0;
+        newStats.activeTeamMembers = results[resultIndex++].count || 0;
+      }
+
+      setStats(newStats);
     } catch (error) {
-      console.error('Error fetching alert message:', error);
+      console.error('Error fetching stats:', error);
     }
   };
 
-  const fetchDashboardStats = async () => {
+  const fetchRecentCustomers = async () => {
     try {
-      // Aktive Teammitglieder
-      const { data: teamMembers } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('is_active', true);
-
-      // Aktive Kunden
-      const { data: customers } = await supabase
+      const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-      // Alle Termine
-      const { data: allAppointments } = await supabase
-        .from('appointments')
-        .select('*');
-
-      // Termine in den nächsten 7 Tagen
-      const today = new Date();
-      const nextWeek = new Date();
-      nextWeek.setDate(today.getDate() + 7);
-      
-      const { data: upcomingAppointments } = await supabase
-        .from('appointments')
-        .select('*')
-        .gte('date', today.toISOString().split('T')[0])
-        .lte('date', nextWeek.toISOString().split('T')[0]);
-
-      // Termine in den letzten 7 Tagen
-      const lastWeek = new Date();
-      lastWeek.setDate(today.getDate() - 7);
-      
-      const { data: lastWeekAppointments } = await supabase
-        .from('appointments')
-        .select('*')
-        .gte('date', lastWeek.toISOString().split('T')[0])
-        .lte('date', today.toISOString().split('T')[0]);
-
-      // Chart Data für Termine der letzten 7 Tage
-      const last7Days = eachDayOfInterval({
-        start: subDays(today, 6),
-        end: today
-      });
-
-      const appointmentData = last7Days.map(day => {
-        const dayStr = format(day, 'yyyy-MM-dd');
-        const dayAppointments = allAppointments?.filter(apt => apt.date === dayStr) || [];
-        return {
-          date: format(day, 'dd.MM', { locale: de }),
-          termine: dayAppointments.length
-        };
-      });
-      setAppointmentChartData(appointmentData);
-
-      // Top Performer (Teammitglied mit den meisten abgeschlossenen Terminen)
-      const { data: appointmentStats } = await supabase
-        .from('appointments')
-        .select(`
-          team_member_id,
-          team_members (name),
-          result
-        `)
-        .in('result', ['termin_abgeschlossen', 'termin_erschienen']);
-
-      let topPerformer = 'N/A';
-      if (appointmentStats && appointmentStats.length > 0) {
-        const memberStats: { [key: string]: { name: string; count: number } } = {};
-        appointmentStats.forEach(appointment => {
-          if (appointment.team_member_id && appointment.team_members) {
-            const id = appointment.team_member_id;
-            const memberName = (appointment.team_members as any)?.name;
-            if (!memberStats[id]) {
-              memberStats[id] = {
-                name: memberName,
-                count: 0
-              };
-            }
-            memberStats[id].count++;
-          }
-        });
-        
-        const topMember = Object.values(memberStats).reduce((max, current) => 
-          current.count > max.count ? current : max, { count: 0, name: 'N/A' });
-        
-        topPerformer = topMember.name;
-      }
-
-      // Termine pro Tag berechnen (letzte 30 Tage)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      const recentAppointments = allAppointments?.filter(apt => 
-        new Date(apt.date) >= thirtyDaysAgo
-      ) || [];
-      
-      const appointmentsPerDay = recentAppointments.length / 30;
-
-      // Revenue-Statistiken
-      const { data: revenues } = await supabase
-        .from('revenues')
-        .select('*')
-        .order('date', { ascending: false });
-
-      // Chart Data für Umsatz der letzten 30 Tage
-      const last30Days = eachDayOfInterval({
-        start: subDays(today, 29),
-        end: today
-      });
-
-      const revenueData = last30Days.map(day => {
-        const dayStr = format(day, 'yyyy-MM-dd');
-        const dayRevenues = revenues?.filter(rev => rev.date === dayStr) || [];
-        const dayTotal = dayRevenues.reduce((sum, rev) => sum + Number(rev.amount), 0);
-        return {
-          date: format(day, 'dd.MM', { locale: de }),
-          umsatz: Math.round(dayTotal)
-        };
-      });
-      setRevenueChartData(revenueData);
-
-      // Letzte 10 Einnahmen
-      const { data: recentRevenuesData } = await supabase
-        .from('revenues')
-        .select(`
-          *,
-          customers (name)
-        `)
-        .order('date', { ascending: false })
-        .limit(10);
-
-      // Letzte 10 Ausgaben
-      const { data: recentExpensesData } = await supabase
-        .from('expenses')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(10);
-
-      setRecentRevenues(recentRevenuesData || []);
-      setRecentExpenses(recentExpensesData || []);
-
-      // Revenue-Berechnungen
-      const totalRevenue = revenues?.reduce((sum, rev) => sum + Number(rev.amount), 0) || 0;
-      
-      const todayStr = today.toISOString().split('T')[0];
-      const dailyRevenue = revenues?.filter(rev => rev.date === todayStr)
-        .reduce((sum, rev) => sum + Number(rev.amount), 0) || 0;
-
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(today.getDate() - 7);
-      const weeklyRevenue = revenues?.filter(rev => new Date(rev.date) >= oneWeekAgo)
-        .reduce((sum, rev) => sum + Number(rev.amount), 0) || 0;
-
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(today.getMonth() - 1);
-      const monthlyRevenue = revenues?.filter(rev => new Date(rev.date) >= oneMonthAgo)
-        .reduce((sum, rev) => sum + Number(rev.amount), 0) || 0;
-
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(today.getFullYear() - 1);
-      const yearlyRevenue = revenues?.filter(rev => new Date(rev.date) >= oneYearAgo)
-        .reduce((sum, rev) => sum + Number(rev.amount), 0) || 0;
-
-      setStats({
-        activeTeamMembers: teamMembers?.length || 0,
-        activeCustomers: customers?.length || 0,
-        appointmentsNext7Days: upcomingAppointments?.length || 0,
-        totalAppointments: allAppointments?.length || 0,
-        topPerformer,
-        appointmentsPerDay: Math.round(appointmentsPerDay * 10) / 10,
-        dailyRevenue: Math.round(dailyRevenue),
-        weeklyRevenue: Math.round(weeklyRevenue),
-        monthlyRevenue: Math.round(monthlyRevenue),
-        yearlyRevenue: Math.round(yearlyRevenue),
-        totalRevenue: Math.round(totalRevenue)
-      });
-
+      if (error) throw error;
+      setRecentCustomers(data || []);
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching recent customers:', error);
     }
   };
 
-  const chartConfig = {
-    termine: {
-      label: "Termine",
-      color: "hsl(var(--chart-1))",
-    },
-    umsatz: {
-      label: "Umsatz (€)",
-      color: "hsl(var(--chart-2))",
-    },
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-lg text-left">Lade Dashboard...</div>
-        </div>
-      </div>
-    );
+  if (!canAccessMainNavigation()) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
-        <div className="text-left px-2">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">Willkommen zurück, {user?.name}</p>
-        </div>
-
-        {/* Alert Message from Settings */}
-        {alertMessage && (
-          <div className="px-2">
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                {alertMessage}
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        {/* Revenue Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 px-2">
-          {/* Switchable Revenue Card (Daily/Weekly) */}
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <div className="flex flex-col space-y-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                  {revenueTimeframe === 'daily' ? 'Tagesumsatz' : 'Wochenumsatz'}
-                </CardTitle>
-                <div className="flex space-x-1">
-                  <Button
-                    variant={revenueTimeframe === 'daily' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setRevenueTimeframe('daily')}
-                    className="text-xs h-6 px-2"
-                  >
-                    Tag
-                  </Button>
-                  <Button
-                    variant={revenueTimeframe === 'weekly' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setRevenueTimeframe('weekly')}
-                    className="text-xs h-6 px-2"
-                  >
-                    Woche
-                  </Button>
-                </div>
-              </div>
-              <Euro className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{revenueTimeframe === 'daily' ? stats.dailyRevenue : stats.weeklyRevenue}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                {revenueTimeframe === 'daily' ? 'Heute' : 'Letzte 7 Tage'}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Switchable Long-term Revenue Card (Monthly/Yearly) */}
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <div className="flex flex-col space-y-2">
-                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                  {longTermTimeframe === 'monthly' ? 'Monatsumsatz' : 'Jahresumsatz'}
-                </CardTitle>
-                <div className="flex space-x-1">
-                  <Button
-                    variant={longTermTimeframe === 'monthly' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setLongTermTimeframe('monthly')}
-                    className="text-xs h-6 px-2"
-                  >
-                    Monat
-                  </Button>
-                  <Button
-                    variant={longTermTimeframe === 'yearly' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setLongTermTimeframe('yearly')}
-                    className="text-xs h-6 px-2"
-                  >
-                    Jahr
-                  </Button>
-                </div>
-              </div>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{longTermTimeframe === 'monthly' ? stats.monthlyRevenue : stats.yearlyRevenue}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                {longTermTimeframe === 'monthly' ? 'Letzter Monat' : 'Letztes Jahr'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Gesamt-Umsatz
-              </CardTitle>
-              <Euro className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{stats.totalRevenue}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Alle Zeit
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Aktive Kunden
-              </CardTitle>
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.activeCustomers}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Registrierte Kunden
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Aktive Teammitglieder
-              </CardTitle>
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-red-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.activeTeamMembers}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Verfügbare Mitarbeiter
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Team & Appointment Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 px-2">
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Termine Gesamt
-              </CardTitle>
-              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.totalAppointments}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Alle Termine
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Termine (7 Tage)
-              </CardTitle>
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.appointmentsNext7Days}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Kommende Woche
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Top Performer
-              </CardTitle>
-              <Star className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-sm sm:text-base font-bold text-gray-900 text-left truncate">
-                {stats.topPerformer}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Beste Performance
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Termine/Tag
-              </CardTitle>
-              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.appointmentsPerDay}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Durchschnitt (30 Tage)
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts - Now stacked vertically */}
-        <div className="grid grid-cols-1 gap-6 lg:gap-8 px-2">
-          {/* Appointments Chart */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardHeader className="p-6 sm:p-8">
-              <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                Termine der letzten 7 Tage
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0">
-              <ChartContainer config={chartConfig} className="h-[300px] sm:h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={appointmentChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="termine" 
-                      stroke="#3b82f6" 
-                      strokeWidth={3}
-                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          {/* Revenue Chart */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardHeader className="p-6 sm:p-8">
-              <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
-                <Euro className="h-5 w-5 text-green-600" />
-                Umsatz der letzten 30 Tage
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0">
-              <ChartContainer config={chartConfig} className="h-[300px] sm:h-[350px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={revenueChartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="umsatz" 
-                      stroke="#10b981" 
-                      strokeWidth={3}
-                      dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8 px-2">
-          {/* Recent Revenues */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardHeader className="p-6 sm:p-8">
-              <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
-                <Euro className="h-5 w-5 text-green-600" />
-                Letzte 10 Einnahmen
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0">
-              {recentRevenues.length > 0 ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {recentRevenues.map((revenue) => (
-                    <div key={revenue.id} className="flex items-center justify-between p-4 sm:p-5 bg-gray-50 rounded-lg">
-                      <div className="text-left flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{revenue.description}</h4>
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          {format(new Date(revenue.date), 'dd.MM.yyyy', { locale: de })}
-                        </p>
-                        {revenue.customers && (
-                          <p className="text-xs sm:text-sm text-blue-600 truncate">Kunde: {revenue.customers.name}</p>
-                        )}
-                      </div>
-                      <span className="text-sm sm:text-lg font-bold text-green-600 ml-2">€{Math.round(revenue.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center py-4">Keine Einnahmen vorhanden</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Expenses */}
-          <Card className="bg-white shadow-lg border-0">
-            <CardHeader className="p-6 sm:p-8">
-              <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-red-600" />
-                Letzte 10 Ausgaben
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 sm:p-8 pt-0">
-              {recentExpenses.length > 0 ? (
-                <div className="space-y-3 sm:space-y-4">
-                  {recentExpenses.map((expense) => (
-                    <div key={expense.id} className="flex items-center justify-between p-4 sm:p-5 bg-gray-50 rounded-lg">
-                      <div className="text-left flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate">{expense.description}</h4>
-                        <p className="text-xs sm:text-sm text-gray-600">
-                          {format(new Date(expense.date), 'dd.MM.yyyy', { locale: de })}
-                        </p>
-                        {expense.reference && (
-                          <p className="text-xs sm:text-sm text-gray-500 truncate">Ref: {expense.reference}</p>
-                        )}
-                      </div>
-                      <span className="text-sm sm:text-lg font-bold text-red-600 ml-2">€{Math.round(expense.amount)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-600 text-center py-4">Keine Ausgaben vorhanden</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+    <div className="p-6 space-y-6">
+      <div className="text-left">
+        <h1 className="text-3xl font-bold text-gray-900 text-left">Dashboard</h1>
+        <p className="text-gray-600 text-left">Willkommen zurück, {user?.name}</p>
       </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="overview">Übersicht</TabsTrigger>
+          <TabsTrigger value="revenue">Umsatz {selectedPeriod === 'today' ? 'Tag/Woche' : 'Tag/Woche'}</TabsTrigger>
+          <TabsTrigger value="revenue-period">Umsatz {selectedYearPeriod === 'month' ? 'Monat/Jahr' : 'Monat/Jahr'}</TabsTrigger>
+          <TabsTrigger value="customers">Kunden</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {canViewCustomers() && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Kunden</CardTitle>
+                  <Users className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">{stats.activeCustomers}</div>
+                  <p className="text-xs text-gray-600 text-left">
+                    {stats.totalCustomers} gesamt
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {canManageRevenues() && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Gesamtumsatz</CardTitle>
+                  <Euro className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">€{Math.round(stats.totalRevenue)}</div>
+                  <p className="text-xs text-gray-600 text-left">
+                    Alle Einnahmen
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-left">Termine</CardTitle>
+                <Calendar className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent className="text-left">
+                <div className="text-2xl font-bold">{stats.totalAppointments}</div>
+                <p className="text-xs text-gray-600 text-left">
+                  {stats.pendingAppointments} ausstehend
+                </p>
+              </CardContent>
+            </Card>
+
+            {canViewTeamMembers() && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Team</CardTitle>
+                  <UserPlus className="h-4 w-4 text-red-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">{stats.activeTeamMembers}</div>
+                  <p className="text-xs text-gray-600 text-left">
+                    {stats.totalTeamMembers} gesamt
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="revenue" className="space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Button 
+              variant={selectedPeriod === 'today' ? 'default' : 'outline'}
+              onClick={() => setSelectedPeriod('today')}
+              className={selectedPeriod === 'today' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              Tagesumsatz
+            </Button>
+            <Button 
+              variant={selectedPeriod === 'week' ? 'default' : 'outline'}
+              onClick={() => setSelectedPeriod('week')}
+              className={selectedPeriod === 'week' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              Wochenumsatz
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {selectedPeriod === 'today' ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Heute</CardTitle>
+                  <Euro className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">€{Math.round(stats.todayRevenue)}</div>
+                  <p className="text-xs text-gray-600 text-left">Tagesumsatz</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Diese Woche</CardTitle>
+                  <Euro className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">€{Math.round(stats.weekRevenue)}</div>
+                  <p className="text-xs text-gray-600 text-left">Wochenumsatz</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="revenue-period" className="space-y-4">
+          <div className="flex gap-2 mb-4">
+            <Button 
+              variant={selectedYearPeriod === 'month' ? 'default' : 'outline'}
+              onClick={() => setSelectedYearPeriod('month')}
+              className={selectedYearPeriod === 'month' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              Monat
+            </Button>
+            <Button 
+              variant={selectedYearPeriod === 'year' ? 'default' : 'outline'}
+              onClick={() => setSelectedYearPeriod('year')}
+              className={selectedYearPeriod === 'year' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              Jahr
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {selectedYearPeriod === 'month' ? (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Dieser Monat</CardTitle>
+                  <Euro className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">€{Math.round(stats.monthRevenue)}</div>
+                  <p className="text-xs text-gray-600 text-left">Monatsumsatz</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-left">Dieses Jahr</CardTitle>
+                  <Euro className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent className="text-left">
+                  <div className="text-2xl font-bold">€{Math.round(stats.yearRevenue)}</div>
+                  <p className="text-xs text-gray-600 text-left">Jahresumsatz</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="customers" className="space-y-4">
+          {canViewCustomers() && recentCustomers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-left">Aktuelle Kunden</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentCustomers.map((customer: any) => (
+                    <div key={customer.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="text-left">
+                        <h4 className="font-medium text-left">{customer.name}</h4>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          {customer.email && (
+                            <div className="flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              <span>{customer.email}</span>
+                            </div>
+                          )}
+                          {customer.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3" />
+                              <span>{customer.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={customer.priority === 'Hoch' ? 'destructive' : customer.priority === 'Mittel' ? 'default' : 'secondary'}>
+                          {customer.priority}
+                        </Badge>
+                        <Badge variant={customer.payment_status === 'Bezahlt' ? 'default' : customer.payment_status === 'Ausstehend' ? 'secondary' : 'destructive'}>
+                          {customer.payment_status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
