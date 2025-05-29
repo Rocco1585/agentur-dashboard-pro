@@ -246,8 +246,9 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         toast({
           title: "Fehler",
           description: "Einnahme konnte nicht hinzugefügt werden.",
-        variant: "destructive",
-      });
+          variant: "destructive",
+        });
+      }
     } else {
       toast({
         title: "Fehler",
