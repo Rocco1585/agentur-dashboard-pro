@@ -577,7 +577,8 @@ export function useAppointments() {
         .from('appointments')
         .select(`
           *,
-          customers (name, contact, phone, email)
+          customers (name, contact, phone, email),
+          team_members (name)
         `)
         .order('date', { ascending: true });
 
@@ -609,7 +610,8 @@ export function useAppointments() {
         .insert([appointmentData])
         .select(`
           *,
-          customers (name, contact, phone, email)
+          customers (name, contact, phone, email),
+          team_members (name)
         `)
         .single();
 
@@ -645,7 +647,8 @@ export function useAppointments() {
         .eq('id', id)
         .select(`
           *,
-          customers (name, contact, phone, email)
+          customers (name, contact, phone, email),
+          team_members (name)
         `)
         .single();
 
@@ -693,5 +696,21 @@ export function useAppointments() {
     }
   };
 
-  return { appointments, loading, addAppointment, updateAppointment, deleteAppointment, refetch: fetchAppointments };
+  // Get upcoming appointments from today onwards
+  const getUpcomingAppointments = () => {
+    const today = new Date().toISOString().split('T')[0];
+    return appointments
+      .filter(appointment => appointment.date >= today)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
+  return { 
+    appointments, 
+    loading, 
+    addAppointment, 
+    updateAppointment, 
+    deleteAppointment, 
+    refetch: fetchAppointments,
+    getUpcomingAppointments
+  };
 }

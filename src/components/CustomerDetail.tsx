@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -5,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp, Edit, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp, Edit, Save, Trash2, MessageSquare, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { useRevenues } from '@/hooks/useSupabaseData';
+import { useRevenues, useTeamMembers } from '@/hooks/useSupabaseData';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface CustomerDetailProps {
   customer: any;
@@ -19,6 +21,7 @@ interface CustomerDetailProps {
 
 export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailProps) {
   const { revenues, addRevenue } = useRevenues();
+  const { teamMembers } = useTeamMembers();
   const [customerRevenues, setCustomerRevenues] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [newRevenue, setNewRevenue] = useState({ amount: '', description: '' });
@@ -26,10 +29,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     company: '', 
     contact: '', 
     phone: '', 
-    date: '' 
+    date: '',
+    team_member_id: '',
+    description: '',
+    notes: ''
   });
-  const [statuses, setStatuses] = useState<string[]>([]);
-  const [newStatus, setNewStatus] = useState('');
   const [notes, setNotes] = useState('');
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [editableContact, setEditableContact] = useState({
@@ -41,8 +45,13 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     payment_status: '',
     is_active: false,
     action_step: '',
-    booked_appointments: 0
+    booked_appointments: 0,
+    satisfaction: 5
   });
+  const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [appointmentHistory, setAppointmentHistory] = useState<any[]>([]);
+  const [newHistoryMessage, setNewHistoryMessage] = useState('');
+  const [editingAppointment, setEditingAppointment] = useState<any>(null);
 
   const pipelineStages = [
     { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-400' },
@@ -63,7 +72,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
   useEffect(() => {
     if (customer) {
-      setStatuses(Array.isArray(customer.statuses) ? customer.statuses : []);
       setNotes(customer.notes || '');
       setEditableContact({
         name: customer.name || '',
@@ -74,7 +82,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         payment_status: customer.payment_status || '',
         is_active: customer.is_active || false,
         action_step: customer.action_step || 'in_vorbereitung',
-        booked_appointments: customer.booked_appointments || 0
+        booked_appointments: customer.booked_appointments || 0,
+        satisfaction: customer.satisfaction || 5
       });
       fetchCustomerData();
     }
@@ -91,10 +100,13 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       
       setCustomerRevenues(revenueData || []);
 
-      // Fetch appointments for this customer
+      // Fetch appointments for this customer with team member info
       const { data: appointmentData } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          team_members (name)
+        `)
         .eq('customer_id', customer.id)
         .order('date', { ascending: false });
       
@@ -118,6 +130,54 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       }
     } catch (error) {
       console.error('Error fetching customer data:', error);
+    }
+  };
+
+  const fetchAppointmentHistory = async (appointmentId: string) => {
+    try {
+      const { data } = await supabase
+        .from('appointment_history')
+        .select(`
+          *,
+          team_members (name)
+        `)
+        .eq('appointment_id', appointmentId)
+        .order('created_at', { ascending: true });
+      
+      setAppointmentHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching appointment history:', error);
+    }
+  };
+
+  const addHistoryMessage = async () => {
+    if (!newHistoryMessage.trim() || !selectedAppointment) return;
+    
+    try {
+      const { error } = await supabase
+        .from('appointment_history')
+        .insert({
+          appointment_id: selectedAppointment.id,
+          message: newHistoryMessage.trim(),
+          created_by: 'Current User' // In a real app, this would be the logged-in user
+        });
+
+      if (error) throw error;
+      
+      setNewHistoryMessage('');
+      fetchAppointmentHistory(selectedAppointment.id);
+      
+      toast({
+        title: "Historie-Eintrag hinzugefügt",
+        description: "Der Eintrag wurde erfolgreich gespeichert.",
+      });
+    } catch (error) {
+      console.error('Error adding history message:', error);
+      toast({
+        title: "Fehler",
+        description: "Historie-Eintrag konnte nicht gespeichert werden.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -180,37 +240,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     }
   };
 
-  const addStatus = async () => {
-    if (newStatus.trim() && !statuses.includes(newStatus.trim())) {
-      const updatedStatuses = [...statuses, newStatus.trim()];
-      setStatuses(updatedStatuses);
-      
-      const updatedCustomer = { ...customer, statuses: updatedStatuses };
-      await updateCustomerInDB(updatedCustomer);
-      onUpdate(updatedCustomer);
-      setNewStatus('');
-      
-      toast({
-        title: "Status hinzugefügt",
-        description: `Status "${newStatus}" wurde hinzugefügt.`,
-      });
-    }
-  };
-
-  const removeStatus = async (statusToRemove: string) => {
-    const updatedStatuses = statuses.filter(status => status !== statusToRemove);
-    setStatuses(updatedStatuses);
-    
-    const updatedCustomer = { ...customer, statuses: updatedStatuses };
-    await updateCustomerInDB(updatedCustomer);
-    onUpdate(updatedCustomer);
-    
-    toast({
-      title: "Status entfernt",
-      description: `Status "${statusToRemove}" wurde entfernt.`,
-    });
-  };
-
   const updateCustomerInDB = async (updatedCustomer: any) => {
     try {
       const { error } = await supabase
@@ -251,6 +280,40 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     }
   };
 
+  const saveAppointmentChanges = async () => {
+    if (!editingAppointment) return;
+    
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({
+          type: editingAppointment.type,
+          description: editingAppointment.description,
+          notes: editingAppointment.notes,
+          date: editingAppointment.date,
+          team_member_id: editingAppointment.team_member_id
+        })
+        .eq('id', editingAppointment.id);
+
+      if (error) throw error;
+      
+      setEditingAppointment(null);
+      fetchCustomerData();
+      
+      toast({
+        title: "Termin aktualisiert",
+        description: "Termin wurde erfolgreich aktualisiert.",
+      });
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      toast({
+        title: "Fehler",
+        description: "Termin konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const cancelEditContact = () => {
     setEditableContact({
       name: customer.name || '',
@@ -261,7 +324,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       payment_status: customer.payment_status || '',
       is_active: customer.is_active || false,
       action_step: customer.action_step || 'in_vorbereitung',
-      booked_appointments: customer.booked_appointments || 0
+      booked_appointments: customer.booked_appointments || 0,
+      satisfaction: customer.satisfaction || 5
     });
     setIsEditingContact(false);
   };
@@ -288,12 +352,25 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
             customer_id: customer.id,
             date: newAppointment.date,
             type: `${newAppointment.company} - ${newAppointment.contact} - ${newAppointment.phone}`,
+            description: newAppointment.description,
+            notes: newAppointment.notes,
+            team_member_id: newAppointment.team_member_id || null,
             result: 'termin_ausstehend'
           });
 
         if (error) throw error;
         
-        setNewAppointment({ company: '', contact: '', phone: '', date: '' });
+        // Update team member appointment count if assigned
+        if (newAppointment.team_member_id) {
+          await supabase
+            .from('team_members')
+            .update({ 
+              appointment_count: teamMembers.find(tm => tm.id === newAppointment.team_member_id)?.appointment_count + 1 || 1
+            })
+            .eq('id', newAppointment.team_member_id);
+        }
+        
+        setNewAppointment({ company: '', contact: '', phone: '', date: '', team_member_id: '', description: '', notes: '' });
         fetchCustomerData();
         
         toast({
@@ -385,7 +462,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <User className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{customer.satisfaction}/10</span>
+              <span className="text-2xl font-bold text-gray-700">{editableContact.satisfaction}/10</span>
             </div>
           </CardContent>
         </Card>
@@ -498,6 +575,16 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     onChange={(e) => setEditableContact({...editableContact, booked_appointments: parseInt(e.target.value) || 0})}
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium">Zufriedenheit (1-10):</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={editableContact.satisfaction}
+                    onChange={(e) => setEditableContact({...editableContact, satisfaction: parseInt(e.target.value) || 5})}
+                  />
+                </div>
                 <div className="flex space-x-2">
                   <Button onClick={saveContactData}>
                     <Save className="h-4 w-4 mr-2" />
@@ -530,6 +617,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     {actionStepOptions.find(opt => opt.value === customer.action_step)?.label || customer.action_step}
                   </Badge>
                 </div>
+                <div><strong>Zufriedenheit:</strong> 
+                  <Badge className="ml-2 bg-purple-100 text-purple-800">
+                    {customer.satisfaction}/10
+                  </Badge>
+                </div>
               </>
             )}
           </CardContent>
@@ -551,41 +643,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         </Card>
       </div>
 
-      {/* Status Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Status Management</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {statuses.map((status, index) => (
-              <Badge key={index} className="bg-gray-100 text-gray-800 flex items-center gap-1">
-                {status}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeStatus(status)}
-                  className="h-4 w-4 p-0 hover:bg-red-100"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Neuen Status hinzufügen"
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addStatus()}
-            />
-            <Button onClick={addStatus}>
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Add New Appointment */}
       <Card>
         <CardHeader>
@@ -595,7 +652,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               placeholder="Firma"
               value={newAppointment.company}
@@ -615,6 +672,29 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               type="date"
               value={newAppointment.date}
               onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
+            />
+            <Select value={newAppointment.team_member_id} onValueChange={(value) => setNewAppointment({...newAppointment, team_member_id: value})}>
+              <SelectTrigger>
+                <SelectValue placeholder="Teammitglied zuweisen" />
+              </SelectTrigger>
+              <SelectContent>
+                {teamMembers.map(member => (
+                  <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              placeholder="Beschreibung (optional)"
+              value={newAppointment.description}
+              onChange={(e) => setNewAppointment({...newAppointment, description: e.target.value})}
+            />
+          </div>
+          <div className="mt-4">
+            <Textarea
+              placeholder="Notizen (optional)"
+              value={newAppointment.notes}
+              onChange={(e) => setNewAppointment({...newAppointment, notes: e.target.value})}
+              className="min-h-[80px]"
             />
           </div>
           <Button onClick={handleAddAppointment} className="mt-4">Hinzufügen</Button>
@@ -659,21 +739,90 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                   }`}
                                 >
                                   <CardContent className="p-3 space-y-1 relative">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteAppointment(appointment.id);
-                                      }}
-                                      className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-red-100"
-                                    >
-                                      <Trash2 className="h-3 w-3 text-red-600" />
-                                    </Button>
-                                    <div className="font-semibold text-sm pr-6">{appointment.type}</div>
+                                    <div className="flex gap-1 absolute top-1 right-1">
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedAppointment(appointment);
+                                              fetchAppointmentHistory(appointment.id);
+                                            }}
+                                            className="h-6 w-6 p-0 hover:bg-blue-100"
+                                          >
+                                            <MessageSquare className="h-3 w-3 text-blue-600" />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-md">
+                                          <DialogHeader>
+                                            <DialogTitle>Termin-Historie</DialogTitle>
+                                          </DialogHeader>
+                                          <div className="space-y-4">
+                                            <div className="max-h-64 overflow-y-auto space-y-2">
+                                              {appointmentHistory.map((entry) => (
+                                                <div key={entry.id} className="bg-gray-50 p-3 rounded text-sm">
+                                                  <div className="font-medium">{entry.message}</div>
+                                                  <div className="text-xs text-gray-600 mt-1">
+                                                    {new Date(entry.created_at).toLocaleString('de-DE')} - {entry.created_by}
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <Input
+                                                placeholder="Neue Nachricht hinzufügen"
+                                                value={newHistoryMessage}
+                                                onChange={(e) => setNewHistoryMessage(e.target.value)}
+                                                onKeyPress={(e) => e.key === 'Enter' && addHistoryMessage()}
+                                              />
+                                              <Button size="sm" onClick={addHistoryMessage}>
+                                                <Plus className="h-4 w-4" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        </DialogContent>
+                                      </Dialog>
+                                      
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingAppointment(appointment);
+                                        }}
+                                        className="h-6 w-6 p-0 hover:bg-blue-100"
+                                      >
+                                        <Edit className="h-3 w-3 text-blue-600" />
+                                      </Button>
+                                      
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteAppointment(appointment.id);
+                                        }}
+                                        className="h-6 w-6 p-0 hover:bg-red-100"
+                                      >
+                                        <Trash2 className="h-3 w-3 text-red-600" />
+                                      </Button>
+                                    </div>
+                                    <div className="font-semibold text-sm pr-20">{appointment.type}</div>
                                     <div className="text-xs text-gray-600">
                                       {new Date(appointment.date).toLocaleDateString('de-DE')}
                                     </div>
+                                    {appointment.team_members?.name && (
+                                      <div className="text-xs text-blue-600">
+                                        👤 {appointment.team_members.name}
+                                      </div>
+                                    )}
+                                    {appointment.description && (
+                                      <div className="text-xs text-gray-500 italic">
+                                        {appointment.description}
+                                      </div>
+                                    )}
                                   </CardContent>
                                 </Card>
                               )}
@@ -690,6 +839,75 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </DragDropContext>
         </CardContent>
       </Card>
+
+      {/* Edit Appointment Dialog */}
+      {editingAppointment && (
+        <Dialog open={!!editingAppointment} onOpenChange={() => setEditingAppointment(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Termin bearbeiten</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Termin-Typ:</label>
+                <Input
+                  value={editingAppointment.type}
+                  onChange={(e) => setEditingAppointment({...editingAppointment, type: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Datum:</label>
+                <Input
+                  type="date"
+                  value={editingAppointment.date}
+                  onChange={(e) => setEditingAppointment({...editingAppointment, date: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Teammitglied:</label>
+                <Select 
+                  value={editingAppointment.team_member_id || ""} 
+                  onValueChange={(value) => setEditingAppointment({...editingAppointment, team_member_id: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Teammitglied zuweisen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Kein Teammitglied</SelectItem>
+                    {teamMembers.map(member => (
+                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Beschreibung:</label>
+                <Input
+                  value={editingAppointment.description || ""}
+                  onChange={(e) => setEditingAppointment({...editingAppointment, description: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Notizen:</label>
+                <Textarea
+                  value={editingAppointment.notes || ""}
+                  onChange={(e) => setEditingAppointment({...editingAppointment, notes: e.target.value})}
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={saveAppointmentChanges}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Speichern
+                </Button>
+                <Button variant="outline" onClick={() => setEditingAppointment(null)}>
+                  Abbrechen
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Add New Revenue */}
       <Card>
@@ -748,6 +966,9 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded">
                   <div className="font-medium text-sm">{appointment.type}</div>
                   <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
+                  {appointment.team_members?.name && (
+                    <div className="text-xs text-blue-600">👤 {appointment.team_members.name}</div>
+                  )}
                   <Badge className="text-xs mt-1 bg-gray-200 text-gray-700">{pipelineStages.find(s => s.id === appointment.result)?.name || appointment.result}</Badge>
                 </div>
               ))}

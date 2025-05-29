@@ -9,29 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appointment_history: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          message: string
+          team_member_id: string | null
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message: string
+          team_member_id?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          message?: string
+          team_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_history_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_history_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           created_at: string
           customer_id: string | null
           date: string
+          description: string | null
           id: string
+          notes: string | null
           result: string | null
+          team_member_id: string | null
           type: string
         }
         Insert: {
           created_at?: string
           customer_id?: string | null
           date: string
+          description?: string | null
           id?: string
+          notes?: string | null
           result?: string | null
+          team_member_id?: string | null
           type: string
         }
         Update: {
           created_at?: string
           customer_id?: string | null
           date?: string
+          description?: string | null
           id?: string
+          notes?: string | null
           result?: string | null
+          team_member_id?: string | null
           type?: string
         }
         Relationships: [
@@ -40,6 +91,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
@@ -229,6 +287,7 @@ export type Database = {
       team_members: {
         Row: {
           active_since: string | null
+          appointment_count: number | null
           created_at: string
           email: string | null
           id: string
@@ -241,6 +300,7 @@ export type Database = {
         }
         Insert: {
           active_since?: string | null
+          appointment_count?: number | null
           created_at?: string
           email?: string | null
           id?: string
@@ -253,6 +313,7 @@ export type Database = {
         }
         Update: {
           active_since?: string | null
+          appointment_count?: number | null
           created_at?: string
           email?: string | null
           id?: string
