@@ -7,11 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Users, Calendar, Euro, TrendingUp, User, Phone, Mail, Edit, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useTeamMembers } from '@/hooks/useSupabaseData';
+import { useTeamMembers, useCustomers } from '@/hooks/useSupabaseData';
 import { TeamMemberDetail } from './TeamMemberDetail';
 
 export function TeamMembers() {
-  const { teamMembers, loading, addTeamMember } = useTeamMembers();
+  const { teamMembers, loading: membersLoading, addTeamMember } = useTeamMembers();
+  const { customers, loading: customersLoading } = useCustomers();
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -21,6 +22,8 @@ export function TeamMembers() {
     role: '',
     payouts: 0
   });
+
+  const loading = membersLoading || customersLoading;
 
   const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
@@ -44,6 +47,7 @@ export function TeamMembers() {
         member={selectedMember}
         onBack={() => setSelectedMember(null)}
         onUpdate={(updatedMember) => setSelectedMember(updatedMember)}
+        customers={customers}
       />
     );
   }
