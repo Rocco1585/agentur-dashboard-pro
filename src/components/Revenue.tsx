@@ -121,50 +121,69 @@ export function Revenue() {
   };
 
   const addRevenue = async () => {
-    if (newRevenue.description && newRevenue.amount && newRevenue.date) {
-      try {
-        const revenueData = {
-          description: newRevenue.description,
-          amount: Math.round(parseFloat(newRevenue.amount)),
-          date: newRevenue.date,
-          customer_id: newRevenue.customer_id || null
-        };
-
-        const { data, error } = await supabase
-          .from('revenues')
-          .insert(revenueData)
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        await logAuditEvent('INSERT', 'revenues', data.id, null, revenueData);
-
-        toast({
-          title: "Einnahme hinzugefügt",
-          description: "Die Einnahme wurde erfolgreich hinzugefügt.",
-        });
-
-        setNewRevenue({
-          description: '',
-          amount: '',
-          date: new Date().toISOString().split('T')[0],
-          customer_id: ''
-        });
-        setShowForm(false);
-        fetchRevenues();
-      } catch (error) {
-        console.error('Error adding revenue:', error);
-        toast({
-          title: "Fehler",
-          description: "Einnahme konnte nicht hinzugefügt werden.",
-          variant: "destructive",
-        });
-      }
-    } else {
+    if (!newRevenue.description.trim()) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Felder aus.",
+        description: "Bitte geben Sie eine Beschreibung ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newRevenue.amount || isNaN(parseFloat(newRevenue.amount)) || parseFloat(newRevenue.amount) <= 0) {
+      toast({
+        title: "Fehler",
+        description: "Bitte geben Sie einen gültigen Betrag ein.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!newRevenue.date) {
+      toast({
+        title: "Fehler",
+        description: "Bitte wählen Sie ein Datum aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const revenueData = {
+        description: newRevenue.description.trim(),
+        amount: parseFloat(newRevenue.amount),
+        date: newRevenue.date,
+        customer_id: newRevenue.customer_id || null
+      };
+
+      const { data, error } = await supabase
+        .from('revenues')
+        .insert([revenueData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      await logAuditEvent('INSERT', 'revenues', data.id, null, revenueData);
+
+      toast({
+        title: "Einnahme hinzugefügt",
+        description: "Die Einnahme wurde erfolgreich hinzugefügt.",
+      });
+
+      setNewRevenue({
+        description: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        customer_id: ''
+      });
+      setShowForm(false);
+      fetchRevenues();
+    } catch (error) {
+      console.error('Error adding revenue:', error);
+      toast({
+        title: "Fehler",
+        description: "Einnahme konnte nicht hinzugefügt werden.",
         variant: "destructive",
       });
     }
@@ -248,11 +267,11 @@ export function Revenue() {
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-2">
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-left">Gesamt-Einnahmen</CardTitle>
               <Euro className="h-4 w-4 text-red-600" />
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-6 pb-6">
               <div className="text-xl font-bold text-left">€{Math.round(stats.totalRevenue)}</div>
               <p className="text-xs text-gray-500 text-left">
                 Alle Einnahmen
@@ -261,11 +280,11 @@ export function Revenue() {
           </Card>
 
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-left">Monatliche Einnahmen</CardTitle>
               <TrendingUp className="h-4 w-4 text-blue-600" />
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-6 pb-6">
               <div className="text-xl font-bold text-left">€{Math.round(stats.monthlyRevenue)}</div>
               <p className="text-xs text-gray-500 text-left">
                 Letzte 30 Tage
@@ -274,11 +293,11 @@ export function Revenue() {
           </Card>
 
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-left">Wöchentliche Einnahmen</CardTitle>
               <TrendingUp className="h-4 w-4 text-green-600" />
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-6 pb-6">
               <div className="text-xl font-bold text-left">€{Math.round(stats.weeklyRevenue)}</div>
               <p className="text-xs text-gray-500 text-left">
                 Letzte 7 Tage
@@ -287,11 +306,11 @@ export function Revenue() {
           </Card>
 
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 pt-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-left">Durchschnitt</CardTitle>
               <Euro className="h-4 w-4 text-yellow-600" />
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-6 pb-6">
               <div className="text-xl font-bold text-left">€{Math.round(stats.averageRevenue)}</div>
               <p className="text-xs text-gray-500 text-left">
                 Pro Einnahme
@@ -304,10 +323,10 @@ export function Revenue() {
         {showForm && (
           <div className="px-2">
             <Card className="bg-white shadow-lg">
-              <CardHeader className="p-4 sm:p-6">
+              <CardHeader className="p-6 sm:p-8">
                 <CardTitle className="text-left">Neue Einnahme hinzufügen</CardTitle>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0">
+              <CardContent className="p-6 sm:p-8 pt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     placeholder="Beschreibung"
@@ -318,6 +337,8 @@ export function Revenue() {
                   <Input
                     placeholder="Betrag (€)"
                     type="number"
+                    step="0.01"
+                    min="0"
                     value={newRevenue.amount}
                     onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
                     className="text-left"
@@ -336,7 +357,7 @@ export function Revenue() {
                       <SelectValue placeholder="Kunde (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Kein Kunde</SelectItem>
+                      <SelectItem value="none">Kein Kunde</SelectItem>
                       {customers.map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.name}
@@ -368,13 +389,13 @@ export function Revenue() {
         {/* Revenues List */}
         <div className="px-2">
           <Card className="bg-white shadow-lg">
-            <CardHeader className="p-4 sm:p-6">
+            <CardHeader className="p-6 sm:p-8">
               <CardTitle className="text-left">Einnahmen ({revenues.length})</CardTitle>
             </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
+            <CardContent className="p-6 sm:p-8 pt-0">
               <div className="space-y-4">
                 {revenues.map((revenue) => (
-                  <div key={revenue.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div key={revenue.id} className="flex items-center justify-between p-4 sm:p-5 bg-gray-50 rounded-lg">
                     <div className="text-left flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 truncate">{revenue.description}</h3>
                       <p className="text-sm text-gray-600">{format(new Date(revenue.date), 'dd.MM.yyyy', { locale: de })}</p>
