@@ -18,6 +18,14 @@ export function Dashboard() {
   const { todos, loading: todosLoading } = useTodos();
   const { appointments, loading: appointmentsLoading } = useAppointments();
 
+  const pipelineStages = [
+    { id: 'termin_ausstehend', name: 'Termin Ausstehend' },
+    { id: 'termin_erschienen', name: 'Termin Erschienen' },
+    { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen' },
+    { id: 'follow_up', name: 'Follow-up' },
+    { id: 'verloren', name: 'Verloren' },
+  ];
+
   useEffect(() => {
     fetchTeamNotice();
   }, []);
@@ -217,7 +225,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Team Appointments */}
+        {/* Team Appointments - nur Pipeline-Stand in blau anzeigen */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
@@ -260,7 +268,7 @@ export function Dashboard() {
                       <p className="text-xs text-gray-500">{new Date(appointment.date).toLocaleDateString('de-DE')}</p>
                     </div>
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium ml-2 flex-shrink-0">
-                      {appointment.type}
+                      {pipelineStages.find(stage => stage.id === appointment.result)?.name || appointment.result}
                     </span>
                   </div>
                 ))

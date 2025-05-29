@@ -1,11 +1,13 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Euro, TrendingUp, TrendingDown, User, Calendar, Edit, Save, X } from "lucide-react";
+import { ArrowLeft, Euro, TrendingUp, TrendingDown, User, Edit, Save, X } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
 
 interface TeamMemberDetailProps {
   member: any;
@@ -25,14 +27,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     { id: 2, description: 'Handy', amount: 80, date: '10.01.2025' },
   ]);
 
-  const [appointments, setAppointments] = useState([
-    { id: 1, customer: 'ABC GmbH', date: '15.01.2025', result: 'Erfolgreich' },
-    { id: 2, customer: 'XYZ Corp', date: '12.01.2025', result: 'Follow-up' },
-  ]);
-
-  const [newEarning, setNewEarning] = useState({ customer: '', amount: '', type: 'Provision' });
-  const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
-  const [newAppointment, setNewAppointment] = useState({ customer: '', date: '', result: '' });
+  const [memberAppointments, setMemberAppointments] = useState<any[]>([]);
   const [notes, setNotes] = useState('Sehr motivierter Mitarbeiter. Übertrifft regelmäßig die Ziele.');
 
   // Neue States für bearbeitbare Felder
@@ -43,44 +38,36 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     phone: member.phone,
     position: member.position,
     startDate: member.startDate,
-    performance: member.performance
+    performance: member.performance || 5
   });
 
-  const addEarning = () => {
-    if (newEarning.customer && newEarning.amount) {
-      setEarnings(prev => [...prev, {
-        id: Date.now(),
-        customer: newEarning.customer,
-        amount: parseFloat(newEarning.amount),
-        date: new Date().toLocaleDateString('de-DE'),
-        type: newEarning.type
-      }]);
-      setNewEarning({ customer: '', amount: '', type: 'Provision' });
+  useEffect(() => {
+    fetchMemberAppointments();
+  }, [member.id]);
+
+  const fetchMemberAppointments = async () => {
+    try {
+      const { data: appointmentData } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          customers (name)
+        `)
+        .eq('team_member_id', member.id)
+        .order('date', { ascending: false });
+      
+      setMemberAppointments(appointmentData || []);
+    } catch (error) {
+      console.error('Error fetching member appointments:', error);
     }
+  };
+
+  const addEarning = () => {
+    // Dummy implementation for demo
   };
 
   const addExpense = () => {
-    if (newExpense.description && newExpense.amount) {
-      setExpenses(prev => [...prev, {
-        id: Date.now(),
-        description: newExpense.description,
-        amount: parseFloat(newExpense.amount),
-        date: new Date().toLocaleDateString('de-DE')
-      }]);
-      setNewExpense({ description: '', amount: '' });
-    }
-  };
-
-  const addAppointment = () => {
-    if (newAppointment.customer && newAppointment.date) {
-      setAppointments(prev => [...prev, {
-        id: Date.now(),
-        customer: newAppointment.customer,
-        date: newAppointment.date,
-        result: newAppointment.result || 'Ausstehend'
-      }]);
-      setNewAppointment({ customer: '', date: '', result: '' });
-    }
+    // Dummy implementation for demo
   };
 
   const saveContactData = () => {
@@ -105,7 +92,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       phone: member.phone,
       position: member.position,
       startDate: member.startDate,
-      performance: member.performance
+      performance: member.performance || 5
     });
     setIsEditingContact(false);
     setIsEditingPerformance(false);
@@ -312,108 +299,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
         </Card>
       </div>
 
-      {/* Add New Earning */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-green-600">
-            <Plus className="h-5 w-5 mr-2" />
-            Neue Einnahme hinzufügen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select value={newEarning.customer} onValueChange={(value) => setNewEarning({...newEarning, customer: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Kunde auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map(customer => (
-                  <SelectItem key={customer.id} value={customer.name}>{customer.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              placeholder="Betrag (€)"
-              value={newEarning.amount}
-              onChange={(e) => setNewEarning({...newEarning, amount: e.target.value})}
-            />
-            <Select value={newEarning.type} onValueChange={(value) => setNewEarning({...newEarning, type: value})}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Provision">Provision</SelectItem>
-                <SelectItem value="Bonus">Bonus</SelectItem>
-                <SelectItem value="Festgehalt">Festgehalt</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={addEarning}>Hinzufügen</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add New Expense */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-red-600">
-            <Plus className="h-5 w-5 mr-2" />
-            Neue Auszahlung hinzufügen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              placeholder="Beschreibung"
-              value={newExpense.description}
-              onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-            />
-            <Input
-              type="number"
-              placeholder="Betrag (€)"
-              value={newExpense.amount}
-              onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-            />
-            <Button onClick={addExpense}>Hinzufügen</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Add New Appointment */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center text-blue-600">
-            <Calendar className="h-5 w-5 mr-2" />
-            Neuen Termin hinzufügen
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Select value={newAppointment.customer} onValueChange={(value) => setNewAppointment({...newAppointment, customer: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Kunde auswählen" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers.map(customer => (
-                  <SelectItem key={customer.id} value={customer.name}>{customer.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={newAppointment.date}
-              onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
-            />
-            <Input
-              placeholder="Ergebnis"
-              value={newAppointment.result}
-              onChange={(e) => setNewAppointment({...newAppointment, result: e.target.value})}
-            />
-            <Button onClick={addAppointment}>Hinzufügen</Button>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Recent Activities */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
@@ -460,10 +345,10 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {appointments.slice(-5).map(appointment => (
+              {memberAppointments.slice(-5).map(appointment => (
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded">
-                  <div className="font-medium text-sm">{appointment.customer}</div>
-                  <div className="text-xs text-gray-600">{appointment.date}</div>
+                  <div className="font-medium text-sm">{appointment.customers?.name || appointment.type}</div>
+                  <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
                   <Badge className="text-xs mt-1">{appointment.result}</Badge>
                 </div>
               ))}

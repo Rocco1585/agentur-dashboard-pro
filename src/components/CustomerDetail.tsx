@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp, Edit, Save, Trash2, MessageSquare, Clock } from "lucide-react";
+import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp, Edit, Save, Trash2, MessageSquare } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenues, useTeamMembers } from '@/hooks/useSupabaseData';
@@ -50,7 +50,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [appointmentHistory, setAppointmentHistory] = useState<any[]>([]);
   const [newHistoryMessage, setNewHistoryMessage] = useState('');
-  const [editingAppointment, setEditingAppointment] = useState<any>(null);
   const [teamNotice, setTeamNotice] = useState('');
   const [showTeamNotice, setShowTeamNotice] = useState(false);
 
@@ -293,40 +292,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       toast({
         title: "Fehler",
         description: "Kontaktdaten konnten nicht gespeichert werden.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const saveAppointmentChanges = async () => {
-    if (!editingAppointment) return;
-    
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({
-          type: editingAppointment.type,
-          description: editingAppointment.description,
-          notes: editingAppointment.notes,
-          date: editingAppointment.date,
-          team_member_id: editingAppointment.team_member_id
-        })
-        .eq('id', editingAppointment.id);
-
-      if (error) throw error;
-      
-      setEditingAppointment(null);
-      fetchCustomerData();
-      
-      toast({
-        title: "Termin aktualisiert",
-        description: "Termin wurde erfolgreich aktualisiert.",
-      });
-    } catch (error) {
-      console.error('Error updating appointment:', error);
-      toast({
-        title: "Fehler",
-        description: "Termin konnte nicht aktualisiert werden.",
         variant: "destructive",
       });
     }
@@ -817,88 +782,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                               </Button>
                                             </div>
                                           </div>
-                                        </DialogContent>
-                                      </Dialog>
-                                      
-                                      <Dialog>
-                                        <DialogTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setEditingAppointment({...appointment});
-                                            }}
-                                            className="h-6 w-6 p-0 hover:bg-blue-100"
-                                          >
-                                            <Edit className="h-3 w-3 text-blue-600" />
-                                          </Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                                          <DialogHeader>
-                                            <DialogTitle>Termin bearbeiten</DialogTitle>
-                                          </DialogHeader>
-                                          {editingAppointment && (
-                                            <div className="space-y-4">
-                                              <div>
-                                                <label className="text-sm font-medium">Termin-Typ:</label>
-                                                <Input
-                                                  value={editingAppointment.type}
-                                                  onChange={(e) => setEditingAppointment({...editingAppointment, type: e.target.value})}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="text-sm font-medium">Datum:</label>
-                                                <Input
-                                                  type="date"
-                                                  value={editingAppointment.date}
-                                                  onChange={(e) => setEditingAppointment({...editingAppointment, date: e.target.value})}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="text-sm font-medium">Teammitglied:</label>
-                                                <Select 
-                                                  value={editingAppointment.team_member_id || ""} 
-                                                  onValueChange={(value) => setEditingAppointment({...editingAppointment, team_member_id: value})}
-                                                >
-                                                  <SelectTrigger>
-                                                    <SelectValue placeholder="Teammitglied zuweisen" />
-                                                  </SelectTrigger>
-                                                  <SelectContent>
-                                                    <SelectItem value="">Kein Teammitglied</SelectItem>
-                                                    {teamMembers.map(member => (
-                                                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                                                    ))}
-                                                  </SelectContent>
-                                                </Select>
-                                              </div>
-                                              <div>
-                                                <label className="text-sm font-medium">Beschreibung:</label>
-                                                <Input
-                                                  value={editingAppointment.description || ""}
-                                                  onChange={(e) => setEditingAppointment({...editingAppointment, description: e.target.value})}
-                                                />
-                                              </div>
-                                              <div>
-                                                <label className="text-sm font-medium">Notizen:</label>
-                                                <Textarea
-                                                  value={editingAppointment.notes || ""}
-                                                  onChange={(e) => setEditingAppointment({...editingAppointment, notes: e.target.value})}
-                                                  className="min-h-[100px]"
-                                                />
-                                              </div>
-                                              
-                                              <div className="flex gap-2">
-                                                <Button onClick={saveAppointmentChanges} className="flex-1">
-                                                  <Save className="h-4 w-4 mr-2" />
-                                                  Speichern
-                                                </Button>
-                                                <Button variant="outline" onClick={() => setEditingAppointment(null)} className="flex-1">
-                                                  Abbrechen
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          )}
                                         </DialogContent>
                                       </Dialog>
                                       

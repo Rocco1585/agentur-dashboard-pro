@@ -20,7 +20,8 @@ export function TeamMembers() {
     email: '',
     phone: '',
     role: '',
-    payouts: 0
+    payouts: 0,
+    performance: 5
   });
 
   const loading = membersLoading || customersLoading;
@@ -28,7 +29,7 @@ export function TeamMembers() {
   const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
       await addTeamMember(newMember);
-      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0 });
+      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0, performance: 5 });
       setShowAddForm(false);
     }
   };
@@ -103,6 +104,14 @@ export function TeamMembers() {
                 value={newMember.payouts}
                 onChange={(e) => setNewMember({...newMember, payouts: parseFloat(e.target.value) || 0})}
               />
+              <Input
+                placeholder="Performance (1-10)"
+                type="number"
+                min="1"
+                max="10"
+                value={newMember.performance}
+                onChange={(e) => setNewMember({...newMember, performance: parseInt(e.target.value) || 5})}
+              />
             </div>
             <div className="flex flex-col sm:flex-row gap-2 mt-4">
               <Button onClick={handleAddMember} className="flex-1">
@@ -174,14 +183,9 @@ export function TeamMembers() {
 
               <div className="pt-2">
                 <Badge 
-                  className={`w-full justify-center ${
-                    member.performance === 'Ausgezeichnet' ? 'bg-green-100 text-green-800' :
-                    member.performance === 'Gut' ? 'bg-blue-100 text-blue-800' :
-                    member.performance === 'Durchschnittlich' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}
+                  className="w-full justify-center bg-blue-100 text-blue-800"
                 >
-                  {member.performance || 'Neu'}
+                  {member.performance || 5}/10
                 </Badge>
               </div>
             </CardContent>
