@@ -36,9 +36,9 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
   const [editableData, setEditableData] = useState({
     email: member.email,
     phone: member.phone,
-    position: member.position,
-    startDate: member.startDate,
-    performance: member.performance || 5
+    position: member.role,
+    startDate: member.active_since,
+    performance: typeof member.performance === 'number' ? member.performance : (parseInt(member.performance) || 5)
   });
 
   useEffect(() => {
@@ -62,14 +62,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     }
   };
 
-  const addEarning = () => {
-    // Dummy implementation for demo
-  };
-
-  const addExpense = () => {
-    // Dummy implementation for demo
-  };
-
   const saveContactData = () => {
     // Hier würde normalerweise eine API-Anfrage gemacht werden
     console.log('Kontaktdaten gespeichert:', editableData);
@@ -90,9 +82,9 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     setEditableData({
       email: member.email,
       phone: member.phone,
-      position: member.position,
-      startDate: member.startDate,
-      performance: member.performance || 5
+      position: member.role,
+      startDate: member.active_since,
+      performance: typeof member.performance === 'number' ? member.performance : (parseInt(member.performance) || 5)
     });
     setIsEditingContact(false);
     setIsEditingPerformance(false);
@@ -100,10 +92,21 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
   const totalEarnings = earnings.reduce((sum, earning) => sum + earning.amount, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const netEarnings = totalEarnings - totalExpenses;
-  const pendingPayout = Math.max(0, netEarnings); // Ausstehende Auszahlungen
+  const pendingPayout = Math.max(0, totalEarnings - totalExpenses); // Ausstehende Auszahlungen
 
-  const positions = ['Sales Manager', 'Account Executive', 'Business Development', 'Team Lead', 'Senior Consultant', 'Junior Consultant'];
+  const positions = [
+    'Einlernphase',
+    'Opening (KAQ) B2B',
+    'Opening (Chat DMS) b2b',
+    'Setting b2b',
+    'Closing b2b',
+    'TikTok Poster b2c',
+    'TikTok Manager b2c',
+    'Setter b2c',
+    'Closer b2c',
+    'Manager b2b',
+    'Inhaber'
+  ];
 
   return (
     <div className="space-y-6">
@@ -119,7 +122,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       </div>
 
       {/* Member Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Gesamteinnahmen</CardTitle>
@@ -140,18 +143,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
             <div className="flex items-center">
               <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-2xl font-bold text-red-600">€{totalExpenses}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Netto</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Euro className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-blue-600">€{netEarnings}</span>
             </div>
           </CardContent>
         </Card>

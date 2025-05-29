@@ -26,6 +26,21 @@ export function TeamMembers() {
 
   const loading = membersLoading || customersLoading;
 
+  // Definierte Positionen
+  const positions = [
+    'Einlernphase',
+    'Opening (KAQ) B2B',
+    'Opening (Chat DMS) b2b',
+    'Setting b2b',
+    'Closing b2b',
+    'TikTok Poster b2c',
+    'TikTok Manager b2c',
+    'Setter b2c',
+    'Closer b2c',
+    'Manager b2b',
+    'Inhaber'
+  ];
+
   const handleAddMember = async () => {
     if (newMember.name && newMember.email) {
       await addTeamMember(newMember);
@@ -93,11 +108,16 @@ export function TeamMembers() {
                 value={newMember.phone}
                 onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
               />
-              <Input
-                placeholder="Rolle"
-                value={newMember.role}
-                onChange={(e) => setNewMember({...newMember, role: e.target.value})}
-              />
+              <Select value={newMember.role} onValueChange={(value) => setNewMember({...newMember, role: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Position auswählen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {positions.map(position => (
+                    <SelectItem key={position} value={position}>{position}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
                 placeholder="Auszahlungen (€)"
                 type="number"
@@ -185,7 +205,7 @@ export function TeamMembers() {
                 <Badge 
                   className="w-full justify-center bg-blue-100 text-blue-800"
                 >
-                  {member.performance || 5}/10
+                  {typeof member.performance === 'number' ? member.performance : (parseInt(member.performance) || 5)}/10
                 </Badge>
               </div>
             </CardContent>
