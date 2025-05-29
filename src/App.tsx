@@ -11,6 +11,7 @@ import { FinancialOverview } from "@/components/FinancialOverview";
 import { Settings } from "@/components/Settings";
 import { ToDos } from "@/components/ToDos";
 import { HotLeads } from "@/components/HotLeads";
+import { Appointments } from "@/components/Appointments";
 import { CreateAppointmentPage } from "@/components/CreateAppointmentPage";
 import { UserManagement } from "@/components/UserManagement";
 import { CustomerDashboard } from "@/components/CustomerDashboard";
@@ -59,6 +60,7 @@ function AppContent() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/hot-leads" element={<HotLeads />} />
+                <Route path="/appointments" element={<Appointments />} />
                 <Route path="/create-appointment" element={<CreateAppointmentPage />} />
                 <Route path="/team-members" element={<TeamMembers />} />
                 <Route path="/revenue" element={<FinancialOverview />} />

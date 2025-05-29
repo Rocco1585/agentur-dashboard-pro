@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface CreateAppointmentProps {
   onBack: () => void;
-  onSuccess: () => void;
+  onSuccess: (customerId?: string) => void;
 }
 
 export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps) {
@@ -108,7 +108,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
         description: "Termin wurde erfolgreich erstellt und dem Teammitglied zugeordnet.",
         className: "text-left bg-yellow-100 border-yellow-300",
       });
-      onSuccess();
+      onSuccess(formData.customer_id);
     } catch (error) {
       console.error('Error creating appointment:', error);
       toast({

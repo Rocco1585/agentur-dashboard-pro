@@ -142,7 +142,8 @@ export function CreateAppointmentPage() {
         description: "Der Termin wurde erfolgreich erstellt.",
       });
 
-      navigate('/appointments');
+      // Weiterleitung zum Kunden-Dashboard
+      navigate(`/customer-dashboard-view/${formData.customer_id}`);
     } catch (error) {
       console.error('Error creating appointment:', error);
       toast({
