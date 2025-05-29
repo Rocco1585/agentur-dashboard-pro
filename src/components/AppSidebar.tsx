@@ -74,7 +74,7 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>CRM Dashboard</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-red-600 font-bold text-lg text-right">CedricOrt.de</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
