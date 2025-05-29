@@ -17,7 +17,7 @@ export function CustomerDashboard() {
 
   useEffect(() => {
     fetchCustomerData();
-  }, [customerId]);
+  }, [customerId, user]);
 
   const fetchCustomerData = async () => {
     try {
@@ -26,6 +26,13 @@ export function CustomerDashboard() {
       console.log('Is admin:', isAdmin());
       console.log('Is customer:', isCustomer());
 
+      // Wenn kein Benutzer eingeloggt ist
+      if (!user) {
+        console.log('No user logged in');
+        setLoading(false);
+        return;
+      }
+
       // Berechtigungsprüfung: Admin kann alle sehen, Kunde nur sein eigenes
       if (!isAdmin() && user?.id !== customerId) {
         console.log('No permission: user is not admin and user ID does not match customer ID');
@@ -33,39 +40,59 @@ export function CustomerDashboard() {
         return;
       }
 
-      // Hole Kundendaten aus team_members (für Kunden-Dashboards)
-      const { data: teamMemberData, error: teamMemberError } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('id', customerId)
-        .eq('user_role', 'kunde')
-        .maybeSingle();
-
-      console.log('Team member data:', teamMemberData);
-
-      if (teamMemberError) {
-        console.error('Error fetching team member data:', teamMemberError);
-      }
-
-      // Falls nicht in team_members gefunden, versuche customers Tabelle (für Admins)
-      let customerFromCustomers = null;
-      if (!teamMemberData && isAdmin()) {
-        const { data: customerData, error: customerError } = await supabase
+      // Hole Kundendaten - für Admins zuerst aus customers Tabelle
+      let finalCustomerData = null;
+      
+      if (isAdmin()) {
+        // Admin kann alle Kunden sehen - zuerst aus customers versuchen
+        const { data: customerFromCustomers, error: customerError } = await supabase
           .from('customers')
           .select('*')
           .eq('id', customerId)
           .maybeSingle();
 
-        console.log('Customer data from customers table:', customerData);
-        
+        console.log('Customer data from customers table:', customerFromCustomers);
+
         if (customerError) {
           console.error('Error fetching customer data:', customerError);
+        }
+
+        if (customerFromCustomers) {
+          finalCustomerData = customerFromCustomers;
         } else {
-          customerFromCustomers = customerData;
+          // Falls nicht in customers gefunden, aus team_members versuchen
+          const { data: teamMemberData, error: teamMemberError } = await supabase
+            .from('team_members')
+            .select('*')
+            .eq('id', customerId)
+            .eq('user_role', 'kunde')
+            .maybeSingle();
+
+          console.log('Team member data:', teamMemberData);
+
+          if (teamMemberError) {
+            console.error('Error fetching team member data:', teamMemberError);
+          } else {
+            finalCustomerData = teamMemberData;
+          }
+        }
+      } else {
+        // Nicht-Admin: Nur eigenes Dashboard aus team_members
+        const { data: teamMemberData, error: teamMemberError } = await supabase
+          .from('team_members')
+          .select('*')
+          .eq('id', customerId)
+          .eq('user_role', 'kunde')
+          .maybeSingle();
+
+        console.log('Team member data for customer:', teamMemberData);
+
+        if (teamMemberError) {
+          console.error('Error fetching team member data:', teamMemberError);
+        } else {
+          finalCustomerData = teamMemberData;
         }
       }
-
-      const finalCustomerData = teamMemberData || customerFromCustomers;
       
       if (!finalCustomerData) {
         console.log('No customer data found');
@@ -75,34 +102,32 @@ export function CustomerDashboard() {
 
       setCustomerData(finalCustomerData);
 
-      // Fetch appointments für diesen Kunden (nur für Admins oder den Kunden selbst)
-      if (isAdmin() || user?.id === customerId) {
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .from('appointments')
+      // Fetch appointments für diesen Kunden
+      const { data: appointmentsData, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('date', { ascending: false });
+
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+      } else {
+        console.log('Appointments data:', appointmentsData);
+        setAppointments(appointmentsData || []);
+      }
+
+      // Fetch revenues nur für Admins
+      if (isAdmin()) {
+        const { data: revenuesData, error: revenuesError } = await supabase
+          .from('revenues')
           .select('*')
           .eq('customer_id', customerId)
           .order('date', { ascending: false });
 
-        if (appointmentsError) {
-          console.error('Error fetching appointments:', appointmentsError);
+        if (revenuesError) {
+          console.error('Error fetching revenues:', revenuesError);
         } else {
-          console.log('Appointments data:', appointmentsData);
-          setAppointments(appointmentsData || []);
-        }
-
-        // Fetch revenues (nur für Admins)
-        if (isAdmin()) {
-          const { data: revenuesData, error: revenuesError } = await supabase
-            .from('revenues')
-            .select('*')
-            .eq('customer_id', customerId)
-            .order('date', { ascending: false });
-
-          if (revenuesError) {
-            console.error('Error fetching revenues:', revenuesError);
-          } else {
-            setRevenues(revenuesData || []);
-          }
+          setRevenues(revenuesData || []);
         }
       }
     } catch (error) {
@@ -116,6 +141,20 @@ export function CustomerDashboard() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-lg text-left">Lade Dashboard...</div>
+      </div>
+    );
+  }
+
+  // Wenn kein Benutzer eingeloggt ist
+  if (!user) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Anmeldung erforderlich</h1>
+          <p className="text-gray-600 mt-2 text-left">
+            Bitte melden Sie sich an, um auf das Dashboard zuzugreifen.
+          </p>
+        </div>
       </div>
     );
   }

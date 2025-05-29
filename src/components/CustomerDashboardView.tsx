@@ -28,6 +28,13 @@ export function CustomerDashboardView() {
       console.log('Is admin:', isAdmin());
       console.log('Is customer:', isCustomer());
 
+      // Wenn kein Benutzer eingeloggt ist
+      if (!user) {
+        console.log('No user logged in');
+        setLoading(false);
+        return;
+      }
+
       // Berechtigungsprüfung: Admin kann alle sehen, Kunde nur sein eigenes
       if (!isAdmin() && user?.id !== customerId) {
         console.log('No permission: user is not admin and user ID does not match customer ID');
@@ -35,54 +42,67 @@ export function CustomerDashboardView() {
         return;
       }
 
-      // Hole Kundendaten - zuerst aus customers Tabelle für Admins
-      let customerDataQuery;
+      // Hole Kundendaten - für Admins zuerst aus customers Tabelle
+      let finalCustomerData = null;
+      
       if (isAdmin()) {
         // Admin kann alle Kunden sehen - zuerst aus customers versuchen
-        const customersQuery = await supabase
+        const { data: customerFromCustomers, error: customerError } = await supabase
           .from('customers')
           .select('*')
           .eq('id', customerId)
           .maybeSingle();
 
-        console.log('Customers query result:', customersQuery);
+        console.log('Customer data from customers table:', customerFromCustomers);
 
-        if (customersQuery.data) {
-          setCustomerData(customersQuery.data);
+        if (customerError) {
+          console.error('Error fetching customer data:', customerError);
+        }
+
+        if (customerFromCustomers) {
+          finalCustomerData = customerFromCustomers;
         } else {
           // Falls nicht in customers gefunden, aus team_members versuchen
-          const teamMembersQuery = await supabase
+          const { data: teamMemberData, error: teamMemberError } = await supabase
             .from('team_members')
             .select('*')
             .eq('id', customerId)
             .eq('user_role', 'kunde')
             .maybeSingle();
 
-          console.log('Team members query result:', teamMembersQuery);
+          console.log('Team member data:', teamMemberData);
 
-          if (teamMembersQuery.data) {
-            setCustomerData(teamMembersQuery.data);
+          if (teamMemberError) {
+            console.error('Error fetching team member data:', teamMemberError);
+          } else {
+            finalCustomerData = teamMemberData;
           }
         }
       } else {
-        // Nicht-Admin: Nur eigenes Dashboard sehen (muss Kunde sein)
-        if (user?.id !== customerId || !isCustomer()) {
-          console.log('No permission: user is not customer or user ID does not match customer ID');
-          setLoading(false);
-          return;
-        }
-
-        const teamMembersQuery = await supabase
+        // Nicht-Admin: Nur eigenes Dashboard aus team_members
+        const { data: teamMemberData, error: teamMemberError } = await supabase
           .from('team_members')
           .select('*')
           .eq('id', customerId)
           .eq('user_role', 'kunde')
           .maybeSingle();
 
-        if (teamMembersQuery.data) {
-          setCustomerData(teamMembersQuery.data);
+        console.log('Team member data for customer:', teamMemberData);
+
+        if (teamMemberError) {
+          console.error('Error fetching team member data:', teamMemberError);
+        } else {
+          finalCustomerData = teamMemberData;
         }
       }
+      
+      if (!finalCustomerData) {
+        console.log('No customer data found');
+        setLoading(false);
+        return;
+      }
+
+      setCustomerData(finalCustomerData);
 
       // Fetch appointments für diesen Kunden
       const { data: appointmentsData, error: appointmentsError } = await supabase
@@ -182,6 +202,20 @@ export function CustomerDashboardView() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-lg text-left">Lade Dashboard...</div>
+      </div>
+    );
+  }
+
+  // Wenn kein Benutzer eingeloggt ist
+  if (!user) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Anmeldung erforderlich</h1>
+          <p className="text-gray-600 mt-2 text-left">
+            Bitte melden Sie sich an, um auf das Dashboard zuzugreifen.
+          </p>
+        </div>
       </div>
     );
   }
