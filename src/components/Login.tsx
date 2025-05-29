@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,35 +33,64 @@ export function Login({ onLogin }: LoginProps) {
     setLoading(true);
     
     try {
+      console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.rpc('authenticate_user', {
         user_email: email,
         user_password: password
       });
 
+      console.log('Login response:', { data, error });
+
       if (error) {
-        throw error;
+        console.error('Supabase RPC error:', error);
+        toast({
+          title: "Verbindungsfehler",
+          description: "Es gab ein Problem bei der Verbindung zur Datenbank. Bitte versuchen Sie es erneut.",
+          variant: "destructive",
+        });
+        return;
       }
 
       const authResponse = data as unknown as AuthResponse;
+      console.log('Parsed auth response:', authResponse);
 
-      if (authResponse.success) {
+      if (authResponse && authResponse.success) {
         toast({
           title: "Login erfolgreich",
           description: `Willkommen zurück, ${authResponse.user?.name}!`,
         });
         onLogin(authResponse.user);
       } else {
+        // Spezifische Fehlermeldungen je nach Problem
+        let errorMessage = "Ungültige Email oder Passwort.";
+        
+        if (authResponse?.error) {
+          errorMessage = authResponse.error;
+        } else if (!authResponse) {
+          errorMessage = "Unerwartete Antwort vom Server.";
+        }
+        
+        console.log('Login failed:', errorMessage);
+        
         toast({
           title: "Login fehlgeschlagen",
-          description: authResponse.error || "Ungültige Email oder Passwort.",
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error('Login error:', error);
+      
+      let errorMessage = "Ein unerwarteter Fehler ist aufgetreten.";
+      
+      if (error instanceof Error) {
+        errorMessage = `Fehler: ${error.message}`;
+      }
+      
       toast({
         title: "Fehler",
-        description: "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -93,6 +123,7 @@ export function Login({ onLogin }: LoginProps) {
                   placeholder="ihre-email@example.com"
                   className="pl-10"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -108,6 +139,7 @@ export function Login({ onLogin }: LoginProps) {
                   placeholder="Ihr Passwort"
                   className="pl-10 pr-10"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -127,6 +159,12 @@ export function Login({ onLogin }: LoginProps) {
               {loading ? "Anmelden..." : "Anmelden"}
             </Button>
           </form>
+          
+          <div className="mt-4 text-center text-sm text-gray-600">
+            <p>Test-Accounts:</p>
+            <p className="font-mono text-xs">c.ort@cedricort.de / passwort</p>
+            <p className="font-mono text-xs">lisa@agentur.de / passwort</p>
+          </div>
         </CardContent>
       </Card>
     </div>

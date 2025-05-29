@@ -13,7 +13,9 @@ import { ToDos } from "@/components/ToDos";
 import { HotLeads } from "@/components/HotLeads";
 import { CreateAppointment } from "@/components/CreateAppointment";
 import { AuditLogs } from "@/components/AuditLogs";
+import { UserManagement } from "@/components/UserManagement";
 import { Login } from "@/components/Login";
+import { AdminSetup } from "@/components/AdminSetup";
 import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/NotFound";
 import "./App.css";
@@ -32,7 +34,12 @@ function AppContent() {
   }
 
   if (!user) {
-    return <Login onLogin={login} />;
+    return (
+      <>
+        <AdminSetup />
+        <Login onLogin={login} />
+      </>
+    );
   }
 
   return (
@@ -50,6 +57,7 @@ function AppContent() {
             <Route path="/todos" element={<ToDos />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
+            <Route path="/user-management" element={<UserManagement />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
