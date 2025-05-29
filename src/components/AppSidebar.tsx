@@ -16,7 +16,8 @@ import {
   Users, 
   Flame, 
   UserCheck, 
-  Settings 
+  Settings,
+  CheckSquare
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -49,6 +50,11 @@ const menuItems = [
     title: "Teammitglieder",
     icon: UserCheck,
     id: "team",
+  },
+  {
+    title: "ToDos",
+    icon: CheckSquare,
+    id: "todos",
   },
   {
     title: "Einstellungen",

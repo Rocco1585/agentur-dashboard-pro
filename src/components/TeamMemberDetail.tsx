@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Euro, TrendingUp, TrendingDown, User, Calendar } from "lucide-react";
+import { ArrowLeft, Plus, Euro, TrendingUp, TrendingDown, User, Calendar, Edit, Save, X } from "lucide-react";
 
 interface TeamMemberDetailProps {
   member: any;
@@ -34,6 +33,17 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
   const [newExpense, setNewExpense] = useState({ description: '', amount: '' });
   const [newAppointment, setNewAppointment] = useState({ customer: '', date: '', result: '' });
   const [notes, setNotes] = useState('Sehr motivierter Mitarbeiter. Übertrifft regelmäßig die Ziele.');
+
+  // Neue States für bearbeitbare Felder
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [isEditingPerformance, setIsEditingPerformance] = useState(false);
+  const [editableData, setEditableData] = useState({
+    email: member.email,
+    phone: member.phone,
+    position: member.position,
+    startDate: member.startDate,
+    performance: member.performance
+  });
 
   const addEarning = () => {
     if (newEarning.customer && newEarning.amount) {
@@ -72,9 +82,36 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
     }
   };
 
+  const saveContactData = () => {
+    // Hier würde normalerweise eine API-Anfrage gemacht werden
+    console.log('Kontaktdaten gespeichert:', editableData);
+    setIsEditingContact(false);
+  };
+
+  const savePerformance = () => {
+    // Hier würde normalerweise eine API-Anfrage gemacht werden
+    console.log('Performance gespeichert:', editableData.performance);
+    setIsEditingPerformance(false);
+  };
+
+  const cancelEdit = () => {
+    setEditableData({
+      email: member.email,
+      phone: member.phone,
+      position: member.position,
+      startDate: member.startDate,
+      performance: member.performance
+    });
+    setIsEditingContact(false);
+    setIsEditingPerformance(false);
+  };
+
   const totalEarnings = earnings.reduce((sum, earning) => sum + earning.amount, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const netEarnings = totalEarnings - totalExpenses;
+  const pendingPayout = Math.max(0, netEarnings); // Ausstehende Auszahlungen
+
+  const positions = ['Sales Manager', 'Account Executive', 'Business Development', 'Team Lead', 'Senior Consultant', 'Junior Consultant'];
 
   return (
     <div className="space-y-6">
@@ -85,12 +122,12 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{member.name}</h1>
-          <p className="text-gray-600">{member.position} • {member.email}</p>
+          <p className="text-gray-600">{editableData.position} • {editableData.email}</p>
         </div>
       </div>
 
       {/* Member Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Gesamteinnahmen</CardTitle>
@@ -129,13 +166,51 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Performance</CardTitle>
+            <CardTitle className="text-sm text-gray-600">Ausstehende Auszahlung</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <User className="h-5 w-5 text-purple-600 mr-2" />
-              <span className="text-2xl font-bold text-purple-600">{member.performance}/10</span>
+              <Euro className="h-5 w-5 text-orange-600 mr-2" />
+              <span className="text-2xl font-bold text-orange-600">€{pendingPayout}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-gray-600 flex items-center">
+              Performance
+              {!isEditingPerformance && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingPerformance(true)} className="ml-2 h-6 w-6 p-0">
+                  <Edit className="h-3 w-3" />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditingPerformance ? (
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={editableData.performance}
+                  onChange={(e) => setEditableData({...editableData, performance: parseInt(e.target.value) || 1})}
+                  className="w-16"
+                />
+                <Button size="sm" onClick={savePerformance}>
+                  <Save className="h-3 w-3" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={cancelEdit}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center">
+                <User className="h-5 w-5 text-purple-600 mr-2" />
+                <span className="text-2xl font-bold text-purple-600">{editableData.performance}/10</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -144,16 +219,75 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Kontaktdaten & Info</CardTitle>
+            <CardTitle className="flex items-center">
+              Kontaktdaten & Info
+              {!isEditingContact && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingContact(true)} className="ml-2">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><strong>Email:</strong> {member.email}</div>
-            <div><strong>Telefon:</strong> {member.phone}</div>
-            <div><strong>Position:</strong> {member.position}</div>
-            <div><strong>Seit:</strong> {member.startDate}</div>
-            <div><strong>Performance:</strong> 
-              <Badge className="ml-2 bg-green-100 text-green-800">{member.performance}/10</Badge>
-            </div>
+            {isEditingContact ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Email:</label>
+                  <Input
+                    value={editableData.email}
+                    onChange={(e) => setEditableData({...editableData, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Telefon:</label>
+                  <Input
+                    value={editableData.phone}
+                    onChange={(e) => setEditableData({...editableData, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Position:</label>
+                  <Select value={editableData.position} onValueChange={(value) => setEditableData({...editableData, position: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {positions.map(pos => (
+                        <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Seit:</label>
+                  <Input
+                    type="date"
+                    value={editableData.startDate}
+                    onChange={(e) => setEditableData({...editableData, startDate: e.target.value})}
+                  />
+                </div>
+                <div className="flex space-x-2">
+                  <Button onClick={saveContactData}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Speichern
+                  </Button>
+                  <Button variant="outline" onClick={cancelEdit}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div><strong>Email:</strong> {editableData.email}</div>
+                <div><strong>Telefon:</strong> {editableData.phone}</div>
+                <div><strong>Position:</strong> {editableData.position}</div>
+                <div><strong>Seit:</strong> {editableData.startDate}</div>
+                <div><strong>Performance:</strong> 
+                  <Badge className="ml-2 bg-green-100 text-green-800">{editableData.performance}/10</Badge>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 

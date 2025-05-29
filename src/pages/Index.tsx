@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Dashboard } from "@/components/Dashboard";
 import { Revenue } from "@/components/Revenue";
@@ -38,8 +38,13 @@ const Index = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gray-50">
         <AppSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-1 p-6">
-          {renderContent()}
+        <main className="flex-1 flex flex-col">
+          <div className="md:hidden p-4 border-b bg-white">
+            <SidebarTrigger />
+          </div>
+          <div className="flex-1 p-4 md:p-6">
+            {renderContent()}
+          </div>
         </main>
       </div>
     </SidebarProvider>
