@@ -23,7 +23,7 @@ export function Customers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'pipeline'
+  const [viewMode, setViewMode('list'); // 'list' or 'pipeline'
 
   useEffect(() => {
     fetchCustomers();
@@ -141,6 +141,19 @@ export function Customers() {
         .delete()
         .eq('customer_id', customerId);
 
+      // Kunden-Dashboard (team_member mit user_role 'kunde') löschen
+      console.log('Deleting customer dashboard for customer:', customerId);
+      const { error: dashboardError } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('customer_dashboard_name', customerName)
+        .eq('user_role', 'kunde');
+
+      if (dashboardError) {
+        console.error('Error deleting customer dashboard:', dashboardError);
+        // Nicht als Fehler werfen, da es sein kann dass kein Dashboard existiert
+      }
+
       // Dann den Kunden löschen
       const { error } = await supabase
         .from('customers')
@@ -152,7 +165,7 @@ export function Customers() {
       setCustomers(customers.filter(customer => customer.id !== customerId));
       toast({
         title: "Kunde gelöscht",
-        description: `${customerName} wurde erfolgreich gelöscht.`,
+        description: `${customerName} und das zugehörige Dashboard wurden erfolgreich gelöscht.`,
       });
     } catch (error) {
       console.error('Error deleting customer:', error);
