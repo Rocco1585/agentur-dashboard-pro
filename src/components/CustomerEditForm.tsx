@@ -74,7 +74,7 @@ export function CustomerEditForm({ customer = {}, onSave, onCancel }: CustomerEd
             className="w-full"
           />
           <Select 
-            value={editedCustomer.priority} 
+            value={editedCustomer.priority || 'Mittel'} 
             onValueChange={(value) => setEditedCustomer({...editedCustomer, priority: value})}
           >
             <SelectTrigger className="w-full">
@@ -87,7 +87,7 @@ export function CustomerEditForm({ customer = {}, onSave, onCancel }: CustomerEd
             </SelectContent>
           </Select>
           <Select 
-            value={editedCustomer.payment_status} 
+            value={editedCustomer.payment_status || 'Ausstehend'} 
             onValueChange={(value) => setEditedCustomer({...editedCustomer, payment_status: value})}
           >
             <SelectTrigger className="w-full">

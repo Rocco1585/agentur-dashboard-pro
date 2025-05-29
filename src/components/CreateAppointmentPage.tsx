@@ -156,7 +156,7 @@ export function CreateAppointmentPage() {
                       <SelectValue placeholder="Kunde auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {customers.map((customer) => (
+                      {customers.filter(customer => customer.id && customer.name).map((customer) => (
                         <SelectItem key={customer.id} value={customer.id}>
                           {customer.name} ({customer.email})
                         </SelectItem>
@@ -177,7 +177,7 @@ export function CreateAppointmentPage() {
                       <SelectValue placeholder="Teammitglied auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teamMembers.map((member) => (
+                      {teamMembers.filter(member => member.id && member.name).map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name} ({member.role})
                         </SelectItem>

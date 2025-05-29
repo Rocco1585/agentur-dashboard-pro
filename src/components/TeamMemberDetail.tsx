@@ -118,17 +118,17 @@ export function TeamMemberDetail({ member, onMemberUpdated }: TeamMemberDetailPr
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
               />
-              <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+              <Select value={formData.role || 'Einlernphase'} onValueChange={(value) => setFormData({...formData, role: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Position auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {positions.map(position => (
+                  {positions.filter(position => position && position.trim() !== '').map(position => (
                     <SelectItem key={position} value={position}>{position}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={formData.performance} onValueChange={(value) => setFormData({...formData, performance: value})}>
+              <Select value={formData.performance || 'Gut'} onValueChange={(value) => setFormData({...formData, performance: value})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Performance" />
                 </SelectTrigger>
