@@ -16,8 +16,8 @@ export function ToDos() {
   const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos();
   const { canCreateTodos } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterPriority, setFilterPriority] = useState('all');
   const [newTodo, setNewTodo] = useState({
     title: '',
     description: '',
@@ -29,9 +29,9 @@ export function ToDos() {
     return (
       <div className="w-full p-6">
         <Card>
-          <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
-            <p className="text-gray-600">Sie haben keine Berechtigung, ToDos zu verwalten.</p>
+          <CardContent className="p-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Berechtigung</h3>
+            <p className="text-gray-600 text-left">Sie haben keine Berechtigung, ToDos zu verwalten.</p>
           </CardContent>
         </Card>
       </div>
@@ -61,10 +61,10 @@ export function ToDos() {
   };
 
   const filteredTodos = todos.filter(todo => {
-    const matchesStatus = !filterStatus || 
+    const matchesStatus = filterStatus === 'all' || 
                          (filterStatus === 'completed' && todo.completed) ||
                          (filterStatus === 'pending' && !todo.completed);
-    const matchesPriority = !filterPriority || todo.priority === filterPriority;
+    const matchesPriority = filterPriority === 'all' || todo.priority === filterPriority;
     return matchesStatus && matchesPriority;
   });
 
@@ -77,7 +77,7 @@ export function ToDos() {
   if (loading) {
     return (
       <div className="w-full p-6">
-        <div className="text-lg">Lade ToDos...</div>
+        <div className="text-lg text-left">Lade ToDos...</div>
       </div>
     );
   }
@@ -86,14 +86,14 @@ export function ToDos() {
     <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">ToDos</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Aufgaben</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">ToDos</h1>
+          <p className="text-gray-600 text-left">Verwalten Sie Ihre Aufgaben</p>
         </div>
         <Button 
           onClick={() => setShowAddForm(!showAddForm)}
           className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2 text-white" />
           ToDo hinzufügen
         </Button>
       </div>
@@ -102,11 +102,11 @@ export function ToDos() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Gesamt</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Gesamt</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <CheckSquare className="h-5 w-5 text-gray-600 mr-2" />
+            <div className="flex items-center text-left">
+              <CheckSquare className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-2xl font-bold text-gray-700">{todos.length}</span>
             </div>
           </CardContent>
@@ -114,10 +114,10 @@ export function ToDos() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Abgeschlossen</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Abgeschlossen</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
+            <div className="flex items-center text-left">
               <Check className="h-5 w-5 text-green-600 mr-2" />
               <span className="text-2xl font-bold text-green-600">{completedCount}</span>
             </div>
@@ -126,10 +126,10 @@ export function ToDos() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Ausstehend</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Ausstehend</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
+            <div className="flex items-center text-left">
               <Calendar className="h-5 w-5 text-blue-600 mr-2" />
               <span className="text-2xl font-bold text-blue-600">{pendingCount}</span>
             </div>
@@ -138,10 +138,10 @@ export function ToDos() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Überfällig</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Überfällig</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
+            <div className="flex items-center text-left">
               <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-2xl font-bold text-red-600">{overdueTodos.length}</span>
             </div>
@@ -205,7 +205,7 @@ export function ToDos() {
             <SelectValue placeholder="Status filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Status</SelectItem>
+            <SelectItem value="all">Alle Status</SelectItem>
             <SelectItem value="pending">Ausstehend</SelectItem>
             <SelectItem value="completed">Abgeschlossen</SelectItem>
           </SelectContent>
@@ -215,7 +215,7 @@ export function ToDos() {
             <SelectValue placeholder="Priorität filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Prioritäten</SelectItem>
+            <SelectItem value="all">Alle Prioritäten</SelectItem>
             <SelectItem value="Hoch">Hoch</SelectItem>
             <SelectItem value="Mittel">Mittel</SelectItem>
             <SelectItem value="Niedrig">Niedrig</SelectItem>
@@ -246,7 +246,7 @@ export function ToDos() {
                         {todo.description}
                       </p>
                     )}
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-left">
                       <Badge className={`text-xs ${
                         todo.priority === 'Hoch' ? 'bg-red-100 text-red-800' :
                         todo.priority === 'Mittel' ? 'bg-yellow-100 text-yellow-800' :
@@ -256,7 +256,7 @@ export function ToDos() {
                       </Badge>
                       {todo.due_date && (
                         <Badge variant="outline" className={`text-xs ${isOverdue ? 'border-red-500 text-red-700' : ''}`}>
-                          {isOverdue && <AlertCircle className="h-3 w-3 mr-1" />}
+                          {isOverdue && <AlertCircle className="h-3 w-3 mr-1 text-red-600" />}
                           {new Date(todo.due_date).toLocaleDateString('de-DE')}
                         </Badge>
                       )}
@@ -287,8 +287,8 @@ export function ToDos() {
         <Card>
           <CardContent className="text-center py-12">
             <CheckSquare className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine ToDos gefunden</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-2 text-left text-center">Keine ToDos gefunden</h3>
+            <p className="text-gray-600 mb-4 text-left text-center">
               {todos.length === 0 
                 ? "Fügen Sie Ihr erstes ToDo hinzu, um zu beginnen."
                 : "Keine ToDos entsprechen Ihren Filterkriterien."
@@ -296,7 +296,7 @@ export function ToDos() {
             </p>
             {todos.length === 0 && (
               <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-2 text-white" />
                 Erstes ToDo hinzufügen
               </Button>
             )}

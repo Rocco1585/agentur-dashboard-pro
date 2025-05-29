@@ -390,12 +390,12 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     <div className="space-y-6 p-4">
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-2 text-red-600" />
           Zurück
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">{customer.name}</h1>
-          <p className="text-gray-600">{customer.contact} • {customer.email}</p>
+        <div className="text-left">
+          <h1 className="text-2xl font-bold text-gray-800 text-left">{customer.name}</h1>
+          <p className="text-gray-600 text-left">{customer.contact} • {customer.email}</p>
         </div>
       </div>
 
@@ -403,11 +403,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {showTeamNotice && teamNotice && (
         <Card className="bg-green-50 border-green-200">
           <CardContent className="p-4">
-            <div className="flex items-start">
+            <div className="flex items-start text-left">
               <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-green-800 mb-1">Team-Notiz</h4>
-                <p className="text-green-700 text-sm whitespace-pre-wrap">{teamNotice}</p>
+              <div className="text-left">
+                <h4 className="font-semibold text-green-800 mb-1 text-left">Team-Notiz</h4>
+                <p className="text-green-700 text-sm whitespace-pre-wrap text-left">{teamNotice}</p>
               </div>
             </div>
           </CardContent>
@@ -418,11 +418,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Gesamtumsatz</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Gesamtumsatz</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <Euro className="h-5 w-5 text-gray-600 mr-2" />
+            <div className="flex items-center text-left">
+              <Euro className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-xl lg:text-2xl font-bold text-gray-700">€{totalRevenue}</span>
             </div>
           </CardContent>
@@ -430,11 +430,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Termine gebucht</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Termine gebucht</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-gray-600 mr-2" />
+            <div className="flex items-center text-left">
+              <Calendar className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-xl lg:text-2xl font-bold text-gray-700">{editableContact.booked_appointments}</span>
             </div>
           </CardContent>
@@ -442,11 +442,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Termine gelegt</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Termine gelegt</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
+            <div className="flex items-center text-left">
+              <TrendingUp className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-xl lg:text-2xl font-bold text-gray-700">{completedAppointments}</span>
             </div>
           </CardContent>
@@ -454,11 +454,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Zufriedenheit</CardTitle>
+            <CardTitle className="text-sm text-gray-600 text-left">Zufriedenheit</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center">
-              <User className="h-5 w-5 text-gray-600 mr-2" />
+            <div className="flex items-center text-left">
+              <User className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-xl lg:text-2xl font-bold text-gray-700">{editableContact.satisfaction}/10</span>
             </div>
           </CardContent>
@@ -469,11 +469,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg flex items-center">
+            <CardTitle className="text-lg flex items-center text-left">
               Kontaktdaten & Info
               {!isEditingContact && (
                 <Button variant="ghost" size="sm" onClick={() => setIsEditingContact(true)} className="ml-2">
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 text-red-600" />
                 </Button>
               )}
             </CardTitle>
@@ -481,36 +481,36 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent className="space-y-3">
             {isEditingContact ? (
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Firmenname:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Firmenname:</label>
                   <Input
                     value={editableContact.name}
                     onChange={(e) => setEditableContact({...editableContact, name: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Ansprechpartner:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Ansprechpartner:</label>
                   <Input
                     value={editableContact.contact}
                     onChange={(e) => setEditableContact({...editableContact, contact: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Email:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Email:</label>
                   <Input
                     value={editableContact.email}
                     onChange={(e) => setEditableContact({...editableContact, email: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Telefon:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Telefon:</label>
                   <Input
                     value={editableContact.phone}
                     onChange={(e) => setEditableContact({...editableContact, phone: e.target.value})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Priorität:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Priorität:</label>
                   <Select value={editableContact.priority} onValueChange={(value) => setEditableContact({...editableContact, priority: value})}>
                     <SelectTrigger>
                       <SelectValue />
@@ -522,8 +522,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Zahlungsstatus:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Zahlungsstatus:</label>
                   <Select value={editableContact.payment_status} onValueChange={(value) => setEditableContact({...editableContact, payment_status: value})}>
                     <SelectTrigger>
                       <SelectValue />
@@ -536,8 +536,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Status:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Status:</label>
                   <Select 
                     value={editableContact.is_active ? "aktiv" : "inaktiv"} 
                     onValueChange={(value) => setEditableContact({...editableContact, is_active: value === "aktiv"})}
@@ -551,8 +551,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Action Step:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Action Step:</label>
                   <Select value={editableContact.action_step} onValueChange={(value) => setEditableContact({...editableContact, action_step: value})}>
                     <SelectTrigger>
                       <SelectValue />
@@ -564,16 +564,16 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Termine gebucht:</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Termine gebucht:</label>
                   <Input
                     type="number"
                     value={editableContact.booked_appointments}
                     onChange={(e) => setEditableContact({...editableContact, booked_appointments: parseInt(e.target.value) || 0})}
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Zufriedenheit (1-10):</label>
+                <div className="text-left">
+                  <label className="text-sm font-medium text-left">Zufriedenheit (1-10):</label>
                   <Input
                     type="number"
                     min="1"
@@ -584,49 +584,49 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 </div>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Button onClick={saveContactData} className="flex-1">
-                    <Save className="h-4 w-4 mr-2" />
+                    <Save className="h-4 w-4 mr-2 text-white" />
                     Speichern
                   </Button>
                   <Button variant="outline" onClick={cancelEditContact} className="flex-1">
-                    <X className="h-4 w-4 mr-2" />
+                    <X className="h-4 w-4 mr-2 text-red-600" />
                     Abbrechen
                   </Button>
                 </div>
               </div>
             ) : (
-              <>
-                <div><strong>Ansprechpartner:</strong> {customer.contact}</div>
-                <div><strong>Email:</strong> {customer.email}</div>
-                <div><strong>Telefon:</strong> {customer.phone}</div>
-                <div><strong>Priorität:</strong> 
+              <div className="text-left">
+                <div className="text-left"><strong>Ansprechpartner:</strong> {customer.contact}</div>
+                <div className="text-left"><strong>Email:</strong> {customer.email}</div>
+                <div className="text-left"><strong>Telefon:</strong> {customer.phone}</div>
+                <div className="text-left"><strong>Priorität:</strong> 
                   <Badge className="ml-2 bg-gray-100 text-gray-800">{customer.priority}</Badge>
                 </div>
-                <div><strong>Zahlungsstatus:</strong> 
+                <div className="text-left"><strong>Zahlungsstatus:</strong> 
                   <Badge className="ml-2 bg-gray-100 text-gray-800">{customer.payment_status}</Badge>
                 </div>
-                <div><strong>Status:</strong> 
+                <div className="text-left"><strong>Status:</strong> 
                   <Badge className={`ml-2 ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {customer.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
-                <div><strong>Action Step:</strong> 
+                <div className="text-left"><strong>Action Step:</strong> 
                   <Badge className="ml-2 bg-blue-100 text-blue-800">
                     {actionStepOptions.find(opt => opt.value === customer.action_step)?.label || customer.action_step}
                   </Badge>
                 </div>
-                <div><strong>Zufriedenheit:</strong> 
+                <div className="text-left"><strong>Zufriedenheit:</strong> 
                   <Badge className="ml-2 bg-purple-100 text-purple-800">
                     {customer.satisfaction}/10
                   </Badge>
                 </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Notizen</CardTitle>
+            <CardTitle className="text-lg text-left">Notizen</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea 
@@ -643,8 +643,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {/* Termin-Pipeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Termin-Pipeline</CardTitle>
-          <p className="text-sm text-gray-600">Verwalten Sie die Termine per Drag & Drop</p>
+          <CardTitle className="text-lg text-left">Termin-Pipeline</CardTitle>
+          <p className="text-sm text-gray-600 text-left">Verwalten Sie die Termine per Drag & Drop</p>
         </CardHeader>
         <CardContent>
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -691,19 +691,19 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                             }}
                                             className="h-6 w-6 p-0 hover:bg-blue-100"
                                           >
-                                            <MessageSquare className="h-3 w-3 text-blue-600" />
+                                            <MessageSquare className="h-3 w-3 text-red-600" />
                                           </Button>
                                         </DialogTrigger>
                                         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                                           <DialogHeader>
-                                            <DialogTitle>Termin-Historie</DialogTitle>
+                                            <DialogTitle className="text-left">Termin-Historie</DialogTitle>
                                           </DialogHeader>
                                           <div className="space-y-4">
                                             <div className="max-h-64 overflow-y-auto space-y-2">
                                               {appointmentHistory.map((entry) => (
                                                 <div key={entry.id} className="bg-gray-50 p-3 rounded text-sm">
-                                                  <div className="font-medium">{entry.message}</div>
-                                                  <div className="text-xs text-gray-600 mt-1">
+                                                  <div className="font-medium text-left">{entry.message}</div>
+                                                  <div className="text-xs text-gray-600 mt-1 text-left">
                                                     {new Date(entry.created_at).toLocaleString('de-DE')} - {entry.created_by}
                                                   </div>
                                                 </div>
@@ -717,7 +717,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                                 onKeyPress={(e) => e.key === 'Enter' && addHistoryMessage()}
                                               />
                                               <Button size="sm" onClick={addHistoryMessage}>
-                                                <Plus className="h-4 w-4" />
+                                                <Plus className="h-4 w-4 text-white" />
                                               </Button>
                                             </div>
                                           </div>
@@ -736,17 +736,17 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                         <Trash2 className="h-3 w-3 text-red-600" />
                                       </Button>
                                     </div>
-                                    <div className="font-semibold text-sm pr-20">{appointment.type}</div>
-                                    <div className="text-xs text-gray-600">
+                                    <div className="font-semibold text-sm pr-20 text-left">{appointment.type}</div>
+                                    <div className="text-xs text-gray-600 text-left">
                                       {new Date(appointment.date).toLocaleDateString('de-DE')}
                                     </div>
                                     {appointment.team_members?.name && (
-                                      <div className="text-xs text-blue-600">
+                                      <div className="text-xs text-blue-600 text-left">
                                         👤 {appointment.team_members.name}
                                       </div>
                                     )}
                                     {appointment.description && (
-                                      <div className="text-xs text-gray-500 italic">
+                                      <div className="text-xs text-gray-500 italic text-left">
                                         {appointment.description}
                                       </div>
                                     )}
@@ -770,8 +770,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {/* Add New Revenue */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center text-gray-700">
-            <Plus className="h-5 w-5 mr-2" />
+          <CardTitle className="text-lg flex items-center text-gray-700 text-left">
+            <Plus className="h-5 w-5 mr-2 text-red-600" />
             Neue Einnahme hinzufügen
           </CardTitle>
         </CardHeader>
@@ -797,17 +797,17 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-gray-700">Letzte Einnahmen</CardTitle>
+            <CardTitle className="text-lg text-green-600 text-left">Letzte Einnahmen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {customerRevenues.slice(0, 5).map(revenue => (
-                <div key={revenue.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                  <div>
-                    <div className="font-medium text-sm">{revenue.description}</div>
-                    <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
+                <div key={revenue.id} className="flex justify-between items-center p-2 bg-green-50 border border-green-200 rounded">
+                  <div className="text-left">
+                    <div className="font-medium text-sm text-left">{revenue.description}</div>
+                    <div className="text-xs text-gray-600 text-left">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
                   </div>
-                  <span className="font-bold text-gray-700">€{revenue.amount}</span>
+                  <span className="font-bold text-green-600">€{revenue.amount}</span>
                 </div>
               ))}
             </div>
@@ -816,16 +816,16 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-gray-700">Letzte Termine</CardTitle>
+            <CardTitle className="text-lg text-blue-600 text-left">Letzte Termine</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {appointments.slice(0, 5).map(appointment => (
-                <div key={appointment.id} className="p-2 bg-gray-50 rounded">
-                  <div className="font-medium text-sm">{appointment.type}</div>
-                  <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
+                <div key={appointment.id} className="p-2 bg-gray-50 rounded text-left">
+                  <div className="font-medium text-sm text-left">{appointment.type}</div>
+                  <div className="text-xs text-gray-600 text-left">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
                   {appointment.team_members?.name && (
-                    <div className="text-xs text-blue-600">👤 {appointment.team_members.name}</div>
+                    <div className="text-xs text-blue-600 text-left">👤 {appointment.team_members.name}</div>
                   )}
                   <Badge className="text-xs mt-1 bg-gray-200 text-gray-700">{pipelineStages.find(s => s.id === appointment.result)?.name || appointment.result}</Badge>
                 </div>
