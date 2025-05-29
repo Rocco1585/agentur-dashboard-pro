@@ -11,6 +11,8 @@ import { ArrowLeft, Save, Calendar, Euro, TrendingUp, Phone, Mail, User, Clock, 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { PipelineColumn } from './PipelineColumn';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 export interface CustomerDetailProps {
   customer: any;
@@ -46,10 +48,25 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
   const fetchCustomerData = async () => {
     try {
-      // Fetch appointments for this customer
+      // Fetch appointments for this customer with all related data
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          *,
+          customers (
+            id,
+            name,
+            email,
+            phone,
+            contact,
+            priority,
+            payment_status,
+            satisfaction,
+            booked_appointments,
+            completed_appointments,
+            pipeline_stage
+          )
+        `)
         .eq('customer_id', customer.id)
         .order('date', { ascending: false });
 
@@ -69,8 +86,8 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
       // Calculate stats
       const totalRevenue = (revenuesData || []).reduce((sum, revenue) => sum + Number(revenue.amount), 0);
       const totalAppointments = (appointmentsData || []).length;
-      const completedAppointments = (appointmentsData || []).filter(apt => apt.result === 'Abgeschlossen').length;
-      const pendingAppointments = (appointmentsData || []).filter(apt => apt.result === 'Geplant').length;
+      const completedAppointments = (appointmentsData || []).filter(apt => apt.result === 'termin_abgeschlossen').length;
+      const pendingAppointments = (appointmentsData || []).filter(apt => apt.result === 'termin_ausstehend').length;
 
       setCustomerStats({
         totalRevenue,
@@ -124,14 +141,57 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
     }
   };
 
+  const handleDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const newStatus = destination.droppableId;
+    
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ result: newStatus })
+        .eq('id', draggableId);
+
+      if (error) throw error;
+
+      // Update local state
+      setAppointments(prev => prev.map(appointment => 
+        appointment.id === draggableId 
+          ? { ...appointment, result: newStatus }
+          : appointment
+      ));
+
+      toast({
+        title: "Status aktualisiert",
+        description: "Der Terminstatus wurde erfolgreich geändert.",
+      });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        title: "Fehler",
+        description: "Status konnte nicht aktualisiert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Abgeschlossen':
+      case 'termin_abgeschlossen':
         return 'bg-green-100 text-green-800';
-      case 'Geplant':
+      case 'termin_ausstehend':
         return 'bg-blue-100 text-blue-800';
-      case 'Storniert':
+      case 'termin_erschienen':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'follow_up':
+        return 'bg-purple-100 text-purple-800';
+      case 'termin_abgesagt':
         return 'bg-red-100 text-red-800';
+      case 'termin_verschoben':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -149,6 +209,55 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Group appointments by status for pipeline view
+  const appointmentsByStatus = {
+    'termin_ausstehend': appointments.filter(apt => apt.result === 'termin_ausstehend'),
+    'termin_erschienen': appointments.filter(apt => apt.result === 'termin_erschienen'),
+    'termin_abgeschlossen': appointments.filter(apt => apt.result === 'termin_abgeschlossen'),
+    'follow_up': appointments.filter(apt => apt.result === 'follow_up'),
+    'termin_abgesagt': appointments.filter(apt => apt.result === 'termin_abgesagt'),
+    'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
+  };
+
+  const pipelineColumns = [
+    { 
+      id: 'termin_ausstehend', 
+      title: 'Termin Ausstehend', 
+      color: 'bg-blue-600',
+      appointments: appointmentsByStatus.termin_ausstehend
+    },
+    { 
+      id: 'termin_erschienen', 
+      title: 'Termin Erschienen', 
+      color: 'bg-yellow-600',
+      appointments: appointmentsByStatus.termin_erschienen
+    },
+    { 
+      id: 'termin_abgeschlossen', 
+      title: 'Termin Abgeschlossen', 
+      color: 'bg-green-600',
+      appointments: appointmentsByStatus.termin_abgeschlossen
+    },
+    { 
+      id: 'follow_up', 
+      title: 'Follow Up', 
+      color: 'bg-purple-600',
+      appointments: appointmentsByStatus.follow_up
+    },
+    { 
+      id: 'termin_abgesagt', 
+      title: 'Termin Abgesagt', 
+      color: 'bg-red-600',
+      appointments: appointmentsByStatus.termin_abgesagt
+    },
+    { 
+      id: 'termin_verschoben', 
+      title: 'Termin Verschoben', 
+      color: 'bg-orange-600',
+      appointments: appointmentsByStatus.termin_verschoben
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -215,7 +324,7 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
           <TabsTrigger value="details">Kundendetails</TabsTrigger>
           <TabsTrigger value="appointments">Termine ({appointments.length})</TabsTrigger>
           <TabsTrigger value="revenues">Einnahmen ({revenues.length})</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="pipeline">Termin Pipeline</TabsTrigger>
         </TabsList>
         
         <TabsContent value="details">
@@ -326,14 +435,15 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
                         <div>
                           <h4 className="font-medium">{appointment.type}</h4>
                           <p className="text-sm text-gray-600">
-                            {new Date(appointment.date).toLocaleDateString('de-DE')} um {appointment.time}
+                            {new Date(appointment.date).toLocaleDateString('de-DE')} 
+                            {appointment.time && ` um ${appointment.time}`}
                           </p>
-                          {appointment.notes && (
-                            <p className="text-sm mt-2">{appointment.notes}</p>
+                          {appointment.description && (
+                            <p className="text-sm mt-2">{appointment.description}</p>
                           )}
                         </div>
                         <Badge className={getStatusColor(appointment.result)}>
-                          {appointment.result}
+                          {appointment.result.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </Badge>
                       </div>
                     </div>
@@ -383,48 +493,26 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         <TabsContent value="pipeline">
           <Card>
             <CardHeader>
-              <CardTitle>Kunden-Pipeline</CardTitle>
+              <CardTitle>Termin Pipeline - {customer.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <h4 className="font-medium text-blue-800">Lead</h4>
-                  <p className="text-sm text-blue-600 mt-2">
-                    Priorität: <Badge className={getPriorityColor(customer.priority)}>{customer.priority}</Badge>
-                  </p>
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <div className="flex gap-6 overflow-x-auto pb-4">
+                  {pipelineColumns.map((column) => (
+                    <PipelineColumn
+                      key={column.id}
+                      title={column.title}
+                      stageId={column.id}
+                      customers={column.appointments}
+                      color={column.color}
+                      onCustomerClick={(appointment) => {
+                        // Optional: Handle appointment click in pipeline
+                        console.log('Appointment clicked:', appointment);
+                      }}
+                    />
+                  ))}
                 </div>
-                <div className="p-4 bg-yellow-50 rounded-lg">
-                  <h4 className="font-medium text-yellow-800">In Bearbeitung</h4>
-                  <p className="text-sm text-yellow-600 mt-2">
-                    Offene Termine: {customerStats.pendingAppointments}
-                  </p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <h4 className="font-medium text-green-800">Kunde</h4>
-                  <p className="text-sm text-green-600 mt-2">
-                    Zahlungsstatus: <Badge className={formData.payment_status === 'Bezahlt' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                      {formData.payment_status}
-                    </Badge>
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <h5 className="font-medium mb-3">Kundenhistorie</h5>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span>Kunde erstellt: {new Date(customer.created_at).toLocaleDateString('de-DE')}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <TrendingUp className="h-4 w-4 text-gray-500" />
-                    <span>Zufriedenheit: {customer.satisfaction}/10</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    <span>Termine gebucht: {customer.booked_appointments || 0}</span>
-                  </div>
-                </div>
-              </div>
+              </DragDropContext>
             </CardContent>
           </Card>
         </TabsContent>
