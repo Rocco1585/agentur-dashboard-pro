@@ -1,188 +1,84 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Eye, Phone, Mail, Calendar, Euro, TrendingUp } from "lucide-react";
-import { TeamMemberDetail } from "./TeamMemberDetail";
+import { Plus, Users, Calendar, Euro, TrendingUp, User, Phone, Mail, Edit, Save, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useTeamMembers } from '@/hooks/useSupabaseData';
+import { TeamMemberDetail } from './TeamMemberDetail';
 
 export function TeamMembers() {
-  const [selectedRole, setSelectedRole] = useState('all');
+  const { teamMembers, loading, addTeamMember } = useTeamMembers();
   const [selectedMember, setSelectedMember] = useState<any>(null);
-  const [showNewMemberDialog, setShowNewMemberDialog] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
     phone: '',
-    position: 'Mitarbeiter',
-    performance: 5
+    role: '',
+    payouts: 0
   });
 
-  // Beispiel-Kunden für TeamMemberDetail
-  const customers = [
-    { id: 1, name: 'ABC GmbH' },
-    { id: 2, name: 'XYZ Corp' },
-    { id: 3, name: 'DEF AG' },
-  ];
-
-  const roles = [
-    'In Bewerbung TikTok',
-    'In Bewerbung Vertrieb',
-    'TikTok Poster',
-    'Vertriebsagentur opening chat',
-    'Vertriebsagentur opening telefon',
-    'Vertriebsagentur ff telefon',
-    'Vertriebsagentur setting b2c',
-    'Vertriebsagentur closing b2c',
-    'Vertriebsagentur setting b2b',
-    'Vertriebsagentur closing b2b',
-    'Manager'
-  ];
-
-  const [teamMembers, setTeamMembers] = useState([
-    {
-      id: 1,
-      name: 'Max Mustermann',
-      email: 'max@vertrieb.de',
-      phone: '+49 123 456789',
-      position: 'Vertriebsagentur closing b2c',
-      performance: 9,
-      earnings: 4500,
-      appointmentsSet: 24,
-      successRate: 85,
-      startDate: '01.03.2024',
-      avatar: 'MM'
-    },
-    {
-      id: 2,
-      name: 'Lisa Schmidt',
-      email: 'lisa@vertrieb.de',
-      phone: '+49 987 654321',
-      position: 'Vertriebsagentur setting b2c',
-      performance: 8,
-      earnings: 3200,
-      appointmentsSet: 18,
-      successRate: 78,
-      startDate: '15.05.2024',
-      avatar: 'LS'
-    },
-    {
-      id: 3,
-      name: 'Tom Weber',
-      email: 'tom@vertrieb.de',
-      phone: '+49 555 123456',
-      position: 'TikTok Poster',
-      performance: 7,
-      earnings: 2800,
-      appointmentsSet: 0,
-      successRate: 0,
-      startDate: '10.08.2024',
-      avatar: 'TW'
-    },
-    {
-      id: 4,
-      name: 'Sarah Johnson',
-      email: 'sarah@vertrieb.de',
-      phone: '+49 444 789123',
-      position: 'Manager',
-      performance: 10,
-      earnings: 6500,
-      appointmentsSet: 0,
-      successRate: 95,
-      startDate: '01.01.2024',
-      avatar: 'SJ'
-    }
-  ]);
-
-  const addMember = () => {
-    if (newMember.name && newMember.email && newMember.phone) {
-      const member = {
-        id: Date.now(),
-        ...newMember,
-        earnings: 0,
-        appointmentsSet: 0,
-        successRate: 0,
-        startDate: new Date().toLocaleDateString('de-DE'),
-        avatar: newMember.name.split(' ').map(n => n[0]).join('').toUpperCase()
-      };
-      setTeamMembers(prev => [...prev, member]);
-      setNewMember({
-        name: '',
-        email: '',
-        phone: '',
-        position: 'Mitarbeiter',
-        performance: 5
-      });
-      setShowNewMemberDialog(false);
-      toast({
-        title: "Teammitglied hinzugefügt",
-        description: `${member.name} wurde erfolgreich hinzugefügt.`,
-      });
+  const handleAddMember = async () => {
+    if (newMember.name && newMember.email) {
+      await addTeamMember(newMember);
+      setNewMember({ name: '', email: '', phone: '', role: '', payouts: 0 });
+      setShowAddForm(false);
     }
   };
 
-  const getPerformanceColor = (performance: number) => {
-    if (performance >= 8) return 'bg-green-100 text-green-800';
-    if (performance >= 6) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  const getPositionColor = (position: string) => {
-    if (position.includes('Manager')) return 'bg-purple-100 text-purple-800';
-    if (position.includes('closing')) return 'bg-green-100 text-green-800';
-    if (position.includes('setting')) return 'bg-blue-100 text-blue-800';
-    if (position.includes('opening')) return 'bg-yellow-100 text-yellow-800';
-    if (position.includes('TikTok')) return 'bg-pink-100 text-pink-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
-  const filteredMembers = selectedRole === 'all' 
-    ? teamMembers 
-    : teamMembers.filter(member => member.position === selectedRole);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Lade Teammitglieder...</div>
+      </div>
+    );
+  }
 
   if (selectedMember) {
     return (
       <TeamMemberDetail
         member={selectedMember}
-        customers={customers}
         onBack={() => setSelectedMember(null)}
+        onUpdate={(updatedMember) => setSelectedMember(updatedMember)}
       />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Users className="h-8 w-8 mr-3 text-blue-600" />
-            Teammitglieder
-          </h1>
-          <p className="text-gray-600">Verwalten Sie Ihr Team und deren Performance.</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Teammitglieder</h1>
+          <p className="text-gray-600">Verwalten Sie Ihr Team</p>
         </div>
-        <Dialog open={showNewMemberDialog} onOpenChange={setShowNewMemberDialog}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center">
-              <Plus className="h-4 w-4 mr-2" />
-              Neues Teammitglied
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Neues Teammitglied hinzufügen</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
+        <Button 
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="w-full sm:w-auto"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Teammitglied hinzufügen
+        </Button>
+      </div>
+
+      {/* Add Team Member Form */}
+      {showAddForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Neues Teammitglied hinzufügen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 placeholder="Name"
                 value={newMember.name}
                 onChange={(e) => setNewMember({...newMember, name: e.target.value})}
               />
               <Input
-                placeholder="E-Mail"
+                placeholder="Email"
                 type="email"
                 value={newMember.email}
                 onChange={(e) => setNewMember({...newMember, email: e.target.value})}
@@ -192,184 +88,116 @@ export function TeamMembers() {
                 value={newMember.phone}
                 onChange={(e) => setNewMember({...newMember, phone: e.target.value})}
               />
-              <Select value={newMember.position} onValueChange={(value) => setNewMember({...newMember, position: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Position auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div>
-                <label className="text-sm font-medium">Performance (1-10)</label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={newMember.performance}
-                  onChange={(e) => setNewMember({...newMember, performance: parseInt(e.target.value) || 5})}
-                />
-              </div>
-              <Button onClick={addMember} className="w-full">
-                Teammitglied hinzufügen
+              <Input
+                placeholder="Rolle"
+                value={newMember.role}
+                onChange={(e) => setNewMember({...newMember, role: e.target.value})}
+              />
+              <Input
+                placeholder="Auszahlungen (€)"
+                type="number"
+                value={newMember.payouts}
+                onChange={(e) => setNewMember({...newMember, payouts: parseFloat(e.target.value) || 0})}
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 mt-4">
+              <Button onClick={handleAddMember} className="flex-1">
+                <Save className="h-4 w-4 mr-2" />
+                Hinzufügen
+              </Button>
+              <Button variant="outline" onClick={() => setShowAddForm(false)} className="flex-1">
+                <X className="h-4 w-4 mr-2" />
+                Abbrechen
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Filter */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            <label className="text-sm font-medium text-gray-700">Filter nach Position:</label>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-80">
-                <SelectValue placeholder="Alle Positionen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Alle Positionen</SelectItem>
-                {roles.map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Team Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Gesamtes Team</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{teamMembers.length}</div>
-            <p className="text-xs text-gray-500">Teammitglieder</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Gesamteinnahmen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Euro className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-green-600">
-                €{teamMembers.reduce((sum, member) => sum + member.earnings, 0)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Termine gesetzt</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-blue-600">
-                {teamMembers.reduce((sum, member) => sum + member.appointmentsSet, 0)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Durchschnittliche Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
-              <span className="text-2xl font-bold text-purple-600">
-                {Math.round(teamMembers.reduce((sum, member) => sum + member.performance, 0) / teamMembers.length)}/10
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Team Members Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMembers.map((member) => (
-          <Card key={member.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold">{member.avatar}</span>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-gray-900">
-                      {member.name}
-                    </CardTitle>
-                    <p className="text-sm text-gray-600">{member.email}</p>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setSelectedMember(member)}>
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </div>
+      {/* Team Members Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+        {teamMembers.map((member) => (
+          <Card 
+            key={member.id} 
+            className="hover:shadow-lg transition-shadow cursor-pointer"
+            onClick={() => setSelectedMember(member)}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center">
+                <User className="h-5 w-5 mr-2 text-blue-600" />
+                <span className="truncate">{member.name}</span>
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Contact Info */}
+            <CardContent className="space-y-3">
               <div className="space-y-2">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="h-4 w-4 mr-2" />
-                  {member.phone}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Seit: {member.startDate}
-                </div>
-              </div>
-
-              {/* Position & Performance */}
-              <div className="space-y-2">
-                <Badge className={getPositionColor(member.position)}>
-                  {member.position}
-                </Badge>
-                <Badge className={getPerformanceColor(member.performance)}>
-                  Performance: {member.performance}/10
-                </Badge>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Einnahmen:</span>
-                  <div className="font-semibold text-green-600">€{member.earnings}</div>
-                </div>
-                <div>
-                  <span className="text-gray-500">Termine gesetzt:</span>
-                  <div className="font-semibold">{member.appointmentsSet}</div>
-                </div>
-              </div>
-
-              {/* Success Rate */}
-              {member.successRate > 0 && (
-                <div>
-                  <span className="text-sm text-gray-500">Erfolgsrate:</span>
-                  <div className="flex items-center mt-1">
-                    <div className="text-lg font-bold text-blue-600">{member.successRate}%</div>
-                    <div className="ml-2 flex-1 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${member.successRate}%` }}
-                      ></div>
-                    </div>
+                {member.email && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">{member.email}</span>
                   </div>
+                )}
+                {member.phone && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Phone className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">{member.phone}</span>
+                  </div>
+                )}
+                {member.role && (
+                  <div className="flex items-center text-sm">
+                    <Badge className="bg-blue-100 text-blue-800 text-xs">
+                      {member.role}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t">
+                <div className="text-center">
+                  <div className="flex items-center justify-center">
+                    <Calendar className="h-4 w-4 text-gray-600 mr-1" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-700">{member.appointment_count || 0}</div>
+                  <div className="text-xs text-gray-600">Termine</div>
                 </div>
-              )}
+                <div className="text-center">
+                  <div className="flex items-center justify-center">
+                    <Euro className="h-4 w-4 text-gray-600 mr-1" />
+                  </div>
+                  <div className="text-lg font-bold text-gray-700">€{member.payouts || 0}</div>
+                  <div className="text-xs text-gray-600">Auszahlung</div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Badge 
+                  className={`w-full justify-center ${
+                    member.performance === 'Ausgezeichnet' ? 'bg-green-100 text-green-800' :
+                    member.performance === 'Gut' ? 'bg-blue-100 text-blue-800' :
+                    member.performance === 'Durchschnittlich' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  {member.performance || 'Neu'}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {teamMembers.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teammitglieder</h3>
+            <p className="text-gray-600 mb-4">Fügen Sie Ihr erstes Teammitglied hinzu, um zu beginnen.</p>
+            <Button onClick={() => setShowAddForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Teammitglied hinzufügen
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +51,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   const [appointmentHistory, setAppointmentHistory] = useState<any[]>([]);
   const [newHistoryMessage, setNewHistoryMessage] = useState('');
   const [editingAppointment, setEditingAppointment] = useState<any>(null);
+  const [teamNotice, setTeamNotice] = useState('');
+  const [showTeamNotice, setShowTeamNotice] = useState(false);
 
   const pipelineStages = [
     { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-400' },
@@ -86,12 +87,33 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         satisfaction: customer.satisfaction || 5
       });
       fetchCustomerData();
+      fetchTeamNotice();
     }
   }, [customer]);
 
+  const fetchTeamNotice = async () => {
+    try {
+      const { data: noticeData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'team_notice')
+        .single();
+      
+      const { data: showData } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'show_team_notice')
+        .single();
+      
+      if (noticeData) setTeamNotice(noticeData.value);
+      if (showData) setShowTeamNotice(showData.value === 'true');
+    } catch (error) {
+      console.log('No team notice settings found');
+    }
+  };
+
   const fetchCustomerData = async () => {
     try {
-      // Fetch revenues for this customer
       const { data: revenueData } = await supabase
         .from('revenues')
         .select('*')
@@ -100,7 +122,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       
       setCustomerRevenues(revenueData || []);
 
-      // Fetch appointments for this customer with team member info
       const { data: appointmentData } = await supabase
         .from('appointments')
         .select(`
@@ -112,19 +133,16 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       
       setAppointments(appointmentData || []);
 
-      // Calculate completed appointments automatically based on pipeline stages
       const completedCount = (appointmentData || []).filter(app => 
         ['termin_abgeschlossen', 'follow_up'].includes(app.result)
       ).length;
 
-      // Update the customer's completed_appointments in the database
       if (completedCount !== customer.completed_appointments) {
         await supabase
           .from('customers')
           .update({ completed_appointments: completedCount })
           .eq('id', customer.id);
         
-        // Update local state
         const updatedCustomer = { ...customer, completed_appointments: completedCount };
         onUpdate(updatedCustomer);
       }
@@ -159,7 +177,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         .insert({
           appointment_id: selectedAppointment.id,
           message: newHistoryMessage.trim(),
-          created_by: 'Current User' // In a real app, this would be the logged-in user
+          created_by: 'Current User'
         });
 
       if (error) throw error;
@@ -199,7 +217,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
       if (error) throw error;
       
-      fetchCustomerData(); // This will recalculate completed appointments
+      fetchCustomerData();
       
       toast({
         title: "Termin aktualisiert",
@@ -224,7 +242,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
       if (error) throw error;
       
-      fetchCustomerData(); // This will recalculate completed appointments
+      fetchCustomerData();
       
       toast({
         title: "Termin gelöscht",
@@ -360,7 +378,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         if (error) throw error;
         
-        // Update team member appointment count if assigned
         if (newAppointment.team_member_id) {
           await supabase
             .from('team_members')
@@ -405,7 +422,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   ).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4">
       <div className="flex items-center space-x-4">
         <Button variant="outline" onClick={onBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -417,8 +434,23 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         </div>
       </div>
 
+      {/* Team Notice */}
+      {showTeamNotice && teamNotice && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-start">
+              <MessageSquare className="h-5 w-5 text-green-600 mr-2 mt-1 flex-shrink-0" />
+              <div>
+                <h4 className="font-semibold text-green-800 mb-1">Team-Notiz</h4>
+                <p className="text-green-700 text-sm whitespace-pre-wrap">{teamNotice}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Customer Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Gesamtumsatz</CardTitle>
@@ -426,7 +458,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <Euro className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">€{totalRevenue}</span>
+              <span className="text-xl lg:text-2xl font-bold text-gray-700">€{totalRevenue}</span>
             </div>
           </CardContent>
         </Card>
@@ -438,7 +470,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <Calendar className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{editableContact.booked_appointments}</span>
+              <span className="text-xl lg:text-2xl font-bold text-gray-700">{editableContact.booked_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -450,7 +482,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{completedAppointments}</span>
+              <span className="text-xl lg:text-2xl font-bold text-gray-700">{completedAppointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -462,14 +494,14 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <User className="h-5 w-5 text-gray-600 mr-2" />
-              <span className="text-2xl font-bold text-gray-700">{editableContact.satisfaction}/10</span>
+              <span className="text-xl lg:text-2xl font-bold text-gray-700">{editableContact.satisfaction}/10</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Customer Info */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
@@ -585,12 +617,12 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     onChange={(e) => setEditableContact({...editableContact, satisfaction: parseInt(e.target.value) || 5})}
                   />
                 </div>
-                <div className="flex space-x-2">
-                  <Button onClick={saveContactData}>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                  <Button onClick={saveContactData} className="flex-1">
                     <Save className="h-4 w-4 mr-2" />
                     Speichern
                   </Button>
-                  <Button variant="outline" onClick={cancelEditContact}>
+                  <Button variant="outline" onClick={cancelEditContact} className="flex-1">
                     <X className="h-4 w-4 mr-2" />
                     Abbrechen
                   </Button>
@@ -638,7 +670,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               className="min-h-[120px]"
               placeholder="Notizen über den Kunden..."
             />
-            <Button className="mt-2" onClick={saveNotes}>Notizen speichern</Button>
+            <Button className="mt-2 w-full sm:w-auto" onClick={saveNotes}>Notizen speichern</Button>
           </CardContent>
         </Card>
       </div>
@@ -652,7 +684,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               placeholder="Firma"
               value={newAppointment.company}
@@ -673,20 +705,23 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               value={newAppointment.date}
               onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
             />
-            <Select value={newAppointment.team_member_id} onValueChange={(value) => setNewAppointment({...newAppointment, team_member_id: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Teammitglied zuweisen" />
-              </SelectTrigger>
-              <SelectContent>
-                {teamMembers.map(member => (
-                  <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="sm:col-span-2">
+              <Select value={newAppointment.team_member_id} onValueChange={(value) => setNewAppointment({...newAppointment, team_member_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Teammitglied zuweisen" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map(member => (
+                    <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Input
               placeholder="Beschreibung (optional)"
               value={newAppointment.description}
               onChange={(e) => setNewAppointment({...newAppointment, description: e.target.value})}
+              className="sm:col-span-2"
             />
           </div>
           <div className="mt-4">
@@ -697,7 +732,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               className="min-h-[80px]"
             />
           </div>
-          <Button onClick={handleAddAppointment} className="mt-4">Hinzufügen</Button>
+          <Button onClick={handleAddAppointment} className="mt-4 w-full sm:w-auto">Hinzufügen</Button>
         </CardContent>
       </Card>
 
@@ -755,7 +790,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                             <MessageSquare className="h-3 w-3 text-blue-600" />
                                           </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="max-w-md">
+                                        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
                                           <DialogHeader>
                                             <DialogTitle>Termin-Historie</DialogTitle>
                                           </DialogHeader>
@@ -785,17 +820,87 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                         </DialogContent>
                                       </Dialog>
                                       
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingAppointment(appointment);
-                                        }}
-                                        className="h-6 w-6 p-0 hover:bg-blue-100"
-                                      >
-                                        <Edit className="h-3 w-3 text-blue-600" />
-                                      </Button>
+                                      <Dialog>
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setEditingAppointment({...appointment});
+                                            }}
+                                            className="h-6 w-6 p-0 hover:bg-blue-100"
+                                          >
+                                            <Edit className="h-3 w-3 text-blue-600" />
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                                          <DialogHeader>
+                                            <DialogTitle>Termin bearbeiten</DialogTitle>
+                                          </DialogHeader>
+                                          {editingAppointment && (
+                                            <div className="space-y-4">
+                                              <div>
+                                                <label className="text-sm font-medium">Termin-Typ:</label>
+                                                <Input
+                                                  value={editingAppointment.type}
+                                                  onChange={(e) => setEditingAppointment({...editingAppointment, type: e.target.value})}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="text-sm font-medium">Datum:</label>
+                                                <Input
+                                                  type="date"
+                                                  value={editingAppointment.date}
+                                                  onChange={(e) => setEditingAppointment({...editingAppointment, date: e.target.value})}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="text-sm font-medium">Teammitglied:</label>
+                                                <Select 
+                                                  value={editingAppointment.team_member_id || ""} 
+                                                  onValueChange={(value) => setEditingAppointment({...editingAppointment, team_member_id: value})}
+                                                >
+                                                  <SelectTrigger>
+                                                    <SelectValue placeholder="Teammitglied zuweisen" />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="">Kein Teammitglied</SelectItem>
+                                                    {teamMembers.map(member => (
+                                                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                                                    ))}
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                              <div>
+                                                <label className="text-sm font-medium">Beschreibung:</label>
+                                                <Input
+                                                  value={editingAppointment.description || ""}
+                                                  onChange={(e) => setEditingAppointment({...editingAppointment, description: e.target.value})}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="text-sm font-medium">Notizen:</label>
+                                                <Textarea
+                                                  value={editingAppointment.notes || ""}
+                                                  onChange={(e) => setEditingAppointment({...editingAppointment, notes: e.target.value})}
+                                                  className="min-h-[100px]"
+                                                />
+                                              </div>
+                                              
+                                              <div className="flex gap-2">
+                                                <Button onClick={saveAppointmentChanges} className="flex-1">
+                                                  <Save className="h-4 w-4 mr-2" />
+                                                  Speichern
+                                                </Button>
+                                                <Button variant="outline" onClick={() => setEditingAppointment(null)} className="flex-1">
+                                                  Abbrechen
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </DialogContent>
+                                      </Dialog>
                                       
                                       <Button
                                         variant="ghost"
@@ -840,75 +945,6 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         </CardContent>
       </Card>
 
-      {/* Edit Appointment Dialog */}
-      {editingAppointment && (
-        <Dialog open={!!editingAppointment} onOpenChange={() => setEditingAppointment(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Termin bearbeiten</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Termin-Typ:</label>
-                <Input
-                  value={editingAppointment.type}
-                  onChange={(e) => setEditingAppointment({...editingAppointment, type: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Datum:</label>
-                <Input
-                  type="date"
-                  value={editingAppointment.date}
-                  onChange={(e) => setEditingAppointment({...editingAppointment, date: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Teammitglied:</label>
-                <Select 
-                  value={editingAppointment.team_member_id || ""} 
-                  onValueChange={(value) => setEditingAppointment({...editingAppointment, team_member_id: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Teammitglied zuweisen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Kein Teammitglied</SelectItem>
-                    {teamMembers.map(member => (
-                      <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Beschreibung:</label>
-                <Input
-                  value={editingAppointment.description || ""}
-                  onChange={(e) => setEditingAppointment({...editingAppointment, description: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Notizen:</label>
-                <Textarea
-                  value={editingAppointment.notes || ""}
-                  onChange={(e) => setEditingAppointment({...editingAppointment, notes: e.target.value})}
-                  className="min-h-[100px]"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button onClick={saveAppointmentChanges}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Speichern
-                </Button>
-                <Button variant="outline" onClick={() => setEditingAppointment(null)}>
-                  Abbrechen
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
       {/* Add New Revenue */}
       <Card>
         <CardHeader>
@@ -918,7 +954,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Input
               placeholder="Beschreibung"
               value={newRevenue.description}
@@ -930,7 +966,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               value={newRevenue.amount}
               onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
             />
-            <Button onClick={handleAddRevenue}>Hinzufügen</Button>
+            <Button onClick={handleAddRevenue} className="w-full">Hinzufügen</Button>
           </div>
         </CardContent>
       </Card>
