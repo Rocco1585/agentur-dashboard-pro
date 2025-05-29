@@ -12,6 +12,7 @@ import { Settings } from "@/components/Settings";
 import { ToDos } from "@/components/ToDos";
 import { HotLeads } from "@/components/HotLeads";
 import { CreateAppointment } from "@/components/CreateAppointment";
+import { AuditLogs } from "@/components/AuditLogs";
 import NotFound from "@/pages/NotFound";
 import "./App.css";
 
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/revenue" element={<Revenue />} />
                 <Route path="/todos" element={<ToDos />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/audit-logs" element={<AuditLogs />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

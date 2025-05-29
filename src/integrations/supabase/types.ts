@@ -102,6 +102,53 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          record_id: string | null
+          table_name: string
+          timestamp: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          record_id?: string | null
+          table_name?: string
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           action_step: string | null
@@ -291,12 +338,16 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_active: boolean | null
+          last_login: string | null
           name: string
+          password_hash: string | null
           payouts: number | null
           performance: string | null
           phone: string | null
           role: string | null
           updated_at: string
+          user_role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
           active_since?: string | null
@@ -304,12 +355,16 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login?: string | null
           name: string
+          password_hash?: string | null
           payouts?: number | null
           performance?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string
+          user_role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
           active_since?: string | null
@@ -317,12 +372,16 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login?: string | null
           name?: string
+          password_hash?: string | null
           payouts?: number | null
           performance?: string | null
           phone?: string | null
           role?: string | null
           updated_at?: string
+          user_role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: []
       }
@@ -361,10 +420,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_admin_role: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -479,6 +541,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "member"],
+    },
   },
 } as const
