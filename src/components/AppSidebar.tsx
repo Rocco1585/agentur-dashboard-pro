@@ -1,5 +1,18 @@
 
 import {
+  Calendar,
+  CheckSquare,
+  Euro,
+  Home,
+  Settings,
+  TrendingUp,
+  Users,
+  Flame,
+  Plus,
+} from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
+
+import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -8,86 +21,72 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
-} from "@/components/ui/sidebar";
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  Users, 
-  Flame, 
-  UserCheck, 
-  Settings,
-  CheckSquare
-} from "lucide-react";
+} from "@/components/ui/sidebar"
 
-interface AppSidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-const menuItems = [
+// Menu items.
+const items = [
   {
     title: "Dashboard",
-    icon: LayoutDashboard,
-    id: "dashboard",
-  },
-  {
-    title: "Einnahmen",
-    icon: TrendingUp,
-    id: "revenue",
+    url: "/",
+    icon: Home,
   },
   {
     title: "Kunden",
+    url: "/customers",
     icon: Users,
-    id: "customers",
   },
   {
     title: "Hot Leads",
+    url: "/hot-leads",
     icon: Flame,
-    id: "hot-leads",
+  },
+  {
+    title: "Termin erstellen",
+    url: "/create-appointment",
+    icon: Plus,
   },
   {
     title: "Teammitglieder",
-    icon: UserCheck,
-    id: "team",
+    url: "/team-members",
+    icon: Users,
+  },
+  {
+    title: "Einnahmen",
+    url: "/revenue",
+    icon: Euro,
   },
   {
     title: "ToDos",
+    url: "/todos",
     icon: CheckSquare,
-    id: "todos",
   },
   {
     title: "Einstellungen",
+    url: "/settings",
     icon: Settings,
-    id: "settings",
   },
-];
+]
 
-export function AppSidebar({ activeTab, setActiveTab }: AppSidebarProps) {
+export function AppSidebar() {
+  const location = useLocation()
+
   return (
-    <Sidebar className="border-r border-gray-200">
-      <SidebarHeader className="px-6 py-4">
-        <h2 className="text-xl font-bold text-gray-900">Vertriebs Dashboard</h2>
-      </SidebarHeader>
+    <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-sm font-medium text-gray-500 uppercase tracking-wider">
-            Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="px-3">
+          <SidebarGroupLabel>CRM Dashboard</SidebarGroupLabel>
+          <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
+              {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    onClick={() => setActiveTab(item.id)}
-                    className={`w-full justify-start px-3 py-2 rounded-md transition-colors ${
-                      activeTab === item.id 
-                        ? 'bg-blue-100 text-blue-700 font-medium' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    asChild 
+                    isActive={location.pathname === item.url}
                   >
-                    <item.icon className="h-5 w-5 mr-3" />
-                    <span>{item.title}</span>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -96,5 +95,5 @@ export function AppSidebar({ activeTab, setActiveTab }: AppSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  );
+  )
 }

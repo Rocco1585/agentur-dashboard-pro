@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Euro, TrendingUp, TrendingDown, User, Edit, Save, X } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
+import { useTeamMembers } from '@/hooks/useSupabaseData';
 
 interface TeamMemberDetailProps {
   member: any;
@@ -17,6 +18,7 @@ interface TeamMemberDetailProps {
 }
 
 export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMemberDetailProps) {
+  const { updateTeamMember } = useTeamMembers();
   const [earnings, setEarnings] = useState([
     { id: 1, customer: 'ABC GmbH', amount: 500, date: '15.01.2025', type: 'Provision' },
     { id: 2, customer: 'XYZ Corp', amount: 300, date: '12.01.2025', type: 'Bonus' },
@@ -62,20 +64,39 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     }
   };
 
-  const saveContactData = () => {
-    // Hier würde normalerweise eine API-Anfrage gemacht werden
-    console.log('Kontaktdaten gespeichert:', editableData);
-    const updatedMember = { ...member, ...editableData };
-    onUpdate(updatedMember);
-    setIsEditingContact(false);
+  const saveContactData = async () => {
+    try {
+      const updates = {
+        email: editableData.email,
+        phone: editableData.phone,
+        role: editableData.position,
+        active_since: editableData.startDate
+      };
+      
+      const updatedMember = await updateTeamMember(member.id, updates);
+      if (updatedMember) {
+        onUpdate(updatedMember);
+        setIsEditingContact(false);
+      }
+    } catch (error) {
+      console.error('Error saving contact data:', error);
+    }
   };
 
-  const savePerformance = () => {
-    // Hier würde normalerweise eine API-Anfrage gemacht werden
-    console.log('Performance gespeichert:', editableData.performance);
-    const updatedMember = { ...member, performance: editableData.performance };
-    onUpdate(updatedMember);
-    setIsEditingPerformance(false);
+  const savePerformance = async () => {
+    try {
+      const updates = {
+        performance: editableData.performance
+      };
+      
+      const updatedMember = await updateTeamMember(member.id, updates);
+      if (updatedMember) {
+        onUpdate(updatedMember);
+        setIsEditingPerformance(false);
+      }
+    } catch (error) {
+      console.error('Error saving performance:', error);
+    }
   };
 
   const cancelEdit = () => {
@@ -92,7 +113,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
   const totalEarnings = earnings.reduce((sum, earning) => sum + earning.amount, 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const pendingPayout = Math.max(0, totalEarnings - totalExpenses); // Ausstehende Auszahlungen
 
   const positions = [
     'Einlernphase',
@@ -122,7 +142,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       </div>
 
       {/* Member Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600">Gesamteinnahmen</CardTitle>
@@ -143,18 +163,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
             <div className="flex items-center">
               <TrendingDown className="h-5 w-5 text-red-600 mr-2" />
               <span className="text-2xl font-bold text-red-600">€{totalExpenses}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Ausstehende Auszahlung</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Euro className="h-5 w-5 text-orange-600 mr-2" />
-              <span className="text-2xl font-bold text-orange-600">€{pendingPayout}</span>
             </div>
           </CardContent>
         </Card>

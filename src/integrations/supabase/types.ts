@@ -59,7 +59,7 @@ export type Database = {
           description: string | null
           id: string
           notes: string | null
-          result: string | null
+          result: string
           team_member_id: string | null
           type: string
         }
@@ -70,7 +70,7 @@ export type Database = {
           description?: string | null
           id?: string
           notes?: string | null
-          result?: string | null
+          result?: string
           team_member_id?: string | null
           type: string
         }
@@ -81,7 +81,7 @@ export type Database = {
           description?: string | null
           id?: string
           notes?: string | null
-          result?: string | null
+          result?: string
           team_member_id?: string | null
           type?: string
         }

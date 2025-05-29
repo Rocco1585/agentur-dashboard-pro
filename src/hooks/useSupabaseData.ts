@@ -321,7 +321,40 @@ export function useTeamMembers() {
     }
   };
 
-  return { teamMembers, loading, addTeamMember, refetch: fetchTeamMembers };
+  const updateTeamMember = async (id: string, updates: any) => {
+    console.log('🔄 Updating team member:', id, updates);
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      console.log('✅ Team member update result:', { data, error });
+
+      if (error) {
+        console.error('❌ Team member update error:', error);
+        throw error;
+      }
+      
+      setTeamMembers(prev => prev.map(tm => tm.id === id ? data : tm));
+      toast({
+        title: "Erfolg",
+        description: "Teammitglied wurde aktualisiert.",
+      });
+      return data;
+    } catch (error) {
+      console.error('❌ Error updating team member:', error);
+      toast({
+        title: "Fehler",
+        description: `Teammitglied konnte nicht aktualisiert werden: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return { teamMembers, loading, addTeamMember, updateTeamMember, refetch: fetchTeamMembers };
 }
 
 export function useTodos() {

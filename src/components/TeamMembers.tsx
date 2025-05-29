@@ -26,7 +26,7 @@ export function TeamMembers() {
 
   const loading = membersLoading || customersLoading;
 
-  // Definierte Positionen
+  // Definierte Positionen (aktualisiert)
   const positions = [
     'Einlernphase',
     'Opening (KAQ) B2B',
