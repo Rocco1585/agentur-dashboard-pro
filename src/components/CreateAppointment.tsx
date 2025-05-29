@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,11 +32,12 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
   });
 
   const pipelineStages = [
-    'termin_ausstehend',
-    'termin_erschienen',
-    'termin_abgeschlossen',
-    'termin_abgesagt',
-    'termin_verschoben'
+    { value: 'termin_ausstehend', label: 'Termin Ausstehend' },
+    { value: 'termin_erschienen', label: 'Termin Erschienen' },
+    { value: 'termin_abgeschlossen', label: 'Termin Abgeschlossen' },
+    { value: 'follow_up', label: 'Follow Up' },
+    { value: 'termin_abgesagt', label: 'Termin Abgesagt' },
+    { value: 'termin_verschoben', label: 'Termin Verschoben' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +60,7 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
         .from('appointments')
         .insert({
           date: formData.date,
+          time: formData.time || null,
           type: 'Termin',
           customer_id: formData.customer_id,
           team_member_id: formData.team_member_id,
@@ -194,16 +197,16 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
 
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
-                  Termin Stand
+                  Termin Status
                 </label>
                 <Select value={formData.pipeline_stage} onValueChange={(value) => setFormData({...formData, pipeline_stage: value})}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Termin Stand auswählen" />
+                    <SelectValue placeholder="Termin Status auswählen" />
                   </SelectTrigger>
                   <SelectContent>
                     {pipelineStages.map(stage => (
-                      <SelectItem key={stage} value={stage}>
-                        {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      <SelectItem key={stage.value} value={stage.value}>
+                        {stage.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
