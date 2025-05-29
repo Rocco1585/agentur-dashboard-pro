@@ -16,8 +16,8 @@ export function TeamMembers() {
   const { customers } = useCustomers();
   const { canCreateCustomers } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterRole, setFilterRole] = useState('alle');
+  const [filterStatus, setFilterStatus] = useState('alle');
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newMember, setNewMember] = useState({
@@ -68,8 +68,8 @@ export function TeamMembers() {
     const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.phone?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = !filterRole || member.role === filterRole;
-    const matchesStatus = !filterStatus || 
+    const matchesRole = filterRole === 'alle' || member.role === filterRole;
+    const matchesStatus = filterStatus === 'alle' || 
                          (filterStatus === 'aktiv' && member.is_active) ||
                          (filterStatus === 'inaktiv' && !member.is_active);
     return matchesSearch && matchesRole && matchesStatus;
@@ -78,7 +78,7 @@ export function TeamMembers() {
   if (loading) {
     return (
       <div className="w-full p-4 sm:p-6">
-        <div className="text-lg">Lade Teammitglieder...</div>
+        <div className="text-lg text-left">Lade Teammitglieder...</div>
       </div>
     );
   }
@@ -100,15 +100,15 @@ export function TeamMembers() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Teammitglieder</h1>
-          <p className="text-gray-600">Verwalten Sie Ihr Team</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">Teammitglieder</h1>
+          <p className="text-gray-600 text-left">Verwalten Sie Ihr Team</p>
         </div>
         {canCreateCustomers() && (
           <Button 
             onClick={() => setShowAddForm(!showAddForm)}
             className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2 text-white" />
             Teammitglied hinzufügen
           </Button>
         )}
@@ -182,7 +182,7 @@ export function TeamMembers() {
       {/* Search and Filter */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
           <Input
             placeholder="Teammitglieder suchen..."
             value={searchTerm}
@@ -195,7 +195,7 @@ export function TeamMembers() {
             <SelectValue placeholder="Position filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Positionen</SelectItem>
+            <SelectItem value="alle">Alle Positionen</SelectItem>
             {positions.map(position => (
               <SelectItem key={position} value={position}>{position}</SelectItem>
             ))}
@@ -206,7 +206,7 @@ export function TeamMembers() {
             <SelectValue placeholder="Status filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Status</SelectItem>
+            <SelectItem value="alle">Alle Status</SelectItem>
             <SelectItem value="aktiv">Aktiv</SelectItem>
             <SelectItem value="inaktiv">Inaktiv</SelectItem>
           </SelectContent>
@@ -219,9 +219,9 @@ export function TeamMembers() {
           <Card key={member.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between text-left">
-                <div className="flex items-center min-w-0 flex-1">
+                <div className="flex items-center min-w-0 flex-1 text-left">
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                  <span className="truncate text-gray-900 text-sm">{member.name}</span>
+                  <span className="truncate text-gray-900 text-sm text-left">{member.name}</span>
                 </div>
                 <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
                   member.performance === '5' || member.performance === '4' ? 'bg-green-100 text-green-800' :
@@ -233,21 +233,21 @@ export function TeamMembers() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-left pt-0">
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 {member.email && (
-                  <div className="flex items-center text-xs text-gray-600">
+                  <div className="flex items-center text-xs text-gray-600 text-left">
                     <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{member.email}</span>
+                    <span className="truncate text-left">{member.email}</span>
                   </div>
                 )}
                 {member.phone && (
-                  <div className="flex items-center text-xs text-gray-600">
+                  <div className="flex items-center text-xs text-gray-600 text-left">
                     <Phone className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{member.phone}</span>
+                    <span className="truncate text-left">{member.phone}</span>
                   </div>
                 )}
                 {member.role && (
-                  <div className="flex items-center text-xs">
+                  <div className="flex items-center text-xs text-left">
                     <Badge variant="outline" className="text-xs px-2 py-1">
                       {member.role}
                     </Badge>
@@ -255,22 +255,22 @@ export function TeamMembers() {
                 )}
               </div>
 
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-600">Status:</span>
+              <div className="pt-2 border-t text-left">
+                <div className="flex items-center justify-between mb-2 text-left">
+                  <span className="text-xs text-gray-600 text-left">Status:</span>
                   <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                     {member.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-600">Auszahlungen:</span>
+                <div className="flex items-center justify-between mb-2 text-left">
+                  <span className="text-xs text-gray-600 text-left">Auszahlungen:</span>
                   <div className="flex items-center text-xs text-gray-900">
                     <Euro className="h-3 w-3 mr-1 text-red-600" />
                     {member.payouts?.toFixed(2) || '0.00'}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Termine:</span>
+                <div className="flex items-center justify-between text-left">
+                  <span className="text-xs text-gray-600 text-left">Termine:</span>
                   <div className="flex items-center text-xs text-gray-900">
                     <Calendar className="h-3 w-3 mr-1 text-red-600" />
                     {member.appointment_count || 0}
@@ -285,7 +285,7 @@ export function TeamMembers() {
                   onClick={() => setSelectedMember(member)}
                   className="flex-1 text-xs"
                 >
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className="h-3 w-3 mr-1 text-red-600" />
                   Details
                 </Button>
                 {canCreateCustomers() && (
@@ -295,7 +295,7 @@ export function TeamMembers() {
                     onClick={() => setSelectedMember(member)}
                     className="flex-1 text-xs"
                   >
-                    <Edit className="h-3 w-3 mr-1" />
+                    <Edit className="h-3 w-3 mr-1 text-red-600" />
                     Bearbeiten
                   </Button>
                 )}
@@ -307,21 +307,23 @@ export function TeamMembers() {
 
       {filteredMembers.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Teammitglieder gefunden</h3>
-            <p className="text-gray-600 mb-4">
-              {teamMembers.length === 0 
-                ? "Fügen Sie Ihr erstes Teammitglied hinzu, um zu beginnen."
-                : "Keine Teammitglieder entsprechen Ihren Suchkriterien."
-              }
-            </p>
-            {canCreateCustomers() && teamMembers.length === 0 && (
-              <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Erstes Teammitglied hinzufügen
-              </Button>
-            )}
+          <CardContent className="text-left py-12">
+            <div className="flex flex-col items-start text-left">
+              <Users className="h-12 w-12 text-red-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Teammitglieder gefunden</h3>
+              <p className="text-gray-600 mb-4 text-left">
+                {teamMembers.length === 0 
+                  ? "Fügen Sie Ihr erstes Teammitglied hinzu, um zu beginnen."
+                  : "Keine Teammitglieder entsprechen Ihren Suchkriterien."
+                }
+              </p>
+              {canCreateCustomers() && teamMembers.length === 0 && (
+                <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
+                  <Plus className="h-4 w-4 mr-2 text-white" />
+                  Erstes Teammitglied hinzufügen
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
