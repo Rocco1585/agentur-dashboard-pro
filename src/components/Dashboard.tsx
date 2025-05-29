@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, TrendingUp, Star, Clock, Euro, Activity } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
+import { format, subDays, eachDayOfInterval } from 'date-fns';
 import { de } from 'date-fns/locale';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -25,6 +27,8 @@ export function Dashboard() {
   });
   const [recentRevenues, setRecentRevenues] = useState([]);
   const [recentExpenses, setRecentExpenses] = useState([]);
+  const [appointmentChartData, setAppointmentChartData] = useState([]);
+  const [revenueChartData, setRevenueChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,6 +74,22 @@ export function Dashboard() {
         .select('*')
         .gte('date', lastWeek.toISOString().split('T')[0])
         .lte('date', today.toISOString().split('T')[0]);
+
+      // Chart Data für Termine der letzten 7 Tage
+      const last7Days = eachDayOfInterval({
+        start: subDays(today, 6),
+        end: today
+      });
+
+      const appointmentData = last7Days.map(day => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayAppointments = allAppointments?.filter(apt => apt.date === dayStr) || [];
+        return {
+          date: format(day, 'dd.MM', { locale: de }),
+          termine: dayAppointments.length
+        };
+      });
+      setAppointmentChartData(appointmentData);
 
       // Top Performer (Teammitglied mit den meisten abgeschlossenen Terminen)
       const { data: appointmentStats } = await supabase
@@ -119,6 +139,23 @@ export function Dashboard() {
         .from('revenues')
         .select('*')
         .order('date', { ascending: false });
+
+      // Chart Data für Umsatz der letzten 30 Tage
+      const last30Days = eachDayOfInterval({
+        start: subDays(today, 29),
+        end: today
+      });
+
+      const revenueData = last30Days.map(day => {
+        const dayStr = format(day, 'yyyy-MM-dd');
+        const dayRevenues = revenues?.filter(rev => rev.date === dayStr) || [];
+        const dayTotal = dayRevenues.reduce((sum, rev) => sum + Number(rev.amount), 0);
+        return {
+          date: format(day, 'dd.MM', { locale: de }),
+          umsatz: Math.round(dayTotal)
+        };
+      });
+      setRevenueChartData(revenueData);
 
       // Letzte 10 Einnahmen
       const { data: recentRevenuesData } = await supabase
@@ -184,6 +221,17 @@ export function Dashboard() {
     }
   };
 
+  const chartConfig = {
+    termine: {
+      label: "Termine",
+      color: "hsl(var(--chart-1))",
+    },
+    umsatz: {
+      label: "Umsatz (€)",
+      color: "hsl(var(--chart-2))",
+    },
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6">
@@ -195,8 +243,8 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-red-50 p-6 sm:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         <div className="text-left">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
             Dashboard
@@ -205,16 +253,16 @@ export function Dashboard() {
         </div>
 
         {/* Revenue Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Tagesumsatz
               </CardTitle>
-              <Euro className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <Euro className="h-6 w-6 text-green-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 €{stats.dailyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -223,15 +271,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Wochenumsatz
               </CardTitle>
-              <TrendingUp className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <TrendingUp className="h-6 w-6 text-blue-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 €{stats.weeklyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -240,15 +288,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Monatsumsatz
               </CardTitle>
-              <Euro className="h-5 w-5 text-purple-600 flex-shrink-0" />
+              <Euro className="h-6 w-6 text-purple-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 €{stats.monthlyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -257,15 +305,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Jahresumsatz
               </CardTitle>
-              <TrendingUp className="h-5 w-5 text-orange-600 flex-shrink-0" />
+              <TrendingUp className="h-6 w-6 text-orange-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 €{stats.yearlyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -274,15 +322,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Gesamt-Umsatz
               </CardTitle>
-              <Euro className="h-5 w-5 text-red-600 flex-shrink-0" />
+              <Euro className="h-6 w-6 text-red-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 €{stats.totalRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -291,15 +339,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Aktive Kunden
               </CardTitle>
-              <Users className="h-5 w-5 text-blue-600 flex-shrink-0" />
+              <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.activeCustomers}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -310,16 +358,16 @@ export function Dashboard() {
         </div>
 
         {/* Team & Appointment Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Aktive Teammitglieder
               </CardTitle>
-              <Users className="h-5 w-5 text-red-600 flex-shrink-0" />
+              <Users className="h-6 w-6 text-red-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.activeTeamMembers}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -328,15 +376,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Termine Gesamt
               </CardTitle>
-              <Activity className="h-5 w-5 text-indigo-600 flex-shrink-0" />
+              <Activity className="h-6 w-6 text-indigo-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.totalAppointments}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -345,15 +393,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Termine (7 Tage)
               </CardTitle>
-              <Calendar className="h-5 w-5 text-green-600 flex-shrink-0" />
+              <Calendar className="h-6 w-6 text-green-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.appointmentsNext7Days}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -362,15 +410,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Termine (Letzte 7)
               </CardTitle>
-              <Calendar className="h-5 w-5 text-teal-600 flex-shrink-0" />
+              <Calendar className="h-6 w-6 text-teal-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.appointmentsLast7Days}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -379,15 +427,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Top Performer
               </CardTitle>
-              <Star className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+              <Star className="h-6 w-6 text-yellow-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left truncate">
+            <CardContent className="px-6 pb-6">
+              <div className="text-lg font-bold text-gray-900 text-left truncate">
                 {stats.topPerformer}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -396,15 +444,15 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-4 sm:px-6 pt-4 sm:pt-6">
+          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0 p-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
               <CardTitle className="text-sm font-medium text-gray-600 text-left">
                 Termine/Tag
               </CardTitle>
-              <Clock className="h-5 w-5 text-purple-600 flex-shrink-0" />
+              <Clock className="h-6 w-6 text-purple-600 flex-shrink-0" />
             </CardHeader>
-            <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
-              <div className="text-2xl sm:text-3xl font-bold text-gray-900 text-left">
+            <CardContent className="px-6 pb-6">
+              <div className="text-xl font-bold text-gray-900 text-left">
                 {stats.appointmentsPerDay}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
@@ -414,10 +462,71 @@ export function Dashboard() {
           </Card>
         </div>
 
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Appointments Chart */}
+          <Card className="bg-white shadow-lg border-0 p-4">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-blue-600" />
+                Termine der letzten 7 Tage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={appointmentChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="termine" 
+                      stroke="#3b82f6" 
+                      strokeWidth={3}
+                      dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Revenue Chart */}
+          <Card className="bg-white shadow-lg border-0 p-4">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
+                <Euro className="h-5 w-5 text-green-600" />
+                Umsatz der letzten 30 Tage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={revenueChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="umsatz" 
+                      stroke="#10b981" 
+                      strokeWidth={3}
+                      dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Revenues */}
-          <Card className="bg-white shadow-lg border-0">
+          <Card className="bg-white shadow-lg border-0 p-4">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
                 <Euro className="h-5 w-5 text-green-600" />
@@ -426,9 +535,9 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               {recentRevenues.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {recentRevenues.map((revenue) => (
-                    <div key={revenue.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={revenue.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="text-left">
                         <h4 className="font-medium text-gray-900">{revenue.description}</h4>
                         <p className="text-sm text-gray-600">
@@ -449,7 +558,7 @@ export function Dashboard() {
           </Card>
 
           {/* Recent Expenses */}
-          <Card className="bg-white shadow-lg border-0">
+          <Card className="bg-white shadow-lg border-0 p-4">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-gray-900 text-left flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-red-600" />
@@ -458,9 +567,9 @@ export function Dashboard() {
             </CardHeader>
             <CardContent>
               {recentExpenses.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {recentExpenses.map((expense) => (
-                    <div key={expense.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={expense.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="text-left">
                         <h4 className="font-medium text-gray-900">{expense.description}</h4>
                         <p className="text-sm text-gray-600">
@@ -482,7 +591,7 @@ export function Dashboard() {
         </div>
 
         {/* Welcome Message */}
-        <Card className="bg-white shadow-lg border-0">
+        <Card className="bg-white shadow-lg border-0 p-4">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-gray-900 text-left">
               Willkommen in Ihrem Dashboard
