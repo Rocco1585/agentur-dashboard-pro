@@ -1,6 +1,8 @@
 
-import { Calendar, Users, UserPlus, Euro, Settings, CheckSquare, TrendingUp, BarChart, Shield, LogOut, User, FileText } from "lucide-react";
+import { Calendar, Users, UserPlus, Euro, Settings, CheckSquare, TrendingUp, BarChart, Shield, LogOut, User, FileText, Monitor } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar,
   SidebarContent,
@@ -84,8 +86,41 @@ export function AppSidebar() {
     canManageRevenues,
     canViewTodos,
     canViewAuditLogs,
-    canAccessSettings
+    canAccessSettings,
+    isAdmin,
+    isCustomer
   } = useAuth();
+
+  const [customerDashboards, setCustomerDashboards] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isAdmin() || isCustomer()) {
+      fetchCustomerDashboards();
+    }
+  }, [user]);
+
+  const fetchCustomerDashboards = async () => {
+    try {
+      let query = supabase
+        .from('team_members')
+        .select('id, name, customer_dashboard_name')
+        .eq('user_role', 'kunde')
+        .eq('is_active', true)
+        .not('customer_dashboard_name', 'is', null);
+
+      // Wenn Kunde, nur sein eigenes Dashboard anzeigen
+      if (isCustomer()) {
+        query = query.eq('id', user?.id);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setCustomerDashboards(data || []);
+    } catch (error) {
+      console.error('Error fetching customer dashboards:', error);
+    }
+  };
 
   const permissionMap = {
     canAccessMainNavigation,
@@ -148,6 +183,31 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Kunden Dashboards Sektion */}
+        {(isAdmin() || isCustomer()) && customerDashboards.length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-left">Kunden Dashboards</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {customerDashboards.map((dashboard) => (
+                  <SidebarMenuItem key={dashboard.id}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === `/customer-dashboard/${dashboard.id}`}
+                      className="text-left"
+                    >
+                      <a href={`/customer-dashboard/${dashboard.id}`} className="flex items-center gap-3">
+                        <Monitor className="h-4 w-4" />
+                        <span>{dashboard.customer_dashboard_name || dashboard.name}</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-4">

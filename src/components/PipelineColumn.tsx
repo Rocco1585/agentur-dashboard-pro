@@ -66,8 +66,8 @@ export function PipelineColumn({ title, stageId, customers: appointments, color,
   return (
     <div className="flex-1 min-w-80">
       <Card className="h-full">
-        <CardHeader className={`${color} text-white`}>
-          <CardTitle className="text-center text-sm">
+        <CardHeader className={`${color} text-white py-2`}>
+          <CardTitle className="text-center text-xs font-medium">
             {title} ({appointments.length})
           </CardTitle>
         </CardHeader>

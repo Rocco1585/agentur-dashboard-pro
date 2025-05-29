@@ -307,8 +307,8 @@ export function useTeamMembers() {
       
       setTeamMembers(prev => [data, ...prev]);
       toast({
-        title: "Erfolg",
-        description: "Teammitglied wurde hinzugefügt.",
+        title: "Teammitglied wurde hinzugefügt.",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
       return data;
     } catch (error) {
@@ -317,6 +317,7 @@ export function useTeamMembers() {
         title: "Fehler",
         description: `Teammitglied konnte nicht hinzugefügt werden: ${error.message}`,
         variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };
@@ -340,8 +341,8 @@ export function useTeamMembers() {
       
       setTeamMembers(prev => prev.map(tm => tm.id === id ? data : tm));
       toast({
-        title: "Erfolg",
-        description: "Teammitglied wurde aktualisiert.",
+        title: "Teammitglied wurde aktualisiert.",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
       return data;
     } catch (error) {
@@ -350,11 +351,50 @@ export function useTeamMembers() {
         title: "Fehler",
         description: `Teammitglied konnte nicht aktualisiert werden: ${error.message}`,
         variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };
 
-  return { teamMembers, loading, addTeamMember, updateTeamMember, refetch: fetchTeamMembers };
+  const deleteTeamMember = async (id: string) => {
+    console.log('🔄 Deleting team member:', id);
+    try {
+      // Erst prüfen, ob es ein Kunde ist
+      const memberToDelete = teamMembers.find(tm => tm.id === id);
+      
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', id);
+
+      console.log('✅ Team member delete result:', { error });
+
+      if (error) {
+        console.error('❌ Team member delete error:', error);
+        throw error;
+      }
+      
+      setTeamMembers(prev => prev.filter(tm => tm.id !== id));
+      
+      toast({
+        title: "Teammitglied wurde gelöscht.",
+        description: memberToDelete?.user_role === 'kunde' ? 
+          "Kunden-Dashboard wurde automatisch entfernt." : 
+          "Teammitglied erfolgreich gelöscht.",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    } catch (error) {
+      console.error('❌ Error deleting team member:', error);
+      toast({
+        title: "Fehler",
+        description: `Teammitglied konnte nicht gelöscht werden: ${error.message}`,
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    }
+  };
+
+  return { teamMembers, loading, addTeamMember, updateTeamMember, deleteTeamMember, refetch: fetchTeamMembers };
 }
 
 export function useTodos() {
