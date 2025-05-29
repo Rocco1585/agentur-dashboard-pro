@@ -20,28 +20,51 @@ export function CustomerDashboardView() {
 
   useEffect(() => {
     fetchCustomerData();
-  }, [customerId]);
+  }, [customerId, user]);
 
   const fetchCustomerData = async () => {
     try {
+      console.log('Fetching customer data for ID:', customerId);
+      console.log('Current user:', user);
+      console.log('Is admin:', isAdmin());
+
       // Überprüfe Berechtigung: Nur der Kunde selbst oder Admins können das Dashboard sehen
       if (!isAdmin() && user?.id !== customerId) {
+        console.log('No permission: user is not admin and user ID does not match customer ID');
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('team_members')
-        .select('*')
-        .eq('id', customerId)
-        .eq('user_role', 'kunde')
-        .single();
+      // Hole Kundendaten - für Admins aus customers Tabelle, für Kunden aus team_members
+      let customerDataQuery;
+      if (isAdmin()) {
+        // Admin kann alle Kunden sehen
+        customerDataQuery = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customerId)
+          .single();
+      } else {
+        // Kunde kann nur sein eigenes Dashboard sehen
+        customerDataQuery = await supabase
+          .from('team_members')
+          .select('*')
+          .eq('id', customerId)
+          .eq('user_role', 'kunde')
+          .single();
+      }
 
-      if (error) throw error;
-      setCustomerData(data);
+      console.log('Customer data query result:', customerDataQuery);
 
-      // Fetch appointments
-      const { data: appointmentsData } = await supabase
+      if (customerDataQuery.error) {
+        console.error('Error fetching customer data:', customerDataQuery.error);
+        throw customerDataQuery.error;
+      }
+
+      setCustomerData(customerDataQuery.data);
+
+      // Fetch appointments für diesen Kunden
+      const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
           *,
@@ -67,17 +90,26 @@ export function CustomerDashboardView() {
         .eq('customer_id', customerId)
         .order('date', { ascending: false });
 
-      setAppointments(appointmentsData || []);
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+      } else {
+        console.log('Appointments data:', appointmentsData);
+        setAppointments(appointmentsData || []);
+      }
 
-      // Fetch revenues if admin
+      // Fetch revenues nur für Admins
       if (isAdmin()) {
-        const { data: revenuesData } = await supabase
+        const { data: revenuesData, error: revenuesError } = await supabase
           .from('revenues')
           .select('*')
           .eq('customer_id', customerId)
           .order('date', { ascending: false });
 
-        setRevenues(revenuesData || []);
+        if (revenuesError) {
+          console.error('Error fetching revenues:', revenuesError);
+        } else {
+          setRevenues(revenuesData || []);
+        }
       }
     } catch (error) {
       console.error('Error fetching customer data:', error);
@@ -138,7 +170,7 @@ export function CustomerDashboardView() {
       <div className="space-y-6 p-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 text-left">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
+          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten, oder der Kunde wurde nicht gefunden.</p>
         </div>
       </div>
     );
@@ -213,7 +245,7 @@ export function CustomerDashboardView() {
     <div className="space-y-6 p-6">
       <div className="text-left">
         <h1 className="text-3xl font-bold text-gray-900 text-left">
-          {customerData.customer_dashboard_name || 'Kunden Dashboard'}
+          {customerData.customer_dashboard_name || customerData.name || 'Kunden Dashboard'}
         </h1>
         <p className="text-gray-600 text-left">Willkommen, {customerData.name}</p>
         {isAdmin() && (
@@ -227,13 +259,39 @@ export function CustomerDashboardView() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-left">Termine</CardTitle>
+            <CardTitle className="text-sm font-medium text-left">Termine gesamt</CardTitle>
             <Calendar className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-left">{appointments.length}</div>
             <p className="text-xs text-gray-600 text-left">
-              {completedAppointments} abgeschlossen, {pendingAppointments} geplant
+              Alle Termine
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-left">Abgeschlossen</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-left">{completedAppointments}</div>
+            <p className="text-xs text-gray-600 text-left">
+              Erfolgreich abgeschlossen
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-left">Ausstehend</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-left">{pendingAppointments}</div>
+            <p className="text-xs text-gray-600 text-left">
+              Noch zu erledigen
             </p>
           </CardContent>
         </Card>
@@ -250,26 +308,6 @@ export function CustomerDashboardView() {
             </CardContent>
           </Card>
         )}
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-left">Abgeschlossen</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-left">{completedAppointments}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-left">Geplant</CardTitle>
-            <Clock className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-left">{pendingAppointments}</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Termin Pipeline */}
@@ -290,6 +328,7 @@ export function CustomerDashboardView() {
                   onCustomerClick={(appointment) => {
                     console.log('Appointment clicked:', appointment);
                   }}
+                  showDeleteButton={false}
                 />
               ))}
             </div>

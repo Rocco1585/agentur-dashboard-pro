@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Euro, Users, TrendingUp, Calendar, UserCheck, AlertTriangle, CheckSquare, MessageSquare, ArrowUp, ArrowDown } from "lucide-react";
 import { useTeamMembers, useCustomers, useRevenues, useAppointments } from '@/hooks/useSupabaseData';
@@ -114,9 +115,10 @@ export function Dashboard() {
     return appointmentDate >= startOfYear && appointmentDate <= today;
   });
 
-  // Team notification
-  const teamNotification = settings.find(setting => setting.key === 'team_notification');
-  const showTeamNotification = teamNotification?.value === 'true';
+  // Team notification settings
+  const teamNotice = settings.find(setting => setting.key === 'team_notice');
+  const showTeamNotice = settings.find(setting => setting.key === 'show_team_notice');
+  const shouldShowTeamNotice = showTeamNotice?.value === 'true';
 
   // Top 5 todos
   const topTodos = todos
@@ -159,11 +161,11 @@ export function Dashboard() {
       </div>
 
       {/* Team Notification */}
-      {showTeamNotification && (
+      {shouldShowTeamNotice && teamNotice?.value && (
         <Alert className="border-yellow-200 bg-yellow-50">
           <MessageSquare className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-left text-yellow-800">
-            <strong>Team-Notiz aktiv:</strong> Wichtige Informationen für das Team sind verfügbar.
+            <strong>Team-Notiz:</strong> {teamNotice.value}
           </AlertDescription>
         </Alert>
       )}
