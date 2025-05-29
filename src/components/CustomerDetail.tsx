@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +174,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         if (error) throw error;
         
-        setNewAppointment({ date: '', type: ''result: '' });
+        setNewAppointment({ date: '', type: '', result: '' });
         fetchCustomerData();
         
         toast({
