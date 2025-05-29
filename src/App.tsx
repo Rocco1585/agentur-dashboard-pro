@@ -11,7 +11,7 @@ import { Revenue } from "@/components/Revenue";
 import { Settings } from "@/components/Settings";
 import { ToDos } from "@/components/ToDos";
 import { HotLeads } from "@/components/HotLeads";
-import { CreateAppointment } from "@/components/CreateAppointment";
+import { CreateAppointmentPage } from "@/components/CreateAppointmentPage";
 import { AuditLogs } from "@/components/AuditLogs";
 import { UserManagement } from "@/components/UserManagement";
 import { Login } from "@/components/Login";
@@ -51,7 +51,7 @@ function AppContent() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/hot-leads" element={<HotLeads />} />
-            <Route path="/create-appointment" element={<CreateAppointment />} />
+            <Route path="/create-appointment" element={<CreateAppointmentPage />} />
             <Route path="/team-members" element={<TeamMembers />} />
             <Route path="/revenue" element={<Revenue />} />
             <Route path="/todos" element={<ToDos />} />

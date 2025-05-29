@@ -331,6 +331,63 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_earnings: {
+        Row: {
+          amount: number
+          created_at: string
+          customer: string | null
+          date: string
+          description: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer?: string | null
+          date?: string
+          description: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer?: string | null
+          date?: string
+          description?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: []
+      }
+      team_member_expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          description: string
+          id: string
+          team_member_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          team_member_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          team_member_id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           active_since: string | null

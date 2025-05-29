@@ -21,31 +21,32 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
   const [formData, setFormData] = useState({
     date: '',
     time: '',
-    type: '',
     customer_id: '',
     team_member_id: '',
     description: '',
     email: '',
     phone: '',
     company_name: '',
-    contact_person: ''
+    contact_person: '',
+    pipeline_stage: 'termin_ausstehend'
   });
 
-  const appointmentTypes = [
-    'Ersttermin',
-    'Beratungstermin',
-    'Nachfasstermin',
-    'Abschlusstermin',
-    'Follow-up'
+  const pipelineStages = [
+    'termin_ausstehend',
+    'termin_erschienen',
+    'termin_abgeschlossen',
+    'termin_abgesagt',
+    'termin_verschoben'
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.date || !formData.type) {
+    // Validierung der Pflichtfelder
+    if (!formData.date || !formData.customer_id || !formData.team_member_id || !formData.email || !formData.phone || !formData.company_name) {
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        description: "Bitte füllen Sie alle Pflichtfelder aus (Datum, Kunde, Teammitglied, E-Mail, Telefon, Firmenname).",
         variant: "destructive",
         className: "text-left bg-yellow-100 border-yellow-300",
       });
@@ -57,18 +58,27 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
         .from('appointments')
         .insert({
           date: formData.date,
-          type: formData.type,
-          customer_id: formData.customer_id || null,
-          team_member_id: formData.team_member_id || null,
+          type: 'Termin',
+          customer_id: formData.customer_id,
+          team_member_id: formData.team_member_id,
           description: formData.description,
-          email: formData.email,
-          phone: formData.phone,
-          company_name: formData.company_name,
-          contact_person: formData.contact_person,
-          result: 'termin_ausstehend'
+          result: formData.pipeline_stage
         });
 
       if (error) throw error;
+
+      // Zusätzliche Kontaktdaten in customers tabelle updaten falls vorhanden
+      if (formData.customer_id) {
+        await supabase
+          .from('customers')
+          .update({
+            email: formData.email,
+            phone: formData.phone,
+            contact: formData.contact_person,
+            pipeline_stage: formData.pipeline_stage
+          })
+          .eq('id', formData.customer_id);
+      }
 
       toast({
         title: "Erfolg",
@@ -134,27 +144,11 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
 
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
-                  Terminart *
+                  Kunde *
                 </label>
-                <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Terminart auswählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {appointmentTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="text-left">
-                <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
-                  Kunde
-                </label>
-                <Select value={formData.customer_id} onValueChange={(value) => setFormData({...formData, customer_id: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Kunde auswählen (optional)" />
+                    <SelectValue placeholder="Kunde auswählen" />
                   </SelectTrigger>
                   <SelectContent>
                     {customers.map(customer => (
@@ -166,15 +160,33 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
 
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
-                  Teammitglied
+                  Teammitglied *
                 </label>
-                <Select value={formData.team_member_id} onValueChange={(value) => setFormData({...formData, team_member_id: value})}>
+                <Select value={formData.team_member_id} onValueChange={(value) => setFormData({...formData, team_member_id: value})} required>
                   <SelectTrigger>
-                    <SelectValue placeholder="Teammitglied auswählen (optional)" />
+                    <SelectValue placeholder="Teammitglied auswählen" />
                   </SelectTrigger>
                   <SelectContent>
                     {teamMembers.map(member => (
                       <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="text-left">
+                <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
+                  Termin Stand
+                </label>
+                <Select value={formData.pipeline_stage} onValueChange={(value) => setFormData({...formData, pipeline_stage: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Termin Stand auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pipelineStages.map(stage => (
+                      <SelectItem key={stage} value={stage}>
+                        {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -185,38 +197,41 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Mail className="h-4 w-4 inline mr-1 text-red-600" />
-                  E-Mail
+                  E-Mail *
                 </label>
                 <Input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                   placeholder="kunde@beispiel.de"
+                  required
                 />
               </div>
 
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Phone className="h-4 w-4 inline mr-1 text-red-600" />
-                  Telefon
+                  Telefon *
                 </label>
                 <Input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   placeholder="+49 123 456789"
+                  required
                 />
               </div>
 
               <div className="text-left">
                 <label className="block text-sm font-medium text-gray-900 mb-2 text-left">
                   <Building className="h-4 w-4 inline mr-1 text-red-600" />
-                  Firmenname (Interessent)
+                  Firmenname (Interessent) *
                 </label>
                 <Input
                   value={formData.company_name}
                   onChange={(e) => setFormData({...formData, company_name: e.target.value})}
                   placeholder="Firma GmbH"
+                  required
                 />
               </div>
 

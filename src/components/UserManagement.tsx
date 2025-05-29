@@ -1,240 +1,218 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Users, User, Mail, Shield, ShieldCheck, Save, X } from "lucide-react";
+import { Trash2, Search, User, Edit, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useTeamMembers } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function UserManagement() {
-  const { teamMembers, loading, addTeamMember } = useTeamMembers();
-  const { canViewAuditLogs } = useAuth();
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newUser, setNewUser] = useState({
-    name: '',
-    email: '',
-    user_role: 'member' as 'admin' | 'member',
-    role: '',
-    phone: '',
-    password: 'passwort'
-  });
+  const { isAdmin } = useAuth();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Definierte Positionen (gleiche wie bei Teammitgliedern)
-  const positions = [
-    'Einlernphase',
-    'Opening (KAQ) B2B',
-    'Opening (Chat DMS) b2b',
-    'Setting b2b',
-    'Closing b2b',
-    'TikTok Poster b2c',
-    'TikTok Manager b2c',
-    'Setter b2c',
-    'Closer b2c',
-    'Manager b2b',
-    'Inhaber'
-  ];
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  if (!canViewAuditLogs()) {
-    return (
-      <div className="w-full p-6">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
-            <p className="text-gray-600">Sie haben keine Berechtigung, Benutzer zu verwalten.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('team_members')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const handleAddUser = async () => {
-    if (newUser.name && newUser.email) {
-      const userData = {
-        ...newUser,
-        is_active: true,
-        payouts: 0,
-        performance: '5'
-      };
-      await addTeamMember(userData);
-      setNewUser({ name: '', email: '', user_role: 'member', role: '', phone: '', password: 'passwort' });
-      setShowAddForm(false);
-    } else {
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
       toast({
         title: "Fehler",
-        description: "Bitte füllen Sie alle Pflichtfelder aus.",
+        description: "Benutzer konnten nicht geladen werden.",
         variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteUser = async (userId: string, userName: string) => {
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      setUsers(users.filter(user => user.id !== userId));
+      
+      toast({
+        title: "Benutzer gelöscht",
+        description: `${userName} wurde erfolgreich gelöscht.`,
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Fehler",
+        description: "Benutzer konnte nicht gelöscht werden.",
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
       });
     }
   };
 
-  const getRoleBadgeColor = (role: 'admin' | 'member') => {
-    return role === 'admin' 
-      ? 'bg-red-100 text-red-800' 
-      : 'bg-blue-100 text-blue-800';
-  };
+  const filteredUsers = users.filter(user =>
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (!isAdmin()) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900">Keine Berechtigung</h1>
+          <p className="text-gray-600 mt-2">Sie haben keine Berechtigung, diese Seite zu betrachen.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="w-full p-6">
-        <div className="text-lg">Lade Benutzerverwaltung...</div>
+      <div className="space-y-6 p-6">
+        <div className="text-lg text-left">Lade Benutzer...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="text-left">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Benutzerverwaltung</h1>
-          <p className="text-gray-600">Verwalten Sie Systembenutzer und deren Berechtigungen</p>
-        </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Benutzer hinzufügen
-        </Button>
+      <div className="text-left">
+        <h1 className="text-3xl font-bold text-gray-900 text-left">Benutzerverwaltung</h1>
+        <p className="text-gray-600 text-left">Verwalten Sie alle Benutzer des Systems</p>
       </div>
 
-      {/* Add User Form */}
-      {showAddForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-left">Neuen Benutzer hinzufügen</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                placeholder="Name *"
-                value={newUser.name}
-                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-              />
-              <Input
-                placeholder="Email *"
-                type="email"
-                value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-              />
-              <Input
-                placeholder="Telefon"
-                value={newUser.phone}
-                onChange={(e) => setNewUser({...newUser, phone: e.target.value})}
-              />
-              <Input
-                placeholder="Passwort"
-                value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-              />
-              <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Position auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {positions.map(position => (
-                    <SelectItem key={position} value={position}>{position}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={newUser.user_role} onValueChange={(value: 'admin' | 'member') => setNewUser({...newUser, user_role: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Benutzerrolle auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 mt-4">
-              <Button onClick={handleAddUser} className="flex-1 bg-red-600 hover:bg-red-700">
-                <Save className="h-4 w-4 mr-2" />
-                Benutzer erstellen
-              </Button>
-              <Button variant="outline" onClick={() => setShowAddForm(false)} className="flex-1">
-                <X className="h-4 w-4 mr-2 text-red-600" />
-                Abbrechen
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
+        <Input
+          placeholder="Benutzer suchen..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10"
+        />
+      </div>
 
       {/* Users List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {teamMembers.map((member) => (
-          <Card key={member.id} className="hover:shadow-lg transition-shadow">
+        {filteredUsers.map((user) => (
+          <Card key={user.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center justify-between text-left">
-                <div className="flex items-center min-w-0 flex-1">
+                <div className="flex items-center min-w-0 flex-1 text-left">
                   <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                  <span className="truncate text-gray-900 text-sm">{member.name}</span>
+                  <span className="truncate text-gray-900 text-sm text-left">{user.name}</span>
                 </div>
-                <Badge className={`${getRoleBadgeColor(member.user_role || 'member')} ml-2 flex-shrink-0 text-xs px-2 py-1`}>
-                  {member.user_role === 'admin' ? (
-                    <ShieldCheck className="h-3 w-3 mr-1" />
-                  ) : (
-                    <Shield className="h-3 w-3 mr-1" />
-                  )}
-                  {member.user_role === 'admin' ? 'Admin' : 'Member'}
+                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${
+                  user.user_role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {user.user_role === 'admin' ? 'Admin' : 'Mitglied'}
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-left pt-0">
-              <div className="space-y-2">
-                {member.email && (
-                  <div className="flex items-center text-xs text-gray-600">
-                    <Mail className="h-3 w-3 mr-2 flex-shrink-0 text-red-600" />
-                    <span className="truncate">{member.email}</span>
-                  </div>
-                )}
-                {member.role && (
-                  <div className="flex items-center text-xs">
-                    <Badge variant="outline" className="text-xs px-2 py-1">
-                      {member.role}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Status:</span>
-                  <Badge className={`text-xs ${member.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {member.is_active ? 'Aktiv' : 'Inaktiv'}
+              <div className="space-y-2 text-left">
+                <div className="text-xs text-gray-600 text-left">
+                  <strong>Email:</strong> {user.email || 'Nicht angegeben'}
+                </div>
+                <div className="text-xs text-gray-600 text-left">
+                  <strong>Position:</strong> {user.role || 'Nicht angegeben'}
+                </div>
+                <div className="text-xs text-gray-600 text-left">
+                  <strong>Status:</strong> 
+                  <Badge className={`ml-2 text-xs ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {user.is_active ? 'Aktiv' : 'Inaktiv'}
                   </Badge>
                 </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="text-xs text-gray-500">
-                  Erstellt: {new Date(member.created_at).toLocaleDateString('de-DE')}
+                <div className="text-xs text-gray-600 text-left">
+                  <strong>Erstellt:</strong> {new Date(user.created_at).toLocaleDateString('de-DE')}
                 </div>
-                {member.last_login && (
-                  <div className="text-xs text-gray-500">
-                    Letzter Login: {new Date(member.last_login).toLocaleDateString('de-DE')}
+                {user.last_login && (
+                  <div className="text-xs text-gray-600 text-left">
+                    <strong>Letzter Login:</strong> {new Date(user.last_login).toLocaleDateString('de-DE')}
                   </div>
                 )}
+              </div>
+
+              <div className="pt-3 border-t">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Benutzer löschen
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader className="text-left">
+                      <AlertDialogTitle className="text-left">Benutzer löschen</AlertDialogTitle>
+                      <AlertDialogDescription className="text-left">
+                        Sind Sie sicher, dass Sie den Benutzer "{user.name}" endgültig löschen möchten? 
+                        Diese Aktion kann nicht rückgängig gemacht werden und wird alle zugehörigen 
+                        Daten wie Termine, Einnahmen und Auszahlungen ebenfalls löschen.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deleteUser(user.id, user.name)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Endgültig löschen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {teamMembers.length === 0 && (
+      {filteredUsers.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Users className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Benutzer</h3>
-            <p className="text-gray-600 mb-4">Fügen Sie Ihren ersten Benutzer hinzu, um zu beginnen.</p>
-            <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Benutzer hinzufügen
-            </Button>
+          <CardContent className="text-left py-12">
+            <div className="flex flex-col items-start text-left">
+              <User className="h-12 w-12 text-red-600 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Benutzer gefunden</h3>
+              <p className="text-gray-600 text-left">
+                {users.length === 0 
+                  ? "Keine Benutzer im System vorhanden."
+                  : "Keine Benutzer entsprechen Ihren Suchkriterien."
+                }
+              </p>
+            </div>
           </CardContent>
         </Card>
       )}

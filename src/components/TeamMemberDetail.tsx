@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Euro, TrendingUp, TrendingDown, User, Edit, Save, X, Plus, Trash2, DollarSign } from "lucide-react";
+import { ArrowLeft, Euro, TrendingUp, TrendingDown, User, Edit, Save, X, Plus, DollarSign } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useTeamMembers } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/hooks/useAuth';
@@ -41,7 +41,6 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
   const [newEarning, setNewEarning] = useState({ customer: '', amount: 0, description: '' });
   const [newExpense, setNewExpense] = useState({ description: '', amount: 0 });
 
-  // Neue States für bearbeitbare Felder
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [isEditingPerformance, setIsEditingPerformance] = useState(false);
   const [editableData, setEditableData] = useState({
@@ -49,7 +48,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
     phone: member.phone,
     position: member.role,
     startDate: member.active_since,
-    performance: typeof member.performance === 'number' ? member.performance : (parseInt(member.performance) || 5)
+    performance: typeof member.performance === 'string' ? parseInt(member.performance) || 5 : member.performance || 5
   });
 
   useEffect(() => {
@@ -76,24 +75,30 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
   const fetchMemberFinancials = async () => {
     try {
-      // Fetch earnings for this team member
-      const { data: earningsData } = await supabase
-        .from('team_member_earnings')
-        .select('*')
-        .eq('team_member_id', member.id)
-        .order('date', { ascending: false });
+      // Earnings direkt über SQL query
+      const { data: earningsData, error: earningsError } = await supabase
+        .rpc('get_team_member_earnings', { member_id: member.id });
       
-      // Fetch expenses for this team member
-      const { data: expensesData } = await supabase
-        .from('team_member_expenses')
-        .select('*')
-        .eq('team_member_id', member.id)
-        .order('date', { ascending: false });
+      const { data: expensesData, error: expensesError } = await supabase
+        .rpc('get_team_member_expenses', { member_id: member.id });
       
-      setEarnings(earningsData || []);
-      setExpenses(expensesData || []);
+      if (earningsError) {
+        console.error('Error fetching earnings:', earningsError);
+        setEarnings([]);
+      } else {
+        setEarnings(earningsData || []);
+      }
+      
+      if (expensesError) {
+        console.error('Error fetching expenses:', expensesError);
+        setExpenses([]);
+      } else {
+        setExpenses(expensesData || []);
+      }
     } catch (error) {
       console.error('Error fetching member financials:', error);
+      setEarnings([]);
+      setExpenses([]);
     }
   };
 
@@ -110,13 +115,12 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
     try {
       const { error } = await supabase
-        .from('team_member_earnings')
-        .insert({
-          team_member_id: member.id,
-          customer: newEarning.customer,
-          amount: newEarning.amount,
-          description: newEarning.description,
-          date: new Date().toISOString().split('T')[0]
+        .rpc('add_team_member_earning', {
+          member_id: member.id,
+          earning_customer: newEarning.customer,
+          earning_amount: newEarning.amount,
+          earning_description: newEarning.description,
+          earning_date: new Date().toISOString().split('T')[0]
         });
 
       if (error) throw error;
@@ -154,12 +158,11 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
     try {
       const { error } = await supabase
-        .from('team_member_expenses')
-        .insert({
-          team_member_id: member.id,
-          description: newExpense.description,
-          amount: newExpense.amount,
-          date: new Date().toISOString().split('T')[0]
+        .rpc('add_team_member_expense', {
+          member_id: member.id,
+          expense_description: newExpense.description,
+          expense_amount: newExpense.amount,
+          expense_date: new Date().toISOString().split('T')[0]
         });
 
       if (error) throw error;
@@ -206,7 +209,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
   const savePerformance = async () => {
     try {
       const updates = {
-        performance: editableData.performance
+        performance: editableData.performance.toString()
       };
       
       const updatedMember = await updateTeamMember(member.id, updates);
@@ -225,7 +228,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
       phone: member.phone,
       position: member.role,
       startDate: member.active_since,
-      performance: typeof member.performance === 'number' ? member.performance : (parseInt(member.performance) || 5)
+      performance: typeof member.performance === 'string' ? parseInt(member.performance) || 5 : member.performance || 5
     });
     setIsEditingContact(false);
     setIsEditingPerformance(false);
@@ -319,7 +322,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
                 <Input
                   type="number"
                   min="1"
-                  max="10"
+                  max="5"
                   value={editableData.performance}
                   onChange={(e) => setEditableData({...editableData, performance: parseInt(e.target.value) || 1})}
                   className="w-16"
@@ -334,14 +337,15 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
             ) : (
               <div className="flex items-center w-full text-left">
                 <User className="h-5 w-5 text-purple-600 mr-2" />
-                <span className="text-2xl font-bold text-purple-600">{editableData.performance}/10</span>
+                <span className="text-2xl font-bold text-purple-600">{editableData.performance}/5</span>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Member Info */}
+      {/* Rest bleibt gleich */}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         <Card className="w-full">
           <CardHeader className="w-full">
@@ -413,7 +417,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
                 <div className="text-left"><strong>Position:</strong> {editableData.position}</div>
                 <div className="text-left"><strong>Seit:</strong> {editableData.startDate}</div>
                 <div className="text-left"><strong>Performance:</strong> 
-                  <Badge className="ml-2 bg-green-100 text-green-800">{editableData.performance}/10</Badge>
+                  <Badge className="ml-2 bg-green-100 text-green-800">{editableData.performance}/5</Badge>
                 </div>
               </div>
             )}
@@ -477,8 +481,8 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
               </div>
             )}
             <div className="space-y-2 w-full">
-              {earnings.slice(-5).map(earning => (
-                <div key={earning.id} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
+              {earnings.slice(-5).map((earning, index) => (
+                <div key={earning.id || index} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
                   <div className="text-left">
                     <div className="font-medium text-sm text-left">{earning.customer || earning.description}</div>
                     <div className="text-xs text-gray-600 text-left">{new Date(earning.date).toLocaleDateString('de-DE')}</div>
@@ -527,8 +531,8 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
               </div>
             )}
             <div className="space-y-2 w-full">
-              {expenses.slice(-5).map(expense => (
-                <div key={expense.id} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
+              {expenses.slice(-5).map((expense, index) => (
+                <div key={expense.id || index} className="flex justify-between items-center p-2 bg-gray-50 rounded w-full">
                   <div className="text-left">
                     <div className="font-medium text-sm text-left">{expense.description}</div>
                     <div className="text-xs text-gray-600 text-left">{new Date(expense.date).toLocaleDateString('de-DE')}</div>
