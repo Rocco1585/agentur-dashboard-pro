@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 
 export function CustomerDashboardView() {
   const { customerId } = useParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isCustomer } = useAuth();
   const [customerData, setCustomerData] = useState<any>(null);
   const [appointments, setAppointments] = useState([]);
   const [revenues, setRevenues] = useState([]);
@@ -26,6 +26,14 @@ export function CustomerDashboardView() {
       console.log('Fetching customer data for ID:', customerId);
       console.log('Current user:', user);
       console.log('Is admin:', isAdmin());
+      console.log('Is customer:', isCustomer());
+
+      // Berechtigungsprüfung: Admin kann alle sehen, Kunde nur sein eigenes
+      if (!isAdmin() && user?.id !== customerId) {
+        console.log('No permission: user is not admin and user ID does not match customer ID');
+        setLoading(false);
+        return;
+      }
 
       // Hole Kundendaten - zuerst aus customers Tabelle für Admins
       let customerDataQuery;
@@ -57,9 +65,9 @@ export function CustomerDashboardView() {
           }
         }
       } else {
-        // Nicht-Admin: Nur eigenes Dashboard sehen
-        if (user?.id !== customerId) {
-          console.log('No permission: user is not admin and user ID does not match customer ID');
+        // Nicht-Admin: Nur eigenes Dashboard sehen (muss Kunde sein)
+        if (user?.id !== customerId || !isCustomer()) {
+          console.log('No permission: user is not customer or user ID does not match customer ID');
           setLoading(false);
           return;
         }
@@ -184,6 +192,18 @@ export function CustomerDashboardView() {
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900 text-left">Kunde nicht gefunden</h1>
           <p className="text-gray-600 mt-2 text-left">Der angeforderte Kunde wurde nicht gefunden oder Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Doppelte Berechtigungsprüfung
+  if (!isAdmin() && (user?.id !== customerId || !isCustomer())) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Keine Berechtigung</h1>
+          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
         </div>
       </div>
     );

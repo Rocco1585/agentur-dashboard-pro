@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export function CustomerDashboard() {
   const { customerId } = useParams();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isCustomer } = useAuth();
   const [customerData, setCustomerData] = useState<any>(null);
   const [appointments, setAppointments] = useState([]);
   const [revenues, setRevenues] = useState([]);
@@ -21,41 +21,89 @@ export function CustomerDashboard() {
 
   const fetchCustomerData = async () => {
     try {
-      // Überprüfe Berechtigung: Nur der Kunde selbst oder Admins können das Dashboard sehen
+      console.log('Fetching customer data for ID:', customerId);
+      console.log('Current user:', user);
+      console.log('Is admin:', isAdmin());
+      console.log('Is customer:', isCustomer());
+
+      // Berechtigungsprüfung: Admin kann alle sehen, Kunde nur sein eigenes
       if (!isAdmin() && user?.id !== customerId) {
+        console.log('No permission: user is not admin and user ID does not match customer ID');
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
+      // Hole Kundendaten aus team_members (für Kunden-Dashboards)
+      const { data: teamMemberData, error: teamMemberError } = await supabase
         .from('team_members')
         .select('*')
         .eq('id', customerId)
         .eq('user_role', 'kunde')
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
-      setCustomerData(data);
+      console.log('Team member data:', teamMemberData);
 
-      // If admin, fetch additional data
-      if (isAdmin()) {
-        // Fetch appointments
-        const { data: appointmentsData } = await supabase
+      if (teamMemberError) {
+        console.error('Error fetching team member data:', teamMemberError);
+      }
+
+      // Falls nicht in team_members gefunden, versuche customers Tabelle (für Admins)
+      let customerFromCustomers = null;
+      if (!teamMemberData && isAdmin()) {
+        const { data: customerData, error: customerError } = await supabase
+          .from('customers')
+          .select('*')
+          .eq('id', customerId)
+          .maybeSingle();
+
+        console.log('Customer data from customers table:', customerData);
+        
+        if (customerError) {
+          console.error('Error fetching customer data:', customerError);
+        } else {
+          customerFromCustomers = customerData;
+        }
+      }
+
+      const finalCustomerData = teamMemberData || customerFromCustomers;
+      
+      if (!finalCustomerData) {
+        console.log('No customer data found');
+        setLoading(false);
+        return;
+      }
+
+      setCustomerData(finalCustomerData);
+
+      // Fetch appointments für diesen Kunden (nur für Admins oder den Kunden selbst)
+      if (isAdmin() || user?.id === customerId) {
+        const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
           .select('*')
           .eq('customer_id', customerId)
           .order('date', { ascending: false });
 
-        setAppointments(appointmentsData || []);
+        if (appointmentsError) {
+          console.error('Error fetching appointments:', appointmentsError);
+        } else {
+          console.log('Appointments data:', appointmentsData);
+          setAppointments(appointmentsData || []);
+        }
 
-        // Fetch revenues
-        const { data: revenuesData } = await supabase
-          .from('revenues')
-          .select('*')
-          .eq('customer_id', customerId)
-          .order('date', { ascending: false });
+        // Fetch revenues (nur für Admins)
+        if (isAdmin()) {
+          const { data: revenuesData, error: revenuesError } = await supabase
+            .from('revenues')
+            .select('*')
+            .eq('customer_id', customerId)
+            .order('date', { ascending: false });
 
-        setRevenues(revenuesData || []);
+          if (revenuesError) {
+            console.error('Error fetching revenues:', revenuesError);
+          } else {
+            setRevenues(revenuesData || []);
+          }
+        }
       }
     } catch (error) {
       console.error('Error fetching customer data:', error);
@@ -76,34 +124,40 @@ export function CustomerDashboard() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Kunde nicht gefunden</h1>
+          <p className="text-gray-600 mt-2 text-left">
+            Der angeforderte Kunde wurde nicht gefunden oder Sie haben keine Berechtigung, diese Seite zu betrachten.
+          </p>
         </div>
       </div>
     );
   }
 
-  // Überprüfe nochmals die Berechtigung
+  // Doppelte Berechtigungsprüfung
   if (!isAdmin() && user?.id !== customerId) {
     return (
       <div className="space-y-6 p-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Keine Berechtigung</h1>
-          <p className="text-gray-600 mt-2">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
+          <h1 className="text-3xl font-bold text-gray-900 text-left">Keine Berechtigung</h1>
+          <p className="text-gray-600 mt-2 text-left">Sie haben keine Berechtigung, diese Seite zu betrachten.</p>
         </div>
       </div>
     );
   }
 
-  const completedAppointments = appointments.filter(apt => apt.result === 'Abgeschlossen').length;
-  const pendingAppointments = appointments.filter(apt => apt.result === 'Geplant').length;
+  const completedAppointments = appointments.filter(apt => 
+    apt.result === 'termin_abgeschlossen' || apt.result === 'Abgeschlossen'
+  ).length;
+  const pendingAppointments = appointments.filter(apt => 
+    apt.result === 'termin_ausstehend' || apt.result === 'Geplant'
+  ).length;
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
 
   return (
     <div className="space-y-6 p-6">
       <div className="text-left">
         <h1 className="text-3xl font-bold text-gray-900">
-          {customerData.customer_dashboard_name || 'Kunden Dashboard'}
+          {customerData.customer_dashboard_name || customerData.name || 'Kunden Dashboard'}
         </h1>
         <p className="text-gray-600">Willkommen, {customerData.name}</p>
         {isAdmin() && (
@@ -148,7 +202,9 @@ export function CustomerDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-left">
-              <Badge className="bg-green-100 text-green-800">Aktiv</Badge>
+              <Badge className={customerData.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                {customerData.is_active ? "Aktiv" : "Inaktiv"}
+              </Badge>
             </div>
             <p className="text-xs text-gray-600 text-left">Ihr Kontostatus</p>
           </CardContent>
