@@ -9,7 +9,259 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      appointments: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          date: string
+          id: string
+          result: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          date: string
+          id?: string
+          result?: string | null
+          type: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          date?: string
+          id?: string
+          result?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          booked_appointments: number | null
+          completed_appointments: number | null
+          contact: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          payment_status: string | null
+          phone: string | null
+          pipeline_stage: string | null
+          priority: string | null
+          satisfaction: number | null
+          statuses: Json | null
+          updated_at: string
+        }
+        Insert: {
+          booked_appointments?: number | null
+          completed_appointments?: number | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          payment_status?: string | null
+          phone?: string | null
+          pipeline_stage?: string | null
+          priority?: string | null
+          satisfaction?: number | null
+          statuses?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          booked_appointments?: number | null
+          completed_appointments?: number | null
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_status?: string | null
+          phone?: string | null
+          pipeline_stage?: string | null
+          priority?: string | null
+          satisfaction?: number | null
+          statuses?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hot_leads: {
+        Row: {
+          contact: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          priority: string | null
+          source: string | null
+        }
+        Insert: {
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          source?: string | null
+        }
+        Update: {
+          contact?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          priority?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      revenues: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string | null
+          date: string
+          description: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_id?: string | null
+          date?: string
+          description: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string | null
+          date?: string
+          description?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revenues_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          active_since: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          payouts: number | null
+          performance: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          active_since?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          payouts?: number | null
+          performance?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active_since?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          payouts?: number | null
+          performance?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      todos: {
+        Row: {
+          completed: boolean | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: string | null
+          title: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          title: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

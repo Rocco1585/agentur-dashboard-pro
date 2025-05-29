@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { useRevenues } from '@/hooks/useSupabaseData';
 
 interface CustomerDetailProps {
   customer: any;
@@ -15,30 +18,57 @@ interface CustomerDetailProps {
 }
 
 export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailProps) {
-  const [revenues, setRevenues] = useState([
-    { id: 1, description: 'Webdesign', amount: 1200, date: '10.01.2025' },
-    { id: 2, description: 'SEO Optimierung', amount: 800, date: '05.01.2025' },
-  ]);
-
-  const [appointments, setAppointments] = useState([
-    { id: 1, type: 'Setting', date: '15.01.2025', result: 'Erfolgreich' },
-    { id: 2, type: 'Closing', date: '12.01.2025', result: 'Follow-up' },
-  ]);
-
+  const { revenues, addRevenue } = useRevenues();
+  const [customerRevenues, setCustomerRevenues] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [newRevenue, setNewRevenue] = useState({ amount: '', description: '' });
   const [newAppointment, setNewAppointment] = useState({ date: '', type: '', result: '' });
-
-  const [statuses, setStatuses] = useState(customer.statuses || []);
+  const [statuses, setStatuses] = useState<string[]>([]);
   const [newStatus, setNewStatus] = useState('');
-  const [notes, setNotes] = useState('Wichtiger Kunde mit hohem Potential.');
+  const [notes, setNotes] = useState('');
 
-  const addStatus = () => {
+  useEffect(() => {
+    if (customer) {
+      setStatuses(Array.isArray(customer.statuses) ? customer.statuses : []);
+      setNotes(customer.notes || '');
+      fetchCustomerData();
+    }
+  }, [customer]);
+
+  const fetchCustomerData = async () => {
+    try {
+      // Fetch revenues for this customer
+      const { data: revenueData } = await supabase
+        .from('revenues')
+        .select('*')
+        .eq('customer_id', customer.id)
+        .order('date', { ascending: false });
+      
+      setCustomerRevenues(revenueData || []);
+
+      // Fetch appointments for this customer
+      const { data: appointmentData } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('customer_id', customer.id)
+        .order('date', { ascending: false });
+      
+      setAppointments(appointmentData || []);
+    } catch (error) {
+      console.error('Error fetching customer data:', error);
+    }
+  };
+
+  const addStatus = async () => {
     if (newStatus.trim() && !statuses.includes(newStatus.trim())) {
       const updatedStatuses = [...statuses, newStatus.trim()];
       setStatuses(updatedStatuses);
+      
       const updatedCustomer = { ...customer, statuses: updatedStatuses };
+      await updateCustomerInDB(updatedCustomer);
       onUpdate(updatedCustomer);
       setNewStatus('');
+      
       toast({
         title: "Status hinzugefügt",
         description: `Status "${newStatus}" wurde hinzugefügt.`,
@@ -46,42 +76,90 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     }
   };
 
-  const removeStatus = (statusToRemove: string) => {
+  const removeStatus = async (statusToRemove: string) => {
     const updatedStatuses = statuses.filter(status => status !== statusToRemove);
     setStatuses(updatedStatuses);
+    
     const updatedCustomer = { ...customer, statuses: updatedStatuses };
+    await updateCustomerInDB(updatedCustomer);
     onUpdate(updatedCustomer);
+    
     toast({
       title: "Status entfernt",
       description: `Status "${statusToRemove}" wurde entfernt.`,
     });
   };
 
-  const addRevenue = () => {
+  const updateCustomerInDB = async (updatedCustomer: any) => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update(updatedCustomer)
+        .eq('id', customer.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating customer:', error);
+    }
+  };
+
+  const handleAddRevenue = async () => {
     if (newRevenue.amount && newRevenue.description) {
-      setRevenues(prev => [...prev, {
-        id: Date.now(),
+      await addRevenue({
+        customer_id: customer.id,
         description: newRevenue.description,
         amount: parseFloat(newRevenue.amount),
-        date: new Date().toLocaleDateString('de-DE')
-      }]);
+        date: new Date().toISOString().split('T')[0]
+      });
       setNewRevenue({ amount: '', description: '' });
+      fetchCustomerData();
     }
   };
 
-  const addAppointment = () => {
+  const handleAddAppointment = async () => {
     if (newAppointment.date && newAppointment.type) {
-      setAppointments(prev => [...prev, {
-        id: Date.now(),
-        date: newAppointment.date,
-        type: newAppointment.type,
-        result: newAppointment.result || 'Ausstehend'
-      }]);
-      setNewAppointment({ date: '', type: '', result: '' });
+      try {
+        const { error } = await supabase
+          .from('appointments')
+          .insert({
+            customer_id: customer.id,
+            date: newAppointment.date,
+            type: newAppointment.type,
+            result: newAppointment.result || 'Ausstehend'
+          });
+
+        if (error) throw error;
+        
+        setNewAppointment({ date: '', type: '', result: '' });
+        fetchCustomerData();
+        
+        toast({
+          title: "Termin hinzugefügt",
+          description: "Neuer Termin wurde erfolgreich hinzugefügt.",
+        });
+      } catch (error) {
+        console.error('Error adding appointment:', error);
+        toast({
+          title: "Fehler",
+          description: "Termin konnte nicht hinzugefügt werden.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const totalRevenue = revenues.reduce((sum, revenue) => sum + revenue.amount, 0);
+  const saveNotes = async () => {
+    const updatedCustomer = { ...customer, notes };
+    await updateCustomerInDB(updatedCustomer);
+    onUpdate(updatedCustomer);
+    
+    toast({
+      title: "Notizen gespeichert",
+      description: "Die Notizen wurden erfolgreich gespeichert.",
+    });
+  };
+
+  const totalRevenue = customerRevenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
 
   return (
     <div className="space-y-6">
@@ -117,7 +195,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <Calendar className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-blue-600">{customer.bookedAppointments}</span>
+              <span className="text-2xl font-bold text-blue-600">{customer.booked_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -129,7 +207,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           <CardContent>
             <div className="flex items-center">
               <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
-              <span className="text-2xl font-bold text-purple-600">{customer.completedAppointments}</span>
+              <span className="text-2xl font-bold text-purple-600">{customer.completed_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -161,7 +239,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               <Badge className="ml-2 bg-yellow-100 text-yellow-800">{customer.priority}</Badge>
             </div>
             <div><strong>Zahlungsstatus:</strong> 
-              <Badge className="ml-2 bg-green-100 text-green-800">{customer.paymentStatus}</Badge>
+              <Badge className="ml-2 bg-green-100 text-green-800">{customer.payment_status}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -177,7 +255,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               className="min-h-[120px]"
               placeholder="Notizen über den Kunden..."
             />
-            <Button className="mt-2">Notizen speichern</Button>
+            <Button className="mt-2" onClick={saveNotes}>Notizen speichern</Button>
           </CardContent>
         </Card>
       </div>
@@ -238,7 +316,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               value={newRevenue.amount}
               onChange={(e) => setNewRevenue({...newRevenue, amount: e.target.value})}
             />
-            <Button onClick={addRevenue}>Hinzufügen</Button>
+            <Button onClick={handleAddRevenue}>Hinzufügen</Button>
           </div>
         </CardContent>
       </Card>
@@ -273,7 +351,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
               value={newAppointment.result}
               onChange={(e) => setNewAppointment({...newAppointment, result: e.target.value})}
             />
-            <Button onClick={addAppointment}>Hinzufügen</Button>
+            <Button onClick={handleAddAppointment}>Hinzufügen</Button>
           </div>
         </CardContent>
       </Card>
@@ -286,11 +364,11 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {revenues.slice(-5).map(revenue => (
+              {customerRevenues.slice(0, 5).map(revenue => (
                 <div key={revenue.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                   <div>
                     <div className="font-medium text-sm">{revenue.description}</div>
-                    <div className="text-xs text-gray-600">{revenue.date}</div>
+                    <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
                   </div>
                   <span className="font-bold text-green-600">€{revenue.amount}</span>
                 </div>
@@ -305,10 +383,10 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {appointments.slice(-5).map(appointment => (
+              {appointments.slice(0, 5).map(appointment => (
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded">
                   <div className="font-medium text-sm">{appointment.type}</div>
-                  <div className="text-xs text-gray-600">{appointment.date}</div>
+                  <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
                   <Badge className="text-xs mt-1">{appointment.result}</Badge>
                 </div>
               ))}
