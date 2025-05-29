@@ -47,6 +47,8 @@ export function useAuth() {
       title: "Abgemeldet",
       description: "Sie wurden erfolgreich abgemeldet.",
     });
+    // Automatische Weiterleitung zum Login - reload der Seite triggert den Login
+    window.location.reload();
   };
 
   const isAdmin = () => {

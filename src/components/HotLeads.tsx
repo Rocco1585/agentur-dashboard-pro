@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, User, Mail, Phone, Flame, Edit, Save, X, Trash2 } from "lucide-react";
+import { Plus, User, Mail, Phone, Flame, Edit, Save, X, Trash2, ArrowRight } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useHotLeads } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 
 export function HotLeads() {
   const { hotLeads, loading, addHotLead, updateHotLead, deleteHotLead } = useHotLeads();
@@ -35,6 +36,48 @@ export function HotLeads() {
   const handleUpdateLead = async (id: string, updates: any) => {
     await updateHotLead(id, updates);
     setEditingLead(null);
+  };
+
+  const moveToCustomers = async (lead: any) => {
+    try {
+      // Kunde in die customers Tabelle hinzufügen
+      const { error: insertError } = await supabase
+        .from('customers')
+        .insert({
+          name: lead.name,
+          contact: lead.contact,
+          email: lead.email,
+          phone: lead.phone,
+          priority: lead.priority,
+          notes: lead.notes,
+          payment_status: 'Ausstehend',
+          pipeline_stage: 'termin_ausstehend',
+          action_step: 'in_vorbereitung',
+          is_active: true,
+          satisfaction: 5,
+          booked_appointments: 0,
+          completed_appointments: 0
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Hot Lead löschen
+      await deleteHotLead(lead.id);
+
+      toast({
+        title: "Erfolgreich verschoben",
+        description: `${lead.name} wurde zu den Kunden hinzugefügt.`,
+      });
+    } catch (error) {
+      console.error('Fehler beim Verschieben:', error);
+      toast({
+        title: "Fehler",
+        description: "Beim Verschieben ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -284,6 +327,15 @@ export function HotLeads() {
                       >
                         <Edit className="h-3 w-3 mr-1" />
                         Bearbeiten
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => moveToCustomers(lead)}
+                        className="flex-1 hover:bg-green-50 hover:border-green-200"
+                      >
+                        <ArrowRight className="h-3 w-3 mr-1 text-green-600" />
+                        Zu Kunde
                       </Button>
                       <Button
                         variant="outline"
