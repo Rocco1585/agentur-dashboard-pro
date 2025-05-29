@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export function ToDos() {
   const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos();
-  const { canCreateTodos } = useAuth();
+  const { canCreateTodos, canViewTodos, canCompleteTodos } = useAuth();
   const [showAddForm, setShowAddForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
@@ -25,7 +24,7 @@ export function ToDos() {
     priority: 'Mittel'
   });
 
-  if (!canCreateTodos()) {
+  if (!canViewTodos()) {
     return (
       <div className="w-full p-6">
         <Card>
@@ -53,11 +52,27 @@ export function ToDos() {
   };
 
   const handleToggleComplete = async (todo: any) => {
-    await updateTodo(todo.id, { completed: !todo.completed });
+    if (canCompleteTodos()) {
+      await updateTodo(todo.id, { completed: !todo.completed });
+    } else {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Sie können keine ToDos bearbeiten.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteTodo = async (todoId: string) => {
-    await deleteTodo(todoId);
+    if (canCreateTodos()) {
+      await deleteTodo(todoId);
+    } else {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Sie können keine ToDos löschen.",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredTodos = todos.filter(todo => {
@@ -89,13 +104,15 @@ export function ToDos() {
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 text-left">ToDos</h1>
           <p className="text-gray-600 text-left">Verwalten Sie Ihre Aufgaben</p>
         </div>
-        <Button 
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
-        >
-          <Plus className="h-4 w-4 mr-2 text-white" />
-          ToDo hinzufügen
-        </Button>
+        {canCreateTodos() && (
+          <Button 
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4 mr-2 text-white" />
+            ToDo hinzufügen
+          </Button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -150,7 +167,7 @@ export function ToDos() {
       </div>
 
       {/* Add Todo Form */}
-      {showAddForm && (
+      {showAddForm && canCreateTodos() && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg text-left">Neues ToDo hinzufügen</CardTitle>
@@ -236,6 +253,7 @@ export function ToDos() {
                     checked={todo.completed}
                     onCheckedChange={() => handleToggleComplete(todo)}
                     className="mt-1"
+                    disabled={!canCompleteTodos()}
                   />
                   <div className="flex-1 min-w-0">
                     <h3 className={`font-medium text-left ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>
@@ -268,14 +286,16 @@ export function ToDos() {
                       )}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteTodo(todo.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {canCreateTodos() && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteTodo(todo.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -294,7 +314,7 @@ export function ToDos() {
                 : "Keine ToDos entsprechen Ihren Filterkriterien."
               }
             </p>
-            {todos.length === 0 && (
+            {todos.length === 0 && canCreateTodos() && (
               <Button onClick={() => setShowAddForm(true)} className="bg-red-600 hover:bg-red-700">
                 <Plus className="h-4 w-4 mr-2 text-white" />
                 Erstes ToDo hinzufügen

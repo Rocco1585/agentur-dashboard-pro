@@ -3,60 +3,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Trash2, 
-  Search, 
-  User, 
-  Phone, 
-  Mail, 
-  Calendar,
-  FileText,
-  TrendingUp,
-  Plus,
-  Eye
-} from "lucide-react";
+import { Trash2, Search, User, Phone, Mail, Plus, Eye } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { CreateCustomerForm } from './CreateCustomerForm';
 import { CustomerDetail } from './CustomerDetail';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useLocation } from 'react-router-dom';
 
 export function Customers() {
+  const location = useLocation();
   const { canCreateCustomers, canEditCustomers, canViewCustomers } = useAuth();
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-
-  // Berechtigung prüfen
-  if (!canViewCustomers()) {
-    return (
-      <div className="space-y-6 p-6">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Berechtigung</h3>
-            <p className="text-gray-600">Sie haben keine Berechtigung, Kunden anzuzeigen.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   useEffect(() => {
     fetchCustomers();
-  }, []);
+    
+    // Check if we need to show a specific customer
+    if (location.state?.selectedCustomerId) {
+      const customerId = location.state.selectedCustomerId;
+      fetchCustomerById(customerId);
+    }
+  }, [location.state]);
 
   const fetchCustomers = async () => {
     try {
@@ -79,6 +52,23 @@ export function Customers() {
     }
   };
 
+  const fetchCustomerById = async (customerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customerId)
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        setSelectedCustomer(data);
+      }
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+    }
+  };
+
   const deleteCustomer = async (customerId: string, customerName: string) => {
     try {
       const { error } = await supabase
@@ -89,7 +79,6 @@ export function Customers() {
       if (error) throw error;
 
       setCustomers(customers.filter(customer => customer.id !== customerId));
-      
       toast({
         title: "Kunde gelöscht",
         description: `${customerName} wurde erfolgreich gelöscht.`,
@@ -117,7 +106,7 @@ export function Customers() {
     }
   };
 
-  const getPaymentStatusColor = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Bezahlt':
         return 'bg-green-100 text-green-800';
@@ -136,10 +125,23 @@ export function Customers() {
     customer.contact?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (!canViewCustomers()) {
+    return (
+      <div className="w-full p-6">
+        <Card>
+          <CardContent className="p-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-2 text-left">Keine Berechtigung</h3>
+            <p className="text-gray-600 text-left">Sie haben keine Berechtigung, Kunden zu verwalten.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
-        <div className="text-lg">Lade Kunden...</div>
+        <div className="text-lg text-left">Lade Kunden...</div>
       </div>
     );
   }
@@ -160,7 +162,10 @@ export function Customers() {
       <div className="space-y-6 p-6">
         <CustomerDetail 
           customer={selectedCustomer}
-          onCustomerUpdated={fetchCustomers}
+          onCustomerUpdated={() => {
+            fetchCustomers();
+            setSelectedCustomer(null);
+          }}
         />
       </div>
     );
@@ -168,23 +173,22 @@ export function Customers() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Kunden</h1>
-          <p className="text-gray-600">Verwalten Sie Ihre Kundenbasis</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="text-left">
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Kunden</h1>
+          <p className="text-gray-600">Verwalten Sie Ihre Kunden</p>
         </div>
         {canCreateCustomers() && (
           <Button 
             onClick={() => setShowCreateForm(true)}
-            className="bg-red-600 hover:bg-red-700"
+            className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Neuer Kunde
+            Neuen Kunden hinzufügen
           </Button>
         )}
       </div>
 
-      {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-600 h-4 w-4" />
         <Input
@@ -195,97 +199,72 @@ export function Customers() {
         />
       </div>
 
-      {/* Customers Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers.map((customer) => (
-          <Card key={customer.id} className="hover:shadow-lg transition-shadow">
+          <Card key={customer.id} className="transition-all hover:shadow-lg">
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center justify-between">
-                <div className="flex items-center min-w-0 flex-1">
-                  <User className="h-4 w-4 mr-2 text-red-600 flex-shrink-0" />
-                  <span className="truncate text-gray-900 text-sm">{customer.name}</span>
+              <CardTitle className="flex items-center justify-between text-left">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-red-600" />
+                  <span className="text-lg">{customer.name}</span>
                 </div>
-                <Badge className={`ml-2 flex-shrink-0 text-xs px-2 py-1 ${customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                <Badge className={customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                   {customer.is_active ? 'Aktiv' : 'Inaktiv'}
                 </Badge>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 pt-0">
-              <div className="space-y-2">
+            <CardContent className="space-y-3">
+              <div className="space-y-2 text-left">
                 {customer.email && (
-                  <div className="flex items-center text-xs text-gray-600">
-                    <Mail className="h-3 w-3 mr-2 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Mail className="h-4 w-4" />
                     <span className="truncate">{customer.email}</span>
                   </div>
                 )}
                 {customer.phone && (
-                  <div className="flex items-center text-xs text-gray-600">
-                    <Phone className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <span className="truncate">{customer.phone}</span>
-                  </div>
-                )}
-                {customer.contact && (
-                  <div className="flex items-center text-xs text-gray-600">
-                    <FileText className="h-3 w-3 mr-2 flex-shrink-0" />
-                    <span className="truncate">{customer.contact}</span>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Phone className="h-4 w-4" />
+                    <span>{customer.phone}</span>
                   </div>
                 )}
               </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-gray-500">Priorität:</span>
-                  <Badge className={`ml-1 text-xs ${getPriorityColor(customer.priority)}`}>
-                    {customer.priority || 'Mittel'}
-                  </Badge>
-                </div>
-                <div>
-                  <span className="text-gray-500">Zahlung:</span>
-                  <Badge className={`ml-1 text-xs ${getPaymentStatusColor(customer.payment_status)}`}>
-                    {customer.payment_status || 'Ausstehend'}
-                  </Badge>
-                </div>
+              
+              <div className="flex flex-wrap gap-2">
+                <Badge className={getPriorityColor(customer.priority)}>
+                  {customer.priority}
+                </Badge>
+                <Badge className={getStatusColor(customer.payment_status)}>
+                  {customer.payment_status}
+                </Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                <div className="flex items-center">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  <span>{customer.booked_appointments || 0} Termine</span>
-                </div>
-                <div className="flex items-center">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>★ {customer.satisfaction || 5}</span>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t flex gap-2">
+              <div className="flex items-center justify-between pt-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedCustomer(customer)}
-                  className="flex-1 text-xs"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
-                  <Eye className="h-3 w-3 mr-1" />
+                  <Eye className="h-4 w-4 mr-1" />
                   Details
                 </Button>
                 
-                {canCreateCustomers() && (
+                {canEditCustomers() && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 px-2"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
                       >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Kunde löschen</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Sind Sie sicher, dass Sie den Kunden "{customer.name}" endgültig löschen möchten? 
-                          Diese Aktion kann nicht rückgängig gemacht werden.
+                          Sind Sie sicher, dass Sie {customer.name} löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -308,17 +287,21 @@ export function Customers() {
 
       {filteredCustomers.length === 0 && (
         <Card>
-          <CardContent className="py-12">
-            <div className="flex flex-col items-center">
-              <User className="h-12 w-12 text-red-600 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Keine Kunden gefunden</h3>
-              <p className="text-gray-600 text-center">
-                {customers.length === 0 
-                  ? "Noch keine Kunden angelegt. Erstellen Sie Ihren ersten Kunden."
-                  : "Keine Kunden entsprechen Ihren Suchkriterien."
-                }
-              </p>
-            </div>
+          <CardContent className="text-center py-12">
+            <User className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2 text-center">Keine Kunden gefunden</h3>
+            <p className="text-gray-600 mb-4 text-center">
+              {customers.length === 0 
+                ? "Fügen Sie Ihren ersten Kunden hinzu, um zu beginnen."
+                : "Keine Kunden entsprechen Ihren Suchkriterien."
+              }
+            </p>
+            {customers.length === 0 && canCreateCustomers() && (
+              <Button onClick={() => setShowCreateForm(true)} className="bg-red-600 hover:bg-red-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Ersten Kunden hinzufügen
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

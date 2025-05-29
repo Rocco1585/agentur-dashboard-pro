@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Euro, Users, TrendingUp, Calendar, UserCheck, AlertTriangle, CheckSquare, MessageSquare, ArrowUp, ArrowDown } from "lucide-react";
 import { useTeamMembers, useCustomers, useRevenues, useAppointments } from '@/hooks/useSupabaseData';
@@ -8,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export function Dashboard() {
+  const navigate = useNavigate();
   const { teamMembers } = useTeamMembers();
   const { customers } = useCustomers();
   const { revenues } = useRevenues();
@@ -125,6 +126,14 @@ export function Dashboard() {
              (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
     })
     .slice(0, 5);
+
+  const handleAppointmentClick = (appointment: any) => {
+    // Find customer by checking if the appointment has customer info or needs to be matched
+    const customer = customers.find(c => c.id === appointment.customer_id);
+    if (customer) {
+      navigate(`/customers`, { state: { selectedCustomerId: customer.id } });
+    }
+  };
 
   const stats = [
     {
@@ -311,17 +320,24 @@ export function Dashboard() {
           <CardContent>
             {todayAppointments.length > 0 ? (
               <div className="space-y-3">
-                {todayAppointments.slice(0, 3).map((appointment) => (
-                  <div key={appointment.id} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="font-medium text-left text-sm">{appointment.type}</div>
-                    <div className="text-xs text-gray-600 text-left mt-1">
-                      Status: <Badge className="text-xs">{appointment.result}</Badge>
+                {todayAppointments.slice(0, 3).map((appointment) => {
+                  const customer = customers.find(c => c.id === appointment.customer_id);
+                  return (
+                    <div 
+                      key={appointment.id} 
+                      className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleAppointmentClick(appointment)}
+                    >
+                      <div className="font-medium text-left text-sm">{customer?.name || 'Unbekannter Kunde'}</div>
+                      <div className="text-xs text-gray-600 text-left mt-1">
+                        Typ: {appointment.type}
+                      </div>
+                      <div className="text-xs text-gray-600 text-left">
+                        Status: <Badge className="text-xs">{appointment.result}</Badge>
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-600 text-left">
-                      {appointment.team_member_id ? 'Zugewiesen' : 'Nicht zugewiesen'}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {todayAppointments.length > 3 && (
                   <p className="text-xs text-gray-500 text-left">
                     +{todayAppointments.length - 3} weitere Termine

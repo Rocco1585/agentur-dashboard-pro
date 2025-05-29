@@ -39,7 +39,7 @@ export function AppSidebar() {
     canAccessMainNavigation, 
     canViewCustomers,
     canManageRevenues,
-    canCreateTodos,
+    canViewTodos,
     canAccessSettings,
     canViewAuditLogs,
     canViewTeamMembers,
@@ -96,7 +96,7 @@ export function AppSidebar() {
       title: "TODOs",
       url: "/todos",
       icon: CheckSquare,
-      visible: canCreateTodos()
+      visible: canViewTodos()
     },
     {
       title: "Einstellungen",

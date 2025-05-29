@@ -116,6 +116,14 @@ export function useAuth() {
     return isAdmin();
   };
 
+  const canViewTodos = () => {
+    return isAdmin() || isMember();
+  };
+
+  const canCompleteTodos = () => {
+    return isAdmin() || isMember();
+  };
+
   const canViewAuditLogs = () => {
     return isAdmin();
   };
@@ -153,6 +161,8 @@ export function useAuth() {
     canViewCustomers,
     canManageRevenues,
     canCreateTodos,
+    canViewTodos,
+    canCompleteTodos,
     canViewAuditLogs,
     canAccessSettings,
     canViewTeamMembers,
