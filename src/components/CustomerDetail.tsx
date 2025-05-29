@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +6,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Calendar, Euro, TrendingUp, Phone, Mail, User, Clock, CheckCircle, Plus } from "lucide-react";
+import { Save, Calendar, Euro, TrendingUp, Phone, Mail, User, Clock, CheckCircle, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { PipelineColumn } from './PipelineColumn';
 import { DragDropContext, DropResult } from 'react-beautiful-dnd';
+import { CustomerDetailHeader } from './CustomerDetailHeader';
 
 export interface CustomerDetailProps {
   customer: any;
@@ -97,7 +97,9 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
       // Calculate stats
       const totalRevenue = (revenuesData || []).reduce((sum, revenue) => sum + Number(revenue.amount), 0);
       const totalAppointments = (appointmentsData || []).length;
-      const completedAppointments = (appointmentsData || []).filter(apt => apt.result === 'termin_abgeschlossen').length;
+      const completedAppointments = (appointmentsData || []).filter(apt => 
+        apt.result === 'termin_abgeschlossen' || apt.result === 'termin_erschienen'
+      ).length;
       const pendingAppointments = (appointmentsData || []).filter(apt => apt.result === 'termin_ausstehend').length;
 
       setCustomerStats({
@@ -244,9 +246,8 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
         toast({
           title: "Fehler",
           description: "Einnahme konnte nicht hinzugefügt werden.",
-          variant: "destructive",
-        });
-      }
+        variant: "destructive",
+      });
     } else {
       toast({
         title: "Fehler",
@@ -339,20 +340,10 @@ export function CustomerDetail({ customer, onCustomerUpdated }: CustomerDetailPr
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" onClick={() => window.history.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Zurück
-        </Button>
-        <div className="text-left">
-          <h1 className="text-2xl font-bold text-left">
-            {canEditCustomers() ? 'Kunde bearbeiten' : 'Kundendetails'}
-          </h1>
-          <p className="text-gray-600 text-left">
-            {canEditCustomers() ? 'Kundendetails verwalten' : 'Kundeninformationen anzeigen'}
-          </p>
-        </div>
-      </div>
+      <CustomerDetailHeader 
+        customerName={customer.name}
+        onBack={onCustomerUpdated}
+      />
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

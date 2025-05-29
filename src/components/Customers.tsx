@@ -44,7 +44,32 @@ export function Customers() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCustomers(data || []);
+      
+      // Fetch appointment statistics for each customer
+      const customersWithStats = await Promise.all((data || []).map(async (customer) => {
+        const { data: customerAppointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('result')
+          .eq('customer_id', customer.id);
+
+        if (appointmentsError) {
+          console.error('Error fetching appointments for customer:', customer.id, appointmentsError);
+          return customer;
+        }
+
+        const totalAppointments = customerAppointments?.length || 0;
+        const completedAppointments = customerAppointments?.filter(apt => 
+          apt.result === 'termin_abgeschlossen' || apt.result === 'termin_erschienen'
+        ).length || 0;
+
+        return {
+          ...customer,
+          booked_appointments: totalAppointments,
+          completed_appointments: completedAppointments
+        };
+      }));
+
+      setCustomers(customersWithStats);
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast({
