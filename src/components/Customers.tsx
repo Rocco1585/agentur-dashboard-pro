@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Search, User, Phone, Mail, Plus, Eye } from "lucide-react";
+import { Trash2, Search, User, Phone, Mail, Plus, Eye, MapPin, Calendar, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { CreateCustomerForm } from './CreateCustomerForm';
@@ -168,26 +167,26 @@ export function Customers() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'Hoch':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-50 text-red-700 border border-red-200';
       case 'Mittel':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
       case 'Niedrig':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-50 text-green-700 border border-green-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Bezahlt':
-        return 'bg-green-100 text-green-800';
+        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
       case 'Ausstehend':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-amber-50 text-amber-700 border border-amber-200';
       case 'Überfällig':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-50 text-red-700 border border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-50 text-gray-700 border border-gray-200';
     }
   };
 
@@ -352,49 +351,81 @@ export function Customers() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {filteredCustomers.map((customer) => (
-              <Card key={customer.id} className="transition-all hover:shadow-lg">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center justify-between text-left">
-                    <div className="flex items-center gap-2">
-                      <User className="h-5 w-5 text-red-600" />
-                      <span className="text-lg">{customer.name}</span>
-                    </div>
-                    <Badge className={customer.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+              <Card key={customer.id} className="group hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-gradient-to-br from-white to-gray-50/50 overflow-hidden">
+                <CardHeader className="pb-3 relative">
+                  <div className="absolute top-4 right-4">
+                    <Badge className={customer.is_active ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-red-100 text-red-800 border-red-200'}>
                       {customer.is_active ? 'Aktiv' : 'Inaktiv'}
                     </Badge>
+                  </div>
+                  <CardTitle className="flex items-center gap-3 text-left">
+                    <div className="p-2 bg-red-100 rounded-full">
+                      <User className="h-4 w-4 text-red-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-lg font-semibold text-gray-900 truncate block">{customer.name}</span>
+                    </div>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2 text-left">
+                <CardContent className="space-y-4">
+                  <div className="space-y-3 text-left">
                     {customer.email && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail className="h-4 w-4" />
+                      <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                        <Mail className="h-4 w-4 text-blue-500 flex-shrink-0" />
                         <span className="truncate">{customer.email}</span>
                       </div>
                     )}
                     {customer.phone && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone className="h-4 w-4" />
+                      <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                        <Phone className="h-4 w-4 text-green-500 flex-shrink-0" />
                         <span>{customer.phone}</span>
+                      </div>
+                    )}
+                    {customer.contact && (
+                      <div className="flex items-center gap-3 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                        <MapPin className="h-4 w-4 text-purple-500 flex-shrink-0" />
+                        <span className="truncate">{customer.contact}</span>
                       </div>
                     )}
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    <Badge className={getPriorityColor(customer.priority)}>
+                    <Badge className={`${getPriorityColor(customer.priority)} font-medium`}>
                       {customer.priority}
                     </Badge>
-                    <Badge className={getStatusColor(customer.payment_status)}>
+                    <Badge className={`${getStatusColor(customer.payment_status)} font-medium`}>
                       {customer.payment_status}
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2">
+                  {/* Termine und Zufriedenheit */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-100">
+                    <div className="text-center p-2 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Calendar className="h-3 w-3 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-700">Termine</span>
+                      </div>
+                      <div className="text-lg font-bold text-blue-900">
+                        {customer.completed_appointments || 0}/{customer.booked_appointments || 0}
+                      </div>
+                    </div>
+                    <div className="text-center p-2 bg-amber-50 rounded-lg">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Star className="h-3 w-3 text-amber-600" />
+                        <span className="text-xs font-medium text-amber-700">Zufriedenheit</span>
+                      </div>
+                      <div className="text-lg font-bold text-amber-900">
+                        {customer.satisfaction || 5}/10
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setSelectedCustomer(customer)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="flex-1 mr-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 group-hover:bg-red-600 group-hover:text-white transition-all duration-300"
                     >
                       <Eye className="h-4 w-4 mr-1" />
                       Details
@@ -406,7 +437,7 @@ export function Customers() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2 h-8 w-8 rounded-full"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

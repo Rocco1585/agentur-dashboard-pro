@@ -53,21 +53,23 @@ export function Dashboard() {
     };
   });
 
-  // Team member statistics for last 7 days
-  const teamMemberStats = teamMembers.map(member => {
-    const memberAppointments = appointments.filter(appointment => {
-      const appointmentDate = new Date(appointment.date);
-      const isInLast7Days = last7Days.some(day => 
-        day.toDateString() === appointmentDate.toDateString()
-      );
-      return appointment.team_member_id === member.id && isInLast7Days;
-    });
-    
-    return {
-      ...member,
-      appointmentsLast7Days: memberAppointments.length
-    };
-  }).sort((a, b) => b.appointmentsLast7Days - a.appointmentsLast7Days);
+  // Team member statistics for last 7 days - NUR Admin und Mitglieder
+  const teamMemberStats = teamMembers
+    .filter(member => member.user_role === 'admin' || member.user_role === 'member') // Kunden ausfiltern
+    .map(member => {
+      const memberAppointments = appointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.date);
+        const isInLast7Days = last7Days.some(day => 
+          day.toDateString() === appointmentDate.toDateString()
+        );
+        return appointment.team_member_id === member.id && isInLast7Days;
+      });
+      
+      return {
+        ...member,
+        appointmentsLast7Days: memberAppointments.length
+      };
+    }).sort((a, b) => b.appointmentsLast7Days - a.appointmentsLast7Days);
 
   // Revenue calculations
   const todayRevenues = revenues.filter(revenue => {
@@ -129,8 +131,10 @@ export function Dashboard() {
 
   const growthData = getGrowthComparison();
 
-  // Appointment statistics
-  const activeTeamMembers = teamMembers.filter(member => member.is_active);
+  // Appointment statistics - NUR aktive Admin und Mitglieder zählen
+  const activeTeamMembers = teamMembers.filter(member => 
+    member.is_active && (member.user_role === 'admin' || member.user_role === 'member')
+  );
   const activeCustomers = customers.filter(customer => customer.is_active);
   
   const todayAppointments = appointments.filter(appointment => {
@@ -217,7 +221,7 @@ export function Dashboard() {
       title: "Aktive Teammitglieder",
       value: activeTeamMembers.length,
       icon: Users,
-      description: `${teamMembers.length} gesamt`
+      description: `${teamMembers.filter(m => m.user_role === 'admin' || m.user_role === 'member').length} gesamt`
     },
     {
       title: "Aktive Kunden",
