@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -142,7 +143,7 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Ausgaben</CardTitle>
+            <CardTitle className="text-sm text-gray-600">Auszahlungen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
@@ -353,7 +354,7 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
         <CardHeader>
           <CardTitle className="flex items-center text-red-600">
             <Plus className="h-5 w-5 mr-2" />
-            Neue Ausgabe hinzufügen
+            Neue Auszahlung hinzufügen
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -432,7 +433,7 @@ export function TeamMemberDetail({ member, onBack, customers }: TeamMemberDetail
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-red-600">Letzte Ausgaben</CardTitle>
+            <CardTitle className="text-red-600">Letzte Auszahlungen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">

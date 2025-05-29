@@ -1,8 +1,13 @@
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Users, Calendar, Target, Euro, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 export function Dashboard() {
+  const [showAllTodos, setShowAllTodos] = useState(false);
+  const [showAllAppointments, setShowAllAppointments] = useState(false);
+
   // Mock Daten - sollten später aus echten Datenquellen kommen
   const mockRevenues = [
     { id: 1, client: 'ABC GmbH', amount: 2500, date: '2025-01-15' },
@@ -90,13 +95,23 @@ export function Dashboard() {
     { task: "Vertrag mit DEF AG prüfen", date: "03.01.2025", priority: "niedrig" },
     { task: "Quarterly Review vorbereiten", date: "Übermorgen, 09:00", priority: "hoch" },
     { task: "Neue Mitarbeiter einarbeiten", date: "05.01.2025", priority: "mittel" },
+    { task: "Marketing-Kampagne planen", date: "06.01.2025", priority: "mittel" },
+    { task: "Kundenfeedback auswerten", date: "07.01.2025", priority: "niedrig" },
+    { task: "Team Meeting vorbereiten", date: "08.01.2025", priority: "hoch" },
   ];
 
   const teamAppointments = [
     { member: "Max Mustermann", client: "ABC GmbH", date: "Heute, 15:30", type: "Closing" },
     { member: "Lisa Schmidt", client: "XYZ Corp", date: "Morgen, 09:00", type: "Setting" },
     { member: "Tom Weber", client: "DEF AG", date: "03.01.2025", type: "Follow-up" },
+    { member: "Anna Müller", client: "GHI GmbH", date: "04.01.2025", type: "Closing" },
+    { member: "Peter Klein", client: "JKL Corp", date: "05.01.2025", type: "Setting" },
+    { member: "Sarah Braun", client: "MNO AG", date: "06.01.2025", type: "Follow-up" },
+    { member: "Mike Johnson", client: "PQR GmbH", date: "07.01.2025", type: "Closing" },
   ];
+
+  const displayedTodos = showAllTodos ? upcomingTodos : upcomingTodos.slice(0, 5);
+  const displayedAppointments = showAllAppointments ? teamAppointments : teamAppointments.slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -130,14 +145,36 @@ export function Dashboard() {
         {/* Upcoming ToDos */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calendar className="h-5 w-5 mr-2 text-blue-600" />
-              Bevorstehende ToDos
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                Bevorstehende ToDos
+              </div>
+              {upcomingTodos.length > 5 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAllTodos(!showAllTodos)}
+                  className="flex items-center"
+                >
+                  {showAllTodos ? (
+                    <>
+                      Weniger anzeigen
+                      <ChevronUp className="h-4 w-4 ml-1" />
+                    </>
+                  ) : (
+                    <>
+                      Mehr anzeigen
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    </>
+                  )}
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {upcomingTodos.map((todo, index) => (
+              {displayedTodos.map((todo, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{todo.task}</p>
@@ -159,14 +196,36 @@ export function Dashboard() {
         {/* Team Appointments */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
-              Gelegte Termine vom Team
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center">
+                <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                Gelegte Termine vom Team
+              </div>
+              {teamAppointments.length > 5 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAllAppointments(!showAllAppointments)}
+                  className="flex items-center"
+                >
+                  {showAllAppointments ? (
+                    <>
+                      Weniger anzeigen
+                      <ChevronUp className="h-4 w-4 ml-1" />
+                    </>
+                  ) : (
+                    <>
+                      Mehr anzeigen
+                      <ChevronDown className="h-4 w-4 ml-1" />
+                    </>
+                  )}
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {teamAppointments.map((appointment, index) => (
+              {displayedAppointments.map((appointment, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{appointment.member}</p>

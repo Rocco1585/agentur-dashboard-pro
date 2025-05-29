@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings as SettingsIcon, Users, Shield, Plus, Trash2 } from "lucide-react";
+import { Settings as SettingsIcon, Users, Shield, Plus, Trash2, Euro } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export function Settings() {
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'mitarbeiter' });
+  const [appointmentPrice, setAppointmentPrice] = useState(100);
   
   const [users, setUsers] = useState([
     { id: 1, name: 'Admin User', email: 'admin@vertrieb.de', role: 'admin', created: '01.01.2024' },
@@ -48,6 +49,13 @@ export function Settings() {
     });
   };
 
+  const saveAppointmentPrice = () => {
+    toast({
+      title: "Terminpreis gespeichert",
+      description: `Der Terminpreis wurde auf €${appointmentPrice} festgelegt.`,
+    });
+  };
+
   const getRoleBadgeColor = (role: string) => {
     return role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
   };
@@ -82,9 +90,10 @@ export function Settings() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users">Benutzerverwaltung</TabsTrigger>
           <TabsTrigger value="permissions">Berechtigungen</TabsTrigger>
+          <TabsTrigger value="pricing">Preise</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -221,6 +230,45 @@ export function Settings() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="pricing" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Euro className="h-5 w-5 mr-2 text-green-600" />
+                Bezahlung pro Termin
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="appointment-price">Terminpreis Mitarbeiter (€)</Label>
+                  <Input
+                    id="appointment-price"
+                    type="number"
+                    value={appointmentPrice}
+                    onChange={(e) => setAppointmentPrice(Number(e.target.value))}
+                    min="0"
+                    step="5"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={saveAppointmentPrice} className="w-full">
+                    Terminpreis speichern
+                  </Button>
+                </div>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Aktueller Terminpreis:</strong> €{appointmentPrice} pro erschienenen Termin
+                </p>
+                <p className="text-xs text-blue-600 mt-1">
+                  Diese Summe wird an Mitarbeiter für jeden erfolgreich durchgeführten Termin ausgezahlt.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="system" className="space-y-6">
