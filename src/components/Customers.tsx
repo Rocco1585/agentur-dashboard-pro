@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,8 @@ export function Customers() {
   const { customers, loading, updateCustomer, addCustomer } = useCustomers();
   const { canCreateCustomers } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterPriority, setFilterPriority] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterPriority, setFilterPriority] = useState('alle');
+  const [filterStatus, setFilterStatus] = useState('alle');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
@@ -63,8 +64,8 @@ export function Customers() {
     const matchesSearch = customer.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.contact?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPriority = !filterPriority || customer.priority === filterPriority;
-    const matchesStatus = !filterStatus || 
+    const matchesPriority = filterPriority === 'alle' || customer.priority === filterPriority;
+    const matchesStatus = filterStatus === 'alle' || 
                          (filterStatus === 'aktiv' && customer.is_active) ||
                          (filterStatus === 'inaktiv' && !customer.is_active);
     return matchesSearch && matchesPriority && matchesStatus;
@@ -148,7 +149,7 @@ export function Customers() {
             <SelectValue placeholder="Priorität filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Prioritäten</SelectItem>
+            <SelectItem value="alle">Alle Prioritäten</SelectItem>
             <SelectItem value="Hoch">Hoch</SelectItem>
             <SelectItem value="Mittel">Mittel</SelectItem>
             <SelectItem value="Niedrig">Niedrig</SelectItem>
@@ -159,7 +160,7 @@ export function Customers() {
             <SelectValue placeholder="Status filtern" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Alle Status</SelectItem>
+            <SelectItem value="alle">Alle Status</SelectItem>
             <SelectItem value="aktiv">Aktiv</SelectItem>
             <SelectItem value="inaktiv">Inaktiv</SelectItem>
           </SelectContent>
