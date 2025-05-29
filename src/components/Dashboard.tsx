@@ -29,9 +29,8 @@ export function Dashboard() {
   // Calculate statistics from real data
   const totalRevenue = revenues.reduce((sum, revenue) => sum + Number(revenue.amount), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
-  const activeCustomers = customers.filter(c => 
-    ['termin_erschienen', 'termin_abgeschlossen', 'follow_up'].includes(c.pipeline_stage)
-  ).length;
+  // Updated to count customers with is_active = true
+  const activeCustomers = customers.filter(c => c.is_active === true).length;
 
   console.log('📊 Dashboard calculations:', {
     totalRevenue,
@@ -39,7 +38,8 @@ export function Dashboard() {
     activeCustomers,
     revenuesCount: revenues.length,
     expensesCount: expenses.length,
-    customersCount: customers.length
+    customersCount: customers.length,
+    activeCustomersFilter: customers.filter(c => c.is_active === true)
   });
 
   // Calculate 30-day revenue
@@ -115,10 +115,10 @@ export function Dashboard() {
         <h3 className="font-semibold mb-2">Debug Info:</h3>
         <div className="grid grid-cols-5 gap-4">
           <div>Kunden: {customers.length}</div>
+          <div>Aktive Kunden: {activeCustomers}</div>
           <div>Einnahmen: {revenues.length}</div>
           <div>Ausgaben: {expenses.length}</div>
           <div>Todos: {todos.length}</div>
-          <div>Termine: {appointments.length}</div>
         </div>
       </div>
 

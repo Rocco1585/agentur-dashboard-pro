@@ -46,12 +46,14 @@ export type Database = {
       }
       customers: {
         Row: {
+          action_step: string | null
           booked_appointments: number | null
           completed_appointments: number | null
           contact: string | null
           created_at: string
           email: string | null
           id: string
+          is_active: boolean | null
           name: string
           notes: string | null
           payment_status: string | null
@@ -63,12 +65,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          action_step?: string | null
           booked_appointments?: number | null
           completed_appointments?: number | null
           contact?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
           notes?: string | null
           payment_status?: string | null
@@ -80,12 +84,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          action_step?: string | null
           booked_appointments?: number | null
           completed_appointments?: number | null
           contact?: string | null
           created_at?: string
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
           notes?: string | null
           payment_status?: string | null
