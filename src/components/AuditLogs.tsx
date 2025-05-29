@@ -95,7 +95,7 @@ export function AuditLogs() {
                       </div>
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="h-4 w-4 mr-1" />
-                        {format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm', { locale: de })}
+                        {log.timestamp ? format(new Date(log.timestamp), 'dd.MM.yyyy HH:mm', { locale: de }) : 'Unbekannt'}
                       </div>
                     </div>
                     

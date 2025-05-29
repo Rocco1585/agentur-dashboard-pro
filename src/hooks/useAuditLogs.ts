@@ -5,14 +5,14 @@ import { toast } from '@/hooks/use-toast';
 
 export interface AuditLog {
   id: string;
-  user_id: string;
+  user_id: string | null;
   action: string;
   table_name: string;
   record_id: string | null;
   old_values: any;
   new_values: any;
-  timestamp: string;
-  ip_address: string | null;
+  timestamp: string | null;
+  ip_address: unknown | null;
   user_agent: string | null;
   team_member?: {
     name: string;
@@ -44,7 +44,14 @@ export function useAuditLogs() {
       }
       
       console.log('📊 Audit logs loaded:', data?.length || 0);
-      setAuditLogs(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData = data?.map(log => ({
+        ...log,
+        team_member: log.team_members
+      })) || [];
+      
+      setAuditLogs(transformedData);
     } catch (error) {
       console.error('❌ Error fetching audit logs:', error);
       toast({
