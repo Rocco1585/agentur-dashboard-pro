@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Dashboard } from "@/components/Dashboard";
 import { Customers } from "@/components/Customers";
 import { TeamMembers } from "@/components/TeamMembers";
-import { Revenue } from "@/components/Revenue";
+import { FinancialOverview } from "@/components/FinancialOverview";
 import { Settings } from "@/components/Settings";
 import { ToDos } from "@/components/ToDos";
 import { HotLeads } from "@/components/HotLeads";
@@ -61,7 +61,7 @@ function AppContent() {
                 <Route path="/hot-leads" element={<HotLeads />} />
                 <Route path="/create-appointment" element={<CreateAppointmentPage />} />
                 <Route path="/team-members" element={<TeamMembers />} />
-                <Route path="/revenue" element={<Revenue />} />
+                <Route path="/revenue" element={<FinancialOverview />} />
                 <Route path="/todos" element={<ToDos />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/user-management" element={<UserManagement />} />
