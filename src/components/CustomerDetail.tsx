@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp } from "lucide-react";
+import { ArrowLeft, Plus, X, User, Mail, Phone, Calendar, Euro, TrendingUp, Edit, Save, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useRevenues } from '@/hooks/useSupabaseData';
@@ -23,24 +23,45 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   const [customerRevenues, setCustomerRevenues] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [newRevenue, setNewRevenue] = useState({ amount: '', description: '' });
-  const [newAppointment, setNewAppointment] = useState({ date: '', type: '', result: '' });
+  const [newAppointment, setNewAppointment] = useState({ 
+    company: '', 
+    contact: '', 
+    phone: '', 
+    date: '' 
+  });
   const [statuses, setStatuses] = useState<string[]>([]);
   const [newStatus, setNewStatus] = useState('');
   const [notes, setNotes] = useState('');
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [editableContact, setEditableContact] = useState({
+    name: '',
+    contact: '',
+    email: '',
+    phone: '',
+    priority: '',
+    payment_status: ''
+  });
 
   const pipelineStages = [
-    { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-500' },
-    { id: 'termin_erschienen', name: 'Termin Erschienen', color: 'bg-blue-500' },
-    { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen', color: 'bg-green-500' },
-    { id: 'follow_up_kunde', name: 'Follow-up Kunde', color: 'bg-yellow-500' },
-    { id: 'follow_up_wir', name: 'Follow-up Wir', color: 'bg-purple-500' },
-    { id: 'verloren', name: 'Verloren', color: 'bg-red-500' },
+    { id: 'termin_ausstehend', name: 'Termin Ausstehend', color: 'bg-gray-400' },
+    { id: 'termin_erschienen', name: 'Termin Erschienen', color: 'bg-blue-400' },
+    { id: 'termin_abgeschlossen', name: 'Termin Abgeschlossen', color: 'bg-green-400' },
+    { id: 'follow_up', name: 'Follow-up', color: 'bg-orange-400' },
+    { id: 'verloren', name: 'Verloren', color: 'bg-red-400' },
   ];
 
   useEffect(() => {
     if (customer) {
       setStatuses(Array.isArray(customer.statuses) ? customer.statuses : []);
       setNotes(customer.notes || '');
+      setEditableContact({
+        name: customer.name || '',
+        contact: customer.contact || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        priority: customer.priority || '',
+        payment_status: customer.payment_status || ''
+      });
       fetchCustomerData();
     }
   }, [customer]);
@@ -103,6 +124,31 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     }
   };
 
+  const deleteAppointment = async (appointmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .delete()
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+      
+      fetchCustomerData();
+      
+      toast({
+        title: "Termin gelöscht",
+        description: "Termin wurde erfolgreich gelöscht.",
+      });
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast({
+        title: "Fehler",
+        description: "Termin konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const addStatus = async () => {
     if (newStatus.trim() && !statuses.includes(newStatus.trim())) {
       const updatedStatuses = [...statuses, newStatus.trim()];
@@ -147,6 +193,45 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
     }
   };
 
+  const saveContactData = async () => {
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update(editableContact)
+        .eq('id', customer.id);
+
+      if (error) throw error;
+      
+      const updatedCustomer = { ...customer, ...editableContact };
+      onUpdate(updatedCustomer);
+      setIsEditingContact(false);
+      
+      toast({
+        title: "Kontaktdaten gespeichert",
+        description: "Die Kontaktdaten wurden erfolgreich aktualisiert.",
+      });
+    } catch (error) {
+      console.error('Error updating contact data:', error);
+      toast({
+        title: "Fehler",
+        description: "Kontaktdaten konnten nicht gespeichert werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelEditContact = () => {
+    setEditableContact({
+      name: customer.name || '',
+      contact: customer.contact || '',
+      email: customer.email || '',
+      phone: customer.phone || '',
+      priority: customer.priority || '',
+      payment_status: customer.payment_status || ''
+    });
+    setIsEditingContact(false);
+  };
+
   const handleAddRevenue = async () => {
     if (newRevenue.amount && newRevenue.description) {
       await addRevenue({
@@ -161,20 +246,20 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
   };
 
   const handleAddAppointment = async () => {
-    if (newAppointment.date && newAppointment.type) {
+    if (newAppointment.company && newAppointment.contact && newAppointment.phone && newAppointment.date) {
       try {
         const { error } = await supabase
           .from('appointments')
           .insert({
             customer_id: customer.id,
             date: newAppointment.date,
-            type: newAppointment.type,
-            result: newAppointment.result || 'termin_ausstehend'
+            type: `${newAppointment.company} - ${newAppointment.contact} - ${newAppointment.phone}`,
+            result: 'termin_ausstehend'
           });
 
         if (error) throw error;
         
-        setNewAppointment({ date: '', type: '', result: '' });
+        setNewAppointment({ company: '', contact: '', phone: '', date: '' });
         fetchCustomerData();
         
         toast({
@@ -213,7 +298,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           Zurück
         </Button>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{customer.name}</h1>
+          <h1 className="text-2xl font-bold text-gray-800">{customer.name}</h1>
           <p className="text-gray-600">{customer.contact} • {customer.email}</p>
         </div>
       </div>
@@ -226,8 +311,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <Euro className="h-5 w-5 text-green-600 mr-2" />
-              <span className="text-2xl font-bold text-green-600">€{totalRevenue}</span>
+              <Euro className="h-5 w-5 text-gray-600 mr-2" />
+              <span className="text-2xl font-bold text-gray-700">€{totalRevenue}</span>
             </div>
           </CardContent>
         </Card>
@@ -238,8 +323,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-blue-600 mr-2" />
-              <span className="text-2xl font-bold text-blue-600">{customer.booked_appointments}</span>
+              <Calendar className="h-5 w-5 text-gray-600 mr-2" />
+              <span className="text-2xl font-bold text-gray-700">{customer.booked_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -250,8 +335,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <TrendingUp className="h-5 w-5 text-purple-600 mr-2" />
-              <span className="text-2xl font-bold text-purple-600">{customer.completed_appointments}</span>
+              <TrendingUp className="h-5 w-5 text-gray-600 mr-2" />
+              <span className="text-2xl font-bold text-gray-700">{customer.completed_appointments}</span>
             </div>
           </CardContent>
         </Card>
@@ -262,8 +347,8 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
           </CardHeader>
           <CardContent>
             <div className="flex items-center">
-              <User className="h-5 w-5 text-orange-600 mr-2" />
-              <span className="text-2xl font-bold text-orange-600">{customer.satisfaction}/10</span>
+              <User className="h-5 w-5 text-gray-600 mr-2" />
+              <span className="text-2xl font-bold text-gray-700">{customer.satisfaction}/10</span>
             </div>
           </CardContent>
         </Card>
@@ -273,24 +358,103 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Kontaktdaten & Info</CardTitle>
+            <CardTitle className="text-lg flex items-center">
+              Kontaktdaten & Info
+              {!isEditingContact && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditingContact(true)} className="ml-2">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              )}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div><strong>Ansprechpartner:</strong> {customer.contact}</div>
-            <div><strong>Email:</strong> {customer.email}</div>
-            <div><strong>Telefon:</strong> {customer.phone}</div>
-            <div><strong>Priorität:</strong> 
-              <Badge className="ml-2 bg-yellow-100 text-yellow-800">{customer.priority}</Badge>
-            </div>
-            <div><strong>Zahlungsstatus:</strong> 
-              <Badge className="ml-2 bg-green-100 text-green-800">{customer.payment_status}</Badge>
-            </div>
+            {isEditingContact ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">Firmenname:</label>
+                  <Input
+                    value={editableContact.name}
+                    onChange={(e) => setEditableContact({...editableContact, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Ansprechpartner:</label>
+                  <Input
+                    value={editableContact.contact}
+                    onChange={(e) => setEditableContact({...editableContact, contact: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Email:</label>
+                  <Input
+                    value={editableContact.email}
+                    onChange={(e) => setEditableContact({...editableContact, email: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Telefon:</label>
+                  <Input
+                    value={editableContact.phone}
+                    onChange={(e) => setEditableContact({...editableContact, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Priorität:</label>
+                  <Select value={editableContact.priority} onValueChange={(value) => setEditableContact({...editableContact, priority: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hoch">Hoch</SelectItem>
+                      <SelectItem value="Mittel">Mittel</SelectItem>
+                      <SelectItem value="Niedrig">Niedrig</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Zahlungsstatus:</label>
+                  <Select value={editableContact.payment_status} onValueChange={(value) => setEditableContact({...editableContact, payment_status: value})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bezahlt">Bezahlt</SelectItem>
+                      <SelectItem value="Ausstehend">Ausstehend</SelectItem>
+                      <SelectItem value="Überfällig">Überfällig</SelectItem>
+                      <SelectItem value="Raten">Raten</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex space-x-2">
+                  <Button onClick={saveContactData}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Speichern
+                  </Button>
+                  <Button variant="outline" onClick={cancelEditContact}>
+                    <X className="h-4 w-4 mr-2" />
+                    Abbrechen
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div><strong>Ansprechpartner:</strong> {customer.contact}</div>
+                <div><strong>Email:</strong> {customer.email}</div>
+                <div><strong>Telefon:</strong> {customer.phone}</div>
+                <div><strong>Priorität:</strong> 
+                  <Badge className="ml-2 bg-gray-100 text-gray-800">{customer.priority}</Badge>
+                </div>
+                <div><strong>Zahlungsstatus:</strong> 
+                  <Badge className="ml-2 bg-gray-100 text-gray-800">{customer.payment_status}</Badge>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Notizen</CardTitle>
+            <CardTitle className="text-lg">Notizen</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea 
@@ -307,12 +471,12 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {/* Status Management */}
       <Card>
         <CardHeader>
-          <CardTitle>Status Management</CardTitle>
+          <CardTitle className="text-lg">Status Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
             {statuses.map((status, index) => (
-              <Badge key={index} className="bg-blue-100 text-blue-800 flex items-center gap-1">
+              <Badge key={index} className="bg-gray-100 text-gray-800 flex items-center gap-1">
                 {status}
                 <Button
                   variant="ghost"
@@ -342,7 +506,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {/* Add New Appointment */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-blue-600">
+          <CardTitle className="text-lg flex items-center text-gray-700">
             <Calendar className="h-5 w-5 mr-2" />
             Neuen Termin hinzufügen
           </CardTitle>
@@ -350,42 +514,34 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Input
+              placeholder="Firma"
+              value={newAppointment.company}
+              onChange={(e) => setNewAppointment({...newAppointment, company: e.target.value})}
+            />
+            <Input
+              placeholder="Ansprechpartner"
+              value={newAppointment.contact}
+              onChange={(e) => setNewAppointment({...newAppointment, contact: e.target.value})}
+            />
+            <Input
+              placeholder="Telefon"
+              value={newAppointment.phone}
+              onChange={(e) => setNewAppointment({...newAppointment, phone: e.target.value})}
+            />
+            <Input
               type="date"
               value={newAppointment.date}
               onChange={(e) => setNewAppointment({...newAppointment, date: e.target.value})}
             />
-            <Select value={newAppointment.type} onValueChange={(value) => setNewAppointment({...newAppointment, type: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Termintyp" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Setting">Setting</SelectItem>
-                <SelectItem value="Closing">Closing</SelectItem>
-                <SelectItem value="Follow-up">Follow-up</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={newAppointment.result} onValueChange={(value) => setNewAppointment({...newAppointment, result: value})}>
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="termin_ausstehend">Termin Ausstehend</SelectItem>
-                <SelectItem value="termin_erschienen">Termin Erschienen</SelectItem>
-                <SelectItem value="termin_abgeschlossen">Termin Abgeschlossen</SelectItem>
-                <SelectItem value="follow_up_kunde">Follow-up Kunde</SelectItem>
-                <SelectItem value="follow_up_wir">Follow-up Wir</SelectItem>
-                <SelectItem value="verloren">Verloren</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAddAppointment}>Hinzufügen</Button>
           </div>
+          <Button onClick={handleAddAppointment} className="mt-4">Hinzufügen</Button>
         </CardContent>
       </Card>
 
       {/* Termin-Pipeline */}
       <Card>
         <CardHeader>
-          <CardTitle>Termin-Pipeline</CardTitle>
+          <CardTitle className="text-lg">Termin-Pipeline</CardTitle>
           <p className="text-sm text-gray-600">Verwalten Sie die Termine per Drag & Drop</p>
         </CardHeader>
         <CardContent>
@@ -419,19 +575,21 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                                     snapshot.isDragging ? 'shadow-lg rotate-2' : ''
                                   }`}
                                 >
-                                  <CardContent className="p-3 space-y-1">
-                                    <div className="font-semibold text-sm">{appointment.type}</div>
+                                  <CardContent className="p-3 space-y-1 relative">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteAppointment(appointment.id);
+                                      }}
+                                      className="absolute top-1 right-1 h-6 w-6 p-0 hover:bg-red-100"
+                                    >
+                                      <Trash2 className="h-3 w-3 text-red-600" />
+                                    </Button>
+                                    <div className="font-semibold text-sm pr-6">{appointment.type}</div>
                                     <div className="text-xs text-gray-600">
                                       {new Date(appointment.date).toLocaleDateString('de-DE')}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {customer.contact}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {customer.phone}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      {customer.email}
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -453,7 +611,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       {/* Add New Revenue */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center text-green-600">
+          <CardTitle className="text-lg flex items-center text-gray-700">
             <Plus className="h-5 w-5 mr-2" />
             Neue Einnahme hinzufügen
           </CardTitle>
@@ -480,7 +638,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-green-600">Letzte Einnahmen</CardTitle>
+            <CardTitle className="text-lg text-gray-700">Letzte Einnahmen</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -490,7 +648,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                     <div className="font-medium text-sm">{revenue.description}</div>
                     <div className="text-xs text-gray-600">{new Date(revenue.date).toLocaleDateString('de-DE')}</div>
                   </div>
-                  <span className="font-bold text-green-600">€{revenue.amount}</span>
+                  <span className="font-bold text-gray-700">€{revenue.amount}</span>
                 </div>
               ))}
             </div>
@@ -499,7 +657,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-blue-600">Letzte Termine</CardTitle>
+            <CardTitle className="text-lg text-gray-700">Letzte Termine</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -507,7 +665,7 @@ export function CustomerDetail({ customer, onBack, onUpdate }: CustomerDetailPro
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded">
                   <div className="font-medium text-sm">{appointment.type}</div>
                   <div className="text-xs text-gray-600">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
-                  <Badge className="text-xs mt-1">{pipelineStages.find(s => s.id === appointment.result)?.name || appointment.result}</Badge>
+                  <Badge className="text-xs mt-1 bg-gray-200 text-gray-700">{pipelineStages.find(s => s.id === appointment.result)?.name || appointment.result}</Badge>
                 </div>
               ))}
             </div>
