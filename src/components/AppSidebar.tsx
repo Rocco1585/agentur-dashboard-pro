@@ -1,5 +1,5 @@
 
-import { Calendar, Users, UserPlus, Euro, Settings, CheckSquare, TrendingUp, BarChart, Shield, LogOut, User, FileText, Monitor } from "lucide-react";
+import { Calendar, Users, UserPlus, Euro, Settings, CheckSquare, TrendingUp, BarChart, LogOut, User, Monitor } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,12 +61,6 @@ const items = [
     requiredPermission: "canViewTodos"
   },
   {
-    title: "Audit Logs",
-    url: "/audit-logs",
-    icon: FileText,
-    requiredPermission: "canViewAuditLogs"
-  },
-  {
     title: "Einstellungen",
     url: "/settings",
     icon: Settings,
@@ -85,7 +79,6 @@ export function AppSidebar() {
     canViewTeamMembers,
     canManageRevenues,
     canViewTodos,
-    canViewAuditLogs,
     canAccessSettings,
     isAdmin,
     isCustomer
@@ -128,7 +121,6 @@ export function AppSidebar() {
     canViewTeamMembers,
     canManageRevenues,
     canViewTodos,
-    canViewAuditLogs,
     canAccessSettings
   };
 

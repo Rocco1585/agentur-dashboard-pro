@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Users, Calendar, TrendingUp, Star, Clock, Euro, Activity, AlertTriangle } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,7 +16,6 @@ export function Dashboard() {
     activeTeamMembers: 0,
     activeCustomers: 0,
     appointmentsNext7Days: 0,
-    appointmentsLast7Days: 0,
     totalAppointments: 0,
     topPerformer: 'N/A',
     appointmentsPerDay: 0,
@@ -31,6 +31,10 @@ export function Dashboard() {
   const [revenueChartData, setRevenueChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alertMessage, setAlertMessage] = useState('');
+  
+  // State für switchbare Reiter
+  const [revenueTimeframe, setRevenueTimeframe] = useState<'daily' | 'weekly'>('daily');
+  const [longTermTimeframe, setLongTermTimeframe] = useState<'monthly' | 'yearly'>('monthly');
 
   useEffect(() => {
     fetchDashboardStats();
@@ -221,7 +225,6 @@ export function Dashboard() {
         activeTeamMembers: teamMembers?.length || 0,
         activeCustomers: customers?.length || 0,
         appointmentsNext7Days: upcomingAppointments?.length || 0,
-        appointmentsLast7Days: lastWeekAppointments?.length || 0,
         totalAppointments: allAppointments?.length || 0,
         topPerformer,
         appointmentsPerDay: Math.round(appointmentsPerDay * 10) / 10,
@@ -283,71 +286,79 @@ export function Dashboard() {
         )}
 
         {/* Revenue Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 px-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 px-2">
+          {/* Switchable Revenue Card (Daily/Weekly) */}
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Tagesumsatz
-              </CardTitle>
+              <div className="flex flex-col space-y-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
+                  {revenueTimeframe === 'daily' ? 'Tagesumsatz' : 'Wochenumsatz'}
+                </CardTitle>
+                <div className="flex space-x-1">
+                  <Button
+                    variant={revenueTimeframe === 'daily' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRevenueTimeframe('daily')}
+                    className="text-xs h-6 px-2"
+                  >
+                    Tag
+                  </Button>
+                  <Button
+                    variant={revenueTimeframe === 'weekly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setRevenueTimeframe('weekly')}
+                    className="text-xs h-6 px-2"
+                  >
+                    Woche
+                  </Button>
+                </div>
+              </div>
               <Euro className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
             </CardHeader>
             <CardContent className="px-6 pb-6">
               <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{stats.dailyRevenue}
+                €{revenueTimeframe === 'daily' ? stats.dailyRevenue : stats.weeklyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
-                Heute
+                {revenueTimeframe === 'daily' ? 'Heute' : 'Letzte 7 Tage'}
               </p>
             </CardContent>
           </Card>
 
+          {/* Switchable Long-term Revenue Card (Monthly/Yearly) */}
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Wochenumsatz
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 flex-shrink-0" />
+              <div className="flex flex-col space-y-2">
+                <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
+                  {longTermTimeframe === 'monthly' ? 'Monatsumsatz' : 'Jahresumsatz'}
+                </CardTitle>
+                <div className="flex space-x-1">
+                  <Button
+                    variant={longTermTimeframe === 'monthly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setLongTermTimeframe('monthly')}
+                    className="text-xs h-6 px-2"
+                  >
+                    Monat
+                  </Button>
+                  <Button
+                    variant={longTermTimeframe === 'yearly' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setLongTermTimeframe('yearly')}
+                    className="text-xs h-6 px-2"
+                  >
+                    Jahr
+                  </Button>
+                </div>
+              </div>
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 flex-shrink-0" />
             </CardHeader>
             <CardContent className="px-6 pb-6">
               <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{stats.weeklyRevenue}
+                €{longTermTimeframe === 'monthly' ? stats.monthlyRevenue : stats.yearlyRevenue}
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
-                Letzte 7 Tage
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Monatsumsatz
-              </CardTitle>
-              <Euro className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{stats.monthlyRevenue}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Letzter Monat
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Jahresumsatz
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                €{stats.yearlyRevenue}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Letztes Jahr
+                {longTermTimeframe === 'monthly' ? 'Letzter Monat' : 'Letztes Jahr'}
               </p>
             </CardContent>
           </Card>
@@ -385,10 +396,7 @@ export function Dashboard() {
               </p>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Team & Appointment Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6 px-2">
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
@@ -405,7 +413,10 @@ export function Dashboard() {
               </p>
             </CardContent>
           </Card>
+        </div>
 
+        {/* Team & Appointment Statistics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 px-2">
           <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
               <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
@@ -436,23 +447,6 @@ export function Dashboard() {
               </div>
               <p className="text-xs text-gray-500 mt-1 text-left">
                 Kommende Woche
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-300 border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 px-6 pt-6">
-              <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 text-left">
-                Termine (Letzte 7)
-              </CardTitle>
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600 flex-shrink-0" />
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <div className="text-lg sm:text-xl font-bold text-gray-900 text-left">
-                {stats.appointmentsLast7Days}
-              </div>
-              <p className="text-xs text-gray-500 mt-1 text-left">
-                Vergangene Woche
               </p>
             </CardContent>
           </Card>
