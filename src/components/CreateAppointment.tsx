@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,8 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
     }
 
     try {
-      const { error } = await supabase
+      // Termin erstellen
+      const { error: appointmentError } = await supabase
         .from('appointments')
         .insert({
           date: formData.date,
@@ -65,9 +65,9 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
           result: formData.pipeline_stage
         });
 
-      if (error) throw error;
+      if (appointmentError) throw appointmentError;
 
-      // Zusätzliche Kontaktdaten in customers tabelle updaten falls vorhanden
+      // Kontaktdaten des Kunden aktualisieren
       if (formData.customer_id) {
         await supabase
           .from('customers')
@@ -80,9 +80,27 @@ export function CreateAppointment({ onBack, onSuccess }: CreateAppointmentProps)
           .eq('id', formData.customer_id);
       }
 
+      // Appointment_count des Teammitglieds erhöhen
+      if (formData.team_member_id) {
+        const { data: currentMember } = await supabase
+          .from('team_members')
+          .select('appointment_count')
+          .eq('id', formData.team_member_id)
+          .single();
+
+        if (currentMember) {
+          await supabase
+            .from('team_members')
+            .update({
+              appointment_count: (currentMember.appointment_count || 0) + 1
+            })
+            .eq('id', formData.team_member_id);
+        }
+      }
+
       toast({
         title: "Erfolg",
-        description: "Termin wurde erfolgreich erstellt.",
+        description: "Termin wurde erfolgreich erstellt und dem Teammitglied zugeordnet.",
         className: "text-left bg-yellow-100 border-yellow-300",
       });
       onSuccess();

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +58,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
 
   const fetchMemberAppointments = async () => {
     try {
-      const { data: appointmentData } = await supabase
+      const { data: appointmentData, error } = await supabase
         .from('appointments')
         .select(`
           *,
@@ -68,9 +67,15 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
         .eq('team_member_id', member.id)
         .order('date', { ascending: false });
       
-      setMemberAppointments(appointmentData || []);
+      if (error) {
+        console.error('Error fetching member appointments:', error);
+        setMemberAppointments([]);
+      } else {
+        setMemberAppointments(appointmentData || []);
+      }
     } catch (error) {
       console.error('Error fetching member appointments:', error);
+      setMemberAppointments([]);
     }
   };
 
@@ -353,8 +358,7 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
         </Card>
       </div>
 
-      {/* Rest bleibt gleich */}
-      
+      {/* Contact Information and Notes */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
         <Card className="w-full">
           <CardHeader className="w-full">
@@ -562,9 +566,9 @@ export function TeamMemberDetail({ member, onBack, onUpdate, customers }: TeamMe
           </CardHeader>
           <CardContent className="w-full">
             <div className="space-y-2 w-full">
-              {memberAppointments.slice(-5).map(appointment => (
+              {memberAppointments.slice(0, 5).map(appointment => (
                 <div key={appointment.id} className="p-2 bg-gray-50 rounded w-full">
-                  <div className="font-medium text-sm text-left">{appointment.customers?.name || appointment.type}</div>
+                  <div className="font-medium text-sm text-left">{appointment.customers?.name || 'Unbekannter Kunde'}</div>
                   <div className="text-xs text-gray-600 text-left">{new Date(appointment.date).toLocaleDateString('de-DE')}</div>
                   <Badge className="text-xs mt-1">{appointment.result}</Badge>
                 </div>
