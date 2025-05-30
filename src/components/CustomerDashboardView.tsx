@@ -141,6 +141,7 @@ export function CustomerDashboardView() {
         console.error('❌ Error fetching appointments:', appointmentsError);
       } else {
         console.log(`✅ Found ${appointmentsData?.length || 0} appointments`);
+        console.log('📋 Raw appointments data:', appointmentsData);
         setAppointments(appointmentsData || []);
       }
 
@@ -273,50 +274,83 @@ export function CustomerDashboardView() {
     'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
   };
 
-  // Passe Termine für PipelineColumn an - die erwartet ein anderes Format
+  // Konvertiere appointments für PipelineColumn - die erwartet customers mit pipeline_stage
+  const convertAppointmentForPipeline = (appointments) => {
+    console.log('🔧 Converting appointments for pipeline:', appointments);
+    return appointments.map(appointment => ({
+      id: appointment.id,
+      date: appointment.date,
+      time: appointment.time,
+      type: appointment.type,
+      description: appointment.description,
+      result: appointment.result,
+      notes: appointment.notes,
+      customers: {
+        id: customerData.id,
+        name: customerData.name || 'Unbekannter Kunde',
+        email: customerData.email || appointment.customers?.email || '',
+        phone: customerData.phone || appointment.customers?.phone || '',
+        contact: customerData.contact || customerData.name || appointment.customers?.contact || '',
+        priority: appointment.customers?.priority || 'Mittel',
+        payment_status: appointment.customers?.payment_status || 'Ausstehend',
+        satisfaction: appointment.customers?.satisfaction || 5,
+        booked_appointments: appointment.customers?.booked_appointments || 0,
+        completed_appointments: appointment.customers?.completed_appointments || 0,
+        pipeline_stage: appointment.result
+      },
+      team_members: appointment.team_members
+    }));
+  };
+
+  // Passe Termine für PipelineColumn an
   const pipelineColumns = [
     { 
       id: 'termin_ausstehend', 
       title: 'Ausstehend', 
       color: 'bg-blue-600',
-      appointments: appointmentsByStatus.termin_ausstehend
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_ausstehend)
     },
     { 
       id: 'termin_erschienen', 
       title: 'Erschienen', 
       color: 'bg-yellow-600',
-      appointments: appointmentsByStatus.termin_erschienen
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_erschienen)
     },
     { 
       id: 'termin_abgeschlossen', 
       title: 'Abgeschlossen', 
       color: 'bg-green-600',
-      appointments: appointmentsByStatus.termin_abgeschlossen
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgeschlossen)
     },
     { 
       id: 'follow_up', 
       title: 'Follow Up', 
       color: 'bg-purple-600',
-      appointments: appointmentsByStatus.follow_up
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.follow_up)
     },
     { 
       id: 'termin_abgesagt', 
       title: 'Abgesagt', 
       color: 'bg-red-600',
-      appointments: appointmentsByStatus.termin_abgesagt
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgesagt)
     },
     { 
       id: 'termin_verschoben', 
       title: 'Verschoben', 
       color: 'bg-orange-600',
-      appointments: appointmentsByStatus.termin_verschoben
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_verschoben)
     }
   ];
 
   console.log('🏗️ Pipeline columns prepared:', pipelineColumns.map(col => ({
     id: col.id,
     title: col.title,
-    appointmentCount: col.appointments.length
+    appointmentCount: col.appointments.length,
+    sampleAppointment: col.appointments[0] ? {
+      id: col.appointments[0].id,
+      customerName: col.appointments[0].customers?.name,
+      type: col.appointments[0].type
+    } : null
   })));
 
   return (
@@ -492,7 +526,7 @@ export function CustomerDashboardView() {
                     customers={column.appointments}
                     color={column.color}
                     onCustomerClick={(appointment) => {
-                      console.log('Appointment clicked:', appointment);
+                      console.log('Appointment clicked in pipeline:', appointment);
                     }}
                     showDeleteButton={false}
                   />
