@@ -161,14 +161,6 @@ export function CustomerDashboardView() {
         setRevenues(revenuesData || []);
       }
 
-      // Debug: Prüfe ob appointments existieren für andere customer_ids
-      const { data: allAppointments } = await supabase
-        .from('appointments')
-        .select('customer_id')
-        .limit(10);
-      
-      console.log('🔍 Debug: Sample appointment customer_ids:', allAppointments?.map(a => a.customer_id));
-
     } catch (error) {
       console.error('❌ Error in fetchCustomerData:', error);
     } finally {
@@ -281,64 +273,51 @@ export function CustomerDashboardView() {
     'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
   };
 
-  // Konvertiere appointments für PipelineColumn (die erwartet customers mit pipeline_stage)
-  const convertAppointmentForPipeline = (appointments) => {
-    return appointments.map(appointment => ({
-      id: appointment.id,
-      name: appointment.type || 'Termin',
-      pipeline_stage: appointment.result,
-      email: appointment.customers?.email || '',
-      phone: appointment.customers?.phone || '',
-      contact: appointment.notes || appointment.description || '',
-      priority: appointment.customers?.priority || 'Mittel',
-      payment_status: appointment.customers?.payment_status || 'Ausstehend',
-      satisfaction: appointment.customers?.satisfaction || 5,
-      date: appointment.date,
-      time: appointment.time,
-      team_member: appointment.team_members?.name || '',
-      // Zusätzliche Felder für die Anzeige
-      appointment_data: appointment
-    }));
-  };
-
+  // Passe Termine für PipelineColumn an - die erwartet ein anderes Format
   const pipelineColumns = [
     { 
       id: 'termin_ausstehend', 
       title: 'Ausstehend', 
       color: 'bg-blue-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_ausstehend)
+      appointments: appointmentsByStatus.termin_ausstehend
     },
     { 
       id: 'termin_erschienen', 
       title: 'Erschienen', 
       color: 'bg-yellow-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_erschienen)
+      appointments: appointmentsByStatus.termin_erschienen
     },
     { 
       id: 'termin_abgeschlossen', 
       title: 'Abgeschlossen', 
       color: 'bg-green-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgeschlossen)
+      appointments: appointmentsByStatus.termin_abgeschlossen
     },
     { 
       id: 'follow_up', 
       title: 'Follow Up', 
       color: 'bg-purple-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.follow_up)
+      appointments: appointmentsByStatus.follow_up
     },
     { 
       id: 'termin_abgesagt', 
       title: 'Abgesagt', 
       color: 'bg-red-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgesagt)
+      appointments: appointmentsByStatus.termin_abgesagt
     },
     { 
       id: 'termin_verschoben', 
       title: 'Verschoben', 
       color: 'bg-orange-600',
-      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_verschoben)
+      appointments: appointmentsByStatus.termin_verschoben
     }
   ];
+
+  console.log('🏗️ Pipeline columns prepared:', pipelineColumns.map(col => ({
+    id: col.id,
+    title: col.title,
+    appointmentCount: col.appointments.length
+  })));
 
   return (
     <div className="space-y-6 p-6">
