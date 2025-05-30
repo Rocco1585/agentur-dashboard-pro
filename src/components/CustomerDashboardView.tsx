@@ -1,4 +1,3 @@
-
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,52 +34,34 @@ export function CustomerDashboardView() {
         return;
       }
 
+      // Erweiterte Berechtigungsprüfung - Admin kann alle sehen, Kunde nur sein eigenes
       if (!isAdmin() && user?.id !== customerId) {
         console.log('❌ No permission: user is not admin and user ID does not match customer ID');
         setLoading(false);
         return;
       }
 
-      // Hole Kundendaten
+      // Hole Kundendaten - Priorisiere customers Tabelle, dann team_members
       let finalCustomerData = null;
       
-      if (isAdmin()) {
-        // Admin: Zuerst aus customers Tabelle versuchen
-        const { data: customerFromCustomers, error: customerError } = await supabase
-          .from('customers')
-          .select('*')
-          .eq('id', customerId)
-          .maybeSingle();
+      // Zuerst aus customers Tabelle versuchen (für alle)
+      const { data: customerFromCustomers, error: customerError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('id', customerId)
+        .maybeSingle();
 
-        console.log('📊 Customer data from customers table:', customerFromCustomers);
+      console.log('📊 Customer data from customers table:', customerFromCustomers);
 
-        if (customerError) {
-          console.error('❌ Error fetching customer data:', customerError);
-        }
+      if (customerError) {
+        console.error('❌ Error fetching customer data:', customerError);
+      }
 
-        if (customerFromCustomers) {
-          finalCustomerData = customerFromCustomers;
-          console.log('✅ Using customer from customers table');
-        } else {
-          // Falls nicht in customers gefunden, aus team_members versuchen
-          const { data: teamMemberData, error: teamMemberError } = await supabase
-            .from('team_members')
-            .select('*')
-            .eq('id', customerId)
-            .eq('user_role', 'kunde')
-            .maybeSingle();
-
-          console.log('👥 Team member data:', teamMemberData);
-
-          if (teamMemberError) {
-            console.error('❌ Error fetching team member data:', teamMemberError);
-          } else if (teamMemberData) {
-            finalCustomerData = teamMemberData;
-            console.log('✅ Using customer from team_members table');
-          }
-        }
+      if (customerFromCustomers) {
+        finalCustomerData = customerFromCustomers;
+        console.log('✅ Using customer from customers table');
       } else {
-        // Nicht-Admin: Nur eigenes Dashboard aus team_members
+        // Falls nicht in customers gefunden, aus team_members versuchen
         const { data: teamMemberData, error: teamMemberError } = await supabase
           .from('team_members')
           .select('*')
@@ -88,7 +69,7 @@ export function CustomerDashboardView() {
           .eq('user_role', 'kunde')
           .maybeSingle();
 
-        console.log('👥 Team member data for customer:', teamMemberData);
+        console.log('👥 Team member data:', teamMemberData);
 
         if (teamMemberError) {
           console.error('❌ Error fetching team member data:', teamMemberError);
@@ -107,7 +88,7 @@ export function CustomerDashboardView() {
       console.log('🎯 Final customer data:', finalCustomerData);
       setCustomerData(finalCustomerData);
 
-      // Fetch appointments für diesen Kunden
+      // Fetch appointments für diese customer_id - erweiterte Abfrage mit debugging
       console.log('📅 Fetching appointments for customer ID:', customerId);
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
@@ -537,6 +518,7 @@ export function CustomerDashboardView() {
             <div className="text-gray-600 text-center py-8 text-left">
               <p>Keine Termine für Pipeline verfügbar.</p>
               <p className="text-sm mt-2">Stellen Sie sicher, dass Termine mit der korrekten customer_id verknüpft sind.</p>
+              <p className="text-xs mt-2 text-gray-500">Debug: Customer ID: {customerId}</p>
             </div>
           )}
         </CardContent>
