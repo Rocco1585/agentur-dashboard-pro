@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +11,7 @@ import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import { toast } from "@/hooks/use-toast";
 
 export function CustomerDashboardView() {
-  const params = useParams();
-  const customerId = params.customerId;
+  const { customerId } = useParams();
   const { user, isAdmin, isCustomer } = useAuth();
   const [customerData, setCustomerData] = useState<any>(null);
   const [appointments, setAppointments] = useState([]);
@@ -19,9 +19,7 @@ export function CustomerDashboardView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (customerId) {
-      fetchCustomerData();
-    }
+    fetchCustomerData();
   }, [customerId, user]);
 
   const fetchCustomerData = async () => {
@@ -30,13 +28,6 @@ export function CustomerDashboardView() {
       console.log('Current user:', user);
       console.log('Is admin:', isAdmin());
       console.log('Is customer:', isCustomer());
-
-      // Validiere customerId format
-      if (!customerId || customerId.includes(':')) {
-        console.error('Invalid customerId format:', customerId);
-        setLoading(false);
-        return;
-      }
 
       // Wenn kein Benutzer eingeloggt ist
       if (!user) {
@@ -114,21 +105,12 @@ export function CustomerDashboardView() {
 
       setCustomerData(finalCustomerData);
 
-      // Fetch appointments für diesen Kunden - EXAKT die gleiche Abfrage wie in CustomerDashboard.tsx
+      // Fetch appointments für diesen Kunden
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
-          id,
-          date,
-          time,
-          type,
-          description,
-          result,
-          notes,
-          customer_id,
-          team_member_id,
-          created_at,
-          customers!inner (
+          *,
+          customers (
             id,
             name,
             email,
@@ -152,7 +134,6 @@ export function CustomerDashboardView() {
 
       if (appointmentsError) {
         console.error('Error fetching appointments:', appointmentsError);
-        setAppointments([]);
       } else {
         console.log('Appointments data:', appointmentsData);
         setAppointments(appointmentsData || []);
@@ -220,18 +201,6 @@ export function CustomerDashboardView() {
     return (
       <div className="space-y-6 p-6">
         <div className="text-lg text-left">Lade Dashboard...</div>
-      </div>
-    );
-  }
-
-  // Wenn kein customerId vorhanden
-  if (!customerId) {
-    return (
-      <div className="space-y-6 p-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 text-left">Ungültige URL</h1>
-          <p className="text-gray-600 mt-2 text-left">Kunden-ID fehlt in der URL.</p>
-        </div>
       </div>
     );
   }
