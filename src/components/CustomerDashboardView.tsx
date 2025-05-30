@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ export function CustomerDashboardView() {
   const [appointments, setAppointments] = useState([]);
   const [revenues, setRevenues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'customers' | 'team_members' | null>(null);
 
   useEffect(() => {
     fetchCustomerData();
@@ -43,6 +45,7 @@ export function CustomerDashboardView() {
 
       // Hole Kundendaten - Priorisiere customers Tabelle, dann team_members
       let finalCustomerData = null;
+      let sourceTable = null;
       
       // Zuerst aus customers Tabelle versuchen (für alle)
       const { data: customerFromCustomers, error: customerError } = await supabase
@@ -59,6 +62,7 @@ export function CustomerDashboardView() {
 
       if (customerFromCustomers) {
         finalCustomerData = customerFromCustomers;
+        sourceTable = 'customers';
         console.log('✅ Using customer from customers table');
       } else {
         // Falls nicht in customers gefunden, aus team_members versuchen
@@ -75,6 +79,7 @@ export function CustomerDashboardView() {
           console.error('❌ Error fetching team member data:', teamMemberError);
         } else if (teamMemberData) {
           finalCustomerData = teamMemberData;
+          sourceTable = 'team_members';
           console.log('✅ Using customer from team_members table');
         }
       }
@@ -86,44 +91,76 @@ export function CustomerDashboardView() {
       }
 
       console.log('🎯 Final customer data:', finalCustomerData);
+      console.log('📊 Data source table:', sourceTable);
       setCustomerData(finalCustomerData);
+      setDataSource(sourceTable);
 
-      // Fetch appointments für diese customer_id - erweiterte Abfrage mit debugging
+      // Fetch appointments für diese customer_id - OHNE JOIN um Fehler zu vermeiden
       console.log('📅 Fetching appointments for customer ID:', customerId);
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
-        .select(`
-          *,
-          customers (
-            id,
-            name,
-            email,
-            phone,
-            contact,
-            priority,
-            payment_status,
-            satisfaction,
-            purchased_appointments,
-            completed_appointments,
-            pipeline_stage
-          ),
-          team_members (
-            id,
-            name,
-            role
-          )
-        `)
+        .select('*')
         .eq('customer_id', customerId)
         .order('date', { ascending: false });
 
-      console.log('📅 Appointments query result:', { appointmentsData, appointmentsError });
+      console.log('📅 Appointments query result (no JOIN):', { appointmentsData, appointmentsError });
 
       if (appointmentsError) {
         console.error('❌ Error fetching appointments:', appointmentsError);
+        setAppointments([]);
       } else {
         console.log(`✅ Found ${appointmentsData?.length || 0} appointments`);
-        console.log('📋 Raw appointments data:', appointmentsData);
-        setAppointments(appointmentsData || []);
+        
+        // Erweitere jedes Appointment mit separaten Abfragen für Kunden- und Teammitgliederdaten
+        const enrichedAppointments = await Promise.all(
+          (appointmentsData || []).map(async (appointment) => {
+            // Hole Kundendaten separat
+            let customerInfo = null;
+            if (sourceTable === 'customers') {
+              const { data: custData } = await supabase
+                .from('customers')
+                .select('id, name, email, phone, contact, priority, payment_status, satisfaction, purchased_appointments, completed_appointments, pipeline_stage')
+                .eq('id', appointment.customer_id)
+                .maybeSingle();
+              customerInfo = custData;
+            } else {
+              // Für team_members als Kunden
+              customerInfo = {
+                id: finalCustomerData.id,
+                name: finalCustomerData.name,
+                email: finalCustomerData.email,
+                phone: finalCustomerData.phone,
+                contact: finalCustomerData.name,
+                priority: 'Mittel',
+                payment_status: 'Ausstehend',
+                satisfaction: 5,
+                purchased_appointments: 0,
+                completed_appointments: 0,
+                pipeline_stage: appointment.result
+              };
+            }
+
+            // Hole Teammitgliederdaten separat
+            let teamMemberInfo = null;
+            if (appointment.team_member_id) {
+              const { data: tmData } = await supabase
+                .from('team_members')
+                .select('id, name, role')
+                .eq('id', appointment.team_member_id)
+                .maybeSingle();
+              teamMemberInfo = tmData;
+            }
+
+            return {
+              ...appointment,
+              customers: customerInfo,
+              team_members: teamMemberInfo
+            };
+          })
+        );
+
+        console.log('📋 Enriched appointments data:', enrichedAppointments);
+        setAppointments(enrichedAppointments);
       }
 
       // Fetch revenues für diesen Kunden
@@ -255,7 +292,7 @@ export function CustomerDashboardView() {
     'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
   };
 
-  // Konvertiere appointments für PipelineColumn - die erwartet customers mit pipeline_stage
+  // Konvertiere appointments für PipelineColumn
   const convertAppointmentForPipeline = (appointments) => {
     console.log('🔧 Converting appointments for pipeline:', appointments);
     return appointments.map(appointment => ({
@@ -266,17 +303,17 @@ export function CustomerDashboardView() {
       description: appointment.description,
       result: appointment.result,
       notes: appointment.notes,
-      customers: {
+      customers: appointment.customers || {
         id: customerData.id,
         name: customerData.name || 'Unbekannter Kunde',
-        email: customerData.email || appointment.customers?.email || '',
-        phone: customerData.phone || appointment.customers?.phone || '',
-        contact: customerData.contact || customerData.name || appointment.customers?.contact || '',
-        priority: appointment.customers?.priority || 'Mittel',
-        payment_status: appointment.customers?.payment_status || 'Ausstehend',
-        satisfaction: appointment.customers?.satisfaction || 5,
-        booked_appointments: appointment.customers?.booked_appointments || 0,
-        completed_appointments: appointment.customers?.completed_appointments || 0,
+        email: customerData.email || '',
+        phone: customerData.phone || '',
+        contact: customerData.contact || customerData.name || '',
+        priority: 'Mittel',
+        payment_status: 'Ausstehend',
+        satisfaction: 5,
+        purchased_appointments: 0,
+        completed_appointments: 0,
         pipeline_stage: appointment.result
       },
       team_members: appointment.team_members
@@ -349,7 +386,7 @@ export function CustomerDashboardView() {
         {/* Debug Info für Admin */}
         {isAdmin() && (
           <div className="mt-2 text-xs text-gray-500">
-            Debug: Customer ID: {customerId} | Termine: {appointments.length} | Einnahmen: {revenues.length}
+            Debug: Customer ID: {customerId} | Datenquelle: {dataSource} | Termine: {appointments.length} | Einnahmen: {revenues.length}
           </div>
         )}
       </div>
@@ -518,7 +555,7 @@ export function CustomerDashboardView() {
             <div className="text-gray-600 text-center py-8 text-left">
               <p>Keine Termine für Pipeline verfügbar.</p>
               <p className="text-sm mt-2">Stellen Sie sicher, dass Termine mit der korrekten customer_id verknüpft sind.</p>
-              <p className="text-xs mt-2 text-gray-500">Debug: Customer ID: {customerId}</p>
+              <p className="text-xs mt-2 text-gray-500">Debug: Customer ID: {customerId} | Datenquelle: {dataSource}</p>
             </div>
           )}
         </CardContent>
