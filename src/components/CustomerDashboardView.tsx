@@ -1,3 +1,4 @@
+
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,44 +24,43 @@ export function CustomerDashboardView() {
 
   const fetchCustomerData = async () => {
     try {
-      console.log('Fetching customer data for ID:', customerId);
-      console.log('Current user:', user);
-      console.log('Is admin:', isAdmin());
-      console.log('Is customer:', isCustomer());
+      console.log('🔍 Fetching customer data for ID:', customerId);
+      console.log('👤 Current user:', user);
+      console.log('🛡️ Is admin:', isAdmin());
+      console.log('👥 Is customer:', isCustomer());
 
-      // Wenn kein Benutzer eingeloggt ist
       if (!user) {
-        console.log('No user logged in');
+        console.log('❌ No user logged in');
         setLoading(false);
         return;
       }
 
-      // Berechtigungsprüfung: Admin kann alle sehen, Kunde nur sein eigenes
       if (!isAdmin() && user?.id !== customerId) {
-        console.log('No permission: user is not admin and user ID does not match customer ID');
+        console.log('❌ No permission: user is not admin and user ID does not match customer ID');
         setLoading(false);
         return;
       }
 
-      // Hole Kundendaten - für Admins zuerst aus customers Tabelle
+      // Hole Kundendaten
       let finalCustomerData = null;
       
       if (isAdmin()) {
-        // Admin kann alle Kunden sehen - zuerst aus customers versuchen
+        // Admin: Zuerst aus customers Tabelle versuchen
         const { data: customerFromCustomers, error: customerError } = await supabase
           .from('customers')
           .select('*')
           .eq('id', customerId)
           .maybeSingle();
 
-        console.log('Customer data from customers table:', customerFromCustomers);
+        console.log('📊 Customer data from customers table:', customerFromCustomers);
 
         if (customerError) {
-          console.error('Error fetching customer data:', customerError);
+          console.error('❌ Error fetching customer data:', customerError);
         }
 
         if (customerFromCustomers) {
           finalCustomerData = customerFromCustomers;
+          console.log('✅ Using customer from customers table');
         } else {
           // Falls nicht in customers gefunden, aus team_members versuchen
           const { data: teamMemberData, error: teamMemberError } = await supabase
@@ -70,12 +70,13 @@ export function CustomerDashboardView() {
             .eq('user_role', 'kunde')
             .maybeSingle();
 
-          console.log('Team member data:', teamMemberData);
+          console.log('👥 Team member data:', teamMemberData);
 
           if (teamMemberError) {
-            console.error('Error fetching team member data:', teamMemberError);
-          } else {
+            console.error('❌ Error fetching team member data:', teamMemberError);
+          } else if (teamMemberData) {
             finalCustomerData = teamMemberData;
+            console.log('✅ Using customer from team_members table');
           }
         }
       } else {
@@ -87,24 +88,27 @@ export function CustomerDashboardView() {
           .eq('user_role', 'kunde')
           .maybeSingle();
 
-        console.log('Team member data for customer:', teamMemberData);
+        console.log('👥 Team member data for customer:', teamMemberData);
 
         if (teamMemberError) {
-          console.error('Error fetching team member data:', teamMemberError);
-        } else {
+          console.error('❌ Error fetching team member data:', teamMemberError);
+        } else if (teamMemberData) {
           finalCustomerData = teamMemberData;
+          console.log('✅ Using customer from team_members table');
         }
       }
       
       if (!finalCustomerData) {
-        console.log('No customer data found');
+        console.log('❌ No customer data found');
         setLoading(false);
         return;
       }
 
+      console.log('🎯 Final customer data:', finalCustomerData);
       setCustomerData(finalCustomerData);
 
       // Fetch appointments für diesen Kunden
+      console.log('📅 Fetching appointments for customer ID:', customerId);
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
@@ -118,7 +122,7 @@ export function CustomerDashboardView() {
             priority,
             payment_status,
             satisfaction,
-            booked_appointments,
+            purchased_appointments,
             completed_appointments,
             pipeline_stage
           ),
@@ -131,27 +135,42 @@ export function CustomerDashboardView() {
         .eq('customer_id', customerId)
         .order('date', { ascending: false });
 
+      console.log('📅 Appointments query result:', { appointmentsData, appointmentsError });
+
       if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
+        console.error('❌ Error fetching appointments:', appointmentsError);
       } else {
-        console.log('Appointments data:', appointmentsData);
+        console.log(`✅ Found ${appointmentsData?.length || 0} appointments`);
         setAppointments(appointmentsData || []);
       }
 
       // Fetch revenues für diesen Kunden
+      console.log('💰 Fetching revenues for customer ID:', customerId);
       const { data: revenuesData, error: revenuesError } = await supabase
         .from('revenues')
         .select('*')
         .eq('customer_id', customerId)
         .order('date', { ascending: false });
 
+      console.log('💰 Revenues query result:', { revenuesData, revenuesError });
+
       if (revenuesError) {
-        console.error('Error fetching revenues:', revenuesError);
+        console.error('❌ Error fetching revenues:', revenuesError);
       } else {
+        console.log(`✅ Found ${revenuesData?.length || 0} revenues`);
         setRevenues(revenuesData || []);
       }
+
+      // Debug: Prüfe ob appointments existieren für andere customer_ids
+      const { data: allAppointments } = await supabase
+        .from('appointments')
+        .select('customer_id')
+        .limit(10);
+      
+      console.log('🔍 Debug: Sample appointment customer_ids:', allAppointments?.map(a => a.customer_id));
+
     } catch (error) {
-      console.error('Error fetching customer data:', error);
+      console.error('❌ Error in fetchCustomerData:', error);
     } finally {
       setLoading(false);
     }
@@ -204,7 +223,6 @@ export function CustomerDashboardView() {
     );
   }
 
-  // Wenn kein Benutzer eingeloggt ist
   if (!user) {
     return (
       <div className="space-y-6 p-6">
@@ -229,7 +247,6 @@ export function CustomerDashboardView() {
     );
   }
 
-  // Doppelte Berechtigungsprüfung
   if (!isAdmin() && (user?.id !== customerId || !isCustomer())) {
     return (
       <div className="space-y-6 p-6">
@@ -264,42 +281,62 @@ export function CustomerDashboardView() {
     'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
   };
 
+  // Konvertiere appointments für PipelineColumn (die erwartet customers mit pipeline_stage)
+  const convertAppointmentForPipeline = (appointments) => {
+    return appointments.map(appointment => ({
+      id: appointment.id,
+      name: appointment.type || 'Termin',
+      pipeline_stage: appointment.result,
+      email: appointment.customers?.email || '',
+      phone: appointment.customers?.phone || '',
+      contact: appointment.notes || appointment.description || '',
+      priority: appointment.customers?.priority || 'Mittel',
+      payment_status: appointment.customers?.payment_status || 'Ausstehend',
+      satisfaction: appointment.customers?.satisfaction || 5,
+      date: appointment.date,
+      time: appointment.time,
+      team_member: appointment.team_members?.name || '',
+      // Zusätzliche Felder für die Anzeige
+      appointment_data: appointment
+    }));
+  };
+
   const pipelineColumns = [
     { 
       id: 'termin_ausstehend', 
       title: 'Ausstehend', 
       color: 'bg-blue-600',
-      appointments: appointmentsByStatus.termin_ausstehend
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_ausstehend)
     },
     { 
       id: 'termin_erschienen', 
       title: 'Erschienen', 
       color: 'bg-yellow-600',
-      appointments: appointmentsByStatus.termin_erschienen
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_erschienen)
     },
     { 
       id: 'termin_abgeschlossen', 
       title: 'Abgeschlossen', 
       color: 'bg-green-600',
-      appointments: appointmentsByStatus.termin_abgeschlossen
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgeschlossen)
     },
     { 
       id: 'follow_up', 
       title: 'Follow Up', 
       color: 'bg-purple-600',
-      appointments: appointmentsByStatus.follow_up
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.follow_up)
     },
     { 
       id: 'termin_abgesagt', 
       title: 'Abgesagt', 
       color: 'bg-red-600',
-      appointments: appointmentsByStatus.termin_abgesagt
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_abgesagt)
     },
     { 
       id: 'termin_verschoben', 
       title: 'Verschoben', 
       color: 'bg-orange-600',
-      appointments: appointmentsByStatus.termin_verschoben
+      appointments: convertAppointmentForPipeline(appointmentsByStatus.termin_verschoben)
     }
   ];
 
@@ -314,6 +351,12 @@ export function CustomerDashboardView() {
           <Badge className="mt-2 bg-red-100 text-red-800">
             Admin-Ansicht für {customerData.name}
           </Badge>
+        )}
+        {/* Debug Info für Admin */}
+        {isAdmin() && (
+          <div className="mt-2 text-xs text-gray-500">
+            Debug: Customer ID: {customerId} | Termine: {appointments.length} | Einnahmen: {revenues.length}
+          </div>
         )}
       </div>
 
@@ -407,7 +450,11 @@ export function CustomerDashboardView() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-600 text-center py-4 text-left">Keine bevorstehenden Termine</p>
+            <div className="text-gray-600 text-center py-4 text-left">
+              {appointments.length === 0 ? 
+                "Keine Termine gefunden. Überprüfen Sie die Verknüpfung zwischen Kunde und Terminen." : 
+                "Keine bevorstehenden Termine"}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -440,7 +487,11 @@ export function CustomerDashboardView() {
               )}
             </div>
           ) : (
-            <p className="text-gray-600 text-center py-4 text-left">Keine Einnahmen verzeichnet</p>
+            <div className="text-gray-600 text-center py-4 text-left">
+              {appointments.length === 0 ? 
+                "Keine Einnahmen gefunden. Überprüfen Sie die Verknüpfung zwischen Kunde und Einnahmen." : 
+                "Keine Einnahmen verzeichnet"}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -451,23 +502,30 @@ export function CustomerDashboardView() {
           <CardTitle className="text-left text-lg">Termin Pipeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex gap-6 overflow-x-auto pb-4">
-              {pipelineColumns.map((column) => (
-                <PipelineColumn
-                  key={column.id}
-                  title={column.title}
-                  stageId={column.id}
-                  customers={column.appointments}
-                  color={column.color}
-                  onCustomerClick={(appointment) => {
-                    console.log('Appointment clicked:', appointment);
-                  }}
-                  showDeleteButton={false}
-                />
-              ))}
+          {appointments.length > 0 ? (
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <div className="flex gap-6 overflow-x-auto pb-4">
+                {pipelineColumns.map((column) => (
+                  <PipelineColumn
+                    key={column.id}
+                    title={column.title}
+                    stageId={column.id}
+                    customers={column.appointments}
+                    color={column.color}
+                    onCustomerClick={(appointment) => {
+                      console.log('Appointment clicked:', appointment);
+                    }}
+                    showDeleteButton={false}
+                  />
+                ))}
+              </div>
+            </DragDropContext>
+          ) : (
+            <div className="text-gray-600 text-center py-8 text-left">
+              <p>Keine Termine für Pipeline verfügbar.</p>
+              <p className="text-sm mt-2">Stellen Sie sicher, dass Termine mit der korrekten customer_id verknüpft sind.</p>
             </div>
-          </DragDropContext>
+          )}
         </CardContent>
       </Card>
     </div>
