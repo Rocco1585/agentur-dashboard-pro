@@ -105,12 +105,21 @@ export function CustomerDashboardView() {
 
       setCustomerData(finalCustomerData);
 
-      // Fetch appointments für diesen Kunden - using the working logic from CustomerDashboard
+      // Fetch appointments für diesen Kunden - EXAKT die gleiche Abfrage wie in CustomerDashboard.tsx
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
-          *,
-          customers (
+          id,
+          date,
+          time,
+          type,
+          description,
+          result,
+          notes,
+          customer_id,
+          team_member_id,
+          created_at,
+          customers!inner (
             id,
             name,
             email,
@@ -134,6 +143,7 @@ export function CustomerDashboardView() {
 
       if (appointmentsError) {
         console.error('Error fetching appointments:', appointmentsError);
+        setAppointments([]);
       } else {
         console.log('Appointments data:', appointmentsData);
         setAppointments(appointmentsData || []);
