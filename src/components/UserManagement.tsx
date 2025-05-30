@@ -102,6 +102,17 @@ export function UserManagement() {
   };
 
   const handleDragEnd = async (result: DropResult) => {
+    // Only allow admins to move appointments
+    if (!isAdmin()) {
+      toast({
+        title: "Keine Berechtigung",
+        description: "Nur Administratoren können Termine verschieben.",
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+      return;
+    }
+
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -272,9 +283,9 @@ export function UserManagement() {
     );
   }
 
-  // Pipeline View
+  // Pipeline View - Clone exact logic from CustomerDetail.tsx
   if (viewMode === 'pipeline') {
-    // Group appointments by status for pipeline view
+    // Group appointments by status for pipeline view - exact same logic
     const appointmentsByStatus = {
       'termin_ausstehend': appointments.filter(apt => apt.result === 'termin_ausstehend'),
       'termin_erschienen': appointments.filter(apt => apt.result === 'termin_erschienen'),
@@ -284,6 +295,7 @@ export function UserManagement() {
       'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
     };
 
+    // Exact same pipeline columns as CustomerDetail.tsx
     const pipelineColumns = [
       { 
         id: 'termin_ausstehend', 
