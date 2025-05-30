@@ -4,11 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Search, User, Plus } from "lucide-react";
+import { Trash2, Search, User, Plus, Calendar } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { CreateUserForm } from './CreateUserForm';
+import { PipelineColumn } from './PipelineColumn';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,13 +26,18 @@ import {
 export function UserManagement() {
   const { isAdmin } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [viewMode, setViewMode] = useState<'users' | 'pipeline'>('users');
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+    if (viewMode === 'pipeline') {
+      fetchAppointments();
+    }
+  }, [viewMode]);
 
   const fetchUsers = async () => {
     try {
@@ -51,6 +58,85 @@ export function UserManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          *,
+          customers (
+            id,
+            name,
+            email,
+            phone,
+            contact,
+            priority,
+            payment_status,
+            satisfaction,
+            booked_appointments,
+            completed_appointments,
+            pipeline_stage
+          ),
+          team_members (
+            id,
+            name,
+            role
+          )
+        `)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast({
+        title: "Fehler",
+        description: "Termine konnten nicht geladen werden.",
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const newStatus = destination.droppableId;
+    
+    try {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ result: newStatus })
+        .eq('id', draggableId);
+
+      if (error) throw error;
+
+      // Update local state
+      setAppointments(prev => prev.map(appointment => 
+        appointment.id === draggableId 
+          ? { ...appointment, result: newStatus }
+          : appointment
+      ));
+
+      toast({
+        title: "Status aktualisiert",
+        description: "Der Terminstatus wurde erfolgreich geändert.",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      toast({
+        title: "Fehler",
+        description: "Status konnte nicht aktualisiert werden.",
+        variant: "destructive",
+        className: "text-left bg-yellow-100 border-yellow-300",
+      });
     }
   };
 
@@ -186,6 +272,112 @@ export function UserManagement() {
     );
   }
 
+  // Pipeline View
+  if (viewMode === 'pipeline') {
+    // Group appointments by status for pipeline view
+    const appointmentsByStatus = {
+      'termin_ausstehend': appointments.filter(apt => apt.result === 'termin_ausstehend'),
+      'termin_erschienen': appointments.filter(apt => apt.result === 'termin_erschienen'),
+      'termin_abgeschlossen': appointments.filter(apt => apt.result === 'termin_abgeschlossen'),
+      'follow_up': appointments.filter(apt => apt.result === 'follow_up'),
+      'termin_abgesagt': appointments.filter(apt => apt.result === 'termin_abgesagt'),
+      'termin_verschoben': appointments.filter(apt => apt.result === 'termin_verschoben')
+    };
+
+    const pipelineColumns = [
+      { 
+        id: 'termin_ausstehend', 
+        title: 'Ausstehend', 
+        color: 'bg-blue-600',
+        appointments: appointmentsByStatus.termin_ausstehend
+      },
+      { 
+        id: 'termin_erschienen', 
+        title: 'Erschienen', 
+        color: 'bg-yellow-600',
+        appointments: appointmentsByStatus.termin_erschienen
+      },
+      { 
+        id: 'termin_abgeschlossen', 
+        title: 'Abgeschlossen', 
+        color: 'bg-green-600',
+        appointments: appointmentsByStatus.termin_abgeschlossen
+      },
+      { 
+        id: 'follow_up', 
+        title: 'Follow Up', 
+        color: 'bg-purple-600',
+        appointments: appointmentsByStatus.follow_up
+      },
+      { 
+        id: 'termin_abgesagt', 
+        title: 'Abgesagt', 
+        color: 'bg-red-600',
+        appointments: appointmentsByStatus.termin_abgesagt
+      },
+      { 
+        id: 'termin_verschoben', 
+        title: 'Verschoben', 
+        color: 'bg-orange-600',
+        appointments: appointmentsByStatus.termin_verschoben
+      }
+    ];
+
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex justify-between items-center">
+          <div className="text-left">
+            <h1 className="text-3xl font-bold text-gray-900 text-left">Termin Pipeline</h1>
+            <p className="text-gray-600 text-left">Alle Termine im Überblick verwalten</p>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setViewMode('users')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <User className="h-4 w-4" />
+              Benutzer-Ansicht
+            </Button>
+            <Button 
+              onClick={() => setShowCreateForm(true)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Benutzer erstellen
+            </Button>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-left text-lg">Alle Termine ({appointments.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <div className="flex gap-6 overflow-x-auto pb-4">
+                {pipelineColumns.map((column) => (
+                  <PipelineColumn
+                    key={column.id}
+                    title={column.title}
+                    stageId={column.id}
+                    customers={column.appointments}
+                    color={column.color}
+                    onCustomerClick={(appointment) => {
+                      console.log('Appointment clicked:', appointment);
+                    }}
+                    showDeleteButton={false}
+                  />
+                ))}
+              </div>
+            </DragDropContext>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Users View (existing code)
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
@@ -193,13 +385,23 @@ export function UserManagement() {
           <h1 className="text-3xl font-bold text-gray-900 text-left">Benutzerverwaltung</h1>
           <p className="text-gray-600 text-left">Verwalten Sie alle Benutzer des Systems</p>
         </div>
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Benutzer erstellen
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setViewMode('pipeline')}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            Termin Pipeline
+          </Button>
+          <Button 
+            onClick={() => setShowCreateForm(true)}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Benutzer erstellen
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
